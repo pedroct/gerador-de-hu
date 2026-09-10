@@ -1,0 +1,4 @@
+interface:
+  display_name: "Refinar histórias com Gherkin"
+  short_description: "Refina requisitos com exemplos Gherkin claros"
+  default_prompt: "Use $refining-user-stories-with-gherkin para refinar esta história e seus critérios de aceitação."

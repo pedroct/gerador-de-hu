@@ -1,0 +1,4 @@
+interface:
+  display_name: "Refinar histórias com 3C"
+  short_description: "Orquestra Card, Conversation e Confirmation"
+  default_prompt: "Use $refining-user-stories-with-3c para preparar Description e Acceptance Criteria desta User Story no Azure Boards."
