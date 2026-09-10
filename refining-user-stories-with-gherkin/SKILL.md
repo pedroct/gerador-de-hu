@@ -9,25 +9,29 @@ description: Use when refining, reviewing, or splitting user stories, acceptance
 
 Transformar requisitos ainda imprecisos em entendimento compartilhado e exemplos verificáveis. Gherkin ilustra regras de negócio; não substitui descoberta, decisões do produto nem perguntas em aberto.
 
+## Entrada e limite da skill
+
+Consuma a história ou Card, os fatos e as decisões registradas na Conversation, incluindo as regras decididas. Aponte lacunas sem chamar outra skill. Se o ator, o valor ou uma regra necessária estiver ausente, reporte a lacuna.
+
+Esta é uma skill-folha. Retorne regras confirmadas, exemplos e estado da Confirmation (`Ausente`, `Parcial` ou `Completa`). Não emita prontidão geral. Sob a 3C, aceite como confirmadas somente decisões da Conversation.
+
 ## Fluxo de refinamento
 
-1. **Preserve a evidência.** Separe fatos confirmados, dúvidas e hipóteses. Nunca converta uma solução plausível em regra confirmada. Se não puder perguntar, mantenha a lacuna explícita e considere a história não pronta quando ela impedir implementação ou teste.
-2. **Formule a história.** **REQUIRED SUB-SKILL:** use refining-user-stories-with-3w para estabelecer e validar ator, capacidade e benefício. Retorne então a este fluxo para extrair regras e exemplos. Se o gate 3W não passar, não promova cláusulas fracas a fatos; trabalhe somente com regras confirmadas que ainda possam formar exemplos significativos. Divida a história quando houver resultados independentes, fluxos com valor próprio ou regras que não possam ser entendidas e testadas juntas.
-3. **Extraia regras e exemplos.** Nomeie cada regra de negócio e cubra-a com exemplos concretos. Inclua fluxo principal, alternativas, limites e falhas somente quando sustentados pelo requisito ou identificados como hipóteses a validar.
-4. **Escreva ou revise Gherkin.** Antes disso, leia [references/gherkin-practices.md](references/gherkin-practices.md). Use a linguagem do domínio, não detalhes de tela, API, banco de dados, classes ou automação, salvo quando a interface técnica for parte explícita do comportamento contratado.
-5. **Avalie a prontidão.** Rastreie cada exemplo até uma regra, liste decisões pendentes e dê um veredito binário: `Pronta` ou `Não pronta`. Se uma condição pendente alterar implementação ou teste, o veredito é `Não pronta`; nunca use “pronta com ressalvas” ou “pronta condicionada”.
+1. **Preserve a evidência.** Separe fatos confirmados, dúvidas e hipóteses. Nunca converta uma solução plausível em regra confirmada. Se não puder perguntar, mantenha a lacuna explícita.
+2. **Extraia regras e exemplos.** Nomeie cada regra de negócio e cubra-a com exemplos concretos. Inclua fluxo principal, alternativas, limites e falhas somente quando sustentados pelo requisito ou identificados como hipóteses a validar. Divida a Confirmation quando houver regras que não possam ser entendidas e testadas juntas.
+3. **Escreva ou revise Gherkin.** Antes disso, leia [references/gherkin-practices.md](references/gherkin-practices.md). Use a linguagem do domínio, não detalhes de tela, API, banco de dados, classes ou automação, salvo quando a interface técnica for parte explícita do comportamento contratado.
+4. **Avalie a Confirmation.** Rastreie cada exemplo até uma regra, liste decisões pendentes e classifique o estado como `Ausente`, `Parcial` ou `Completa`.
 
-Quando estiver sob refining-user-stories-with-3c, trate como confirmadas somente as decisões registradas pela Conversation. Devolva regras e exemplos completos como Confirmation. No Azure Boards, esse conteúdo pertence a `Acceptance Criteria`; hipóteses, perguntas e histórico permanecem em `Description`. Se nenhuma regra puder formar exemplo legítimo, mantenha `Acceptance Criteria` vazio.
+No Azure Boards, regras confirmadas e exemplos pertencem a `Acceptance Criteria`; hipóteses, perguntas e histórico permanecem em `Description`. Se nenhuma regra puder formar exemplo legítimo, mantenha `Acceptance Criteria` vazio.
 
 ## Contrato da entrega
 
 Salvo se o usuário pedir outro formato, produza nesta ordem:
 
-1. **História refinada** — ator, capacidade e benefício.
-2. **Regras confirmadas** — sem misturar suposições.
-3. **Exemplos de aceitação** — um bloco Gherkin completo, válido e legível, contendo apenas comportamentos confirmados. Cada `Regra` contém ao menos um cenário; cada cenário contém passos. Se não houver comportamento suficiente para formar um exemplo, declare isso em dúvidas, fora do bloco.
-4. **Dúvidas e hipóteses** — incluindo impacto de cada lacuna.
-5. **Prontidão** — veredito e bloqueadores.
+1. **Regras confirmadas** — sem misturar suposições.
+2. **Exemplos de aceitação** — um bloco Gherkin completo, válido e legível, contendo apenas comportamentos confirmados. Cada `Regra` contém ao menos um cenário; cada cenário contém passos. Se não houver comportamento suficiente para formar um exemplo, declare isso em dúvidas, fora do bloco.
+3. **Dúvidas e hipóteses** — incluindo impacto de cada lacuna.
+4. **Estado da Confirmation** — `Ausente`, `Parcial` ou `Completa`, com justificativa objetiva.
 
 ## Critérios de qualidade
 
@@ -46,4 +50,4 @@ Salvo se o usuário pedir outro formato, produza nesta ordem:
 - `Contexto` usado para esconder configuração longa ou regras diferentes.
 - `Esquema do Cenário` usado em comportamentos diferentes apenas para reduzir texto.
 - Blocos Gherkin parciais ou comentários usados no lugar de exemplos.
-- História declarada pronta apesar de decisões que alteram comportamento observável.
+- Confirmation declarada completa apesar de decisões que alteram comportamento observável.

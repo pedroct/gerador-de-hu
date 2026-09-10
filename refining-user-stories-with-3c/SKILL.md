@@ -14,8 +14,10 @@ Trate a história como três aspectos complementares: o **Card** identifica e an
 1. **Preserve a evidência.** Mantenha separados fatos confirmados, propostas, hipóteses e decisões pendentes. Uma sugestão em chat, documento ou reunião não vira regra até ser aceita por quem tem autoridade sobre a decisão.
 2. **Card — cartão.** **REQUIRED SUB-SKILL:** use refining-user-stories-with-3w. O cartão é um lembrete conciso e negociável, não uma especificação. Registre história ou rascunho, contexto essencial e estado 3W.
 3. **Conversation — conversa.** Conduza ou prepare a troca necessária entre negócio, produto, desenvolvimento e outros decisores relevantes. Para cada lacuna, registre pergunta, impacto, responsável pela decisão e resposta quando obtida. Menção, participação ou ausência de conversa com alguém não prova autoridade decisória nem cria uma decisão atribuída à pessoa; sem atribuição explícita, use `a identificar`. Sintetize exemplos discutidos e decisões; não fabrique consenso quando a conversa não ocorreu.
-4. **Confirmation — confirmação.** Passe somente regras decididas, com evento e resultado observável, para **REQUIRED SUB-SKILL:** refining-user-stories-with-gherkin. Confirmação exige critérios utilizáveis como base de testes de aceitação; repetir o cartão ou listar intenções não basta.
+4. **Confirmation — confirmação.** **REQUIRED SUB-SKILL:** refining-user-stories-with-gherkin. Encaminhe à Gherkin a história ou Card, os fatos e as decisões registradas na Conversation, incluindo as regras decididas. Confirmação exige critérios utilizáveis como base de testes de aceitação; repetir o cartão ou listar intenções não basta.
 5. **Avalie os gates.** Classifique `Card` como `Estruturado` ou `Incompleto`; `Conversation` como `Pendente`, `Em andamento` ou `Suficiente para o escopo`; `Confirmation` como `Ausente`, `Parcial` ou `Completa`. A história está `Pronta` apenas com Card estruturado, conversa suficiente e confirmação completa, sem decisão bloqueadora.
+
+A 3C é a única dona da prontidão geral. Estados locais da 3W e Gherkin são insumos; não os trate como vereditos concorrentes: a única prontidão geral é a consolidada pela 3C.
 
 ## Azure Boards
 
