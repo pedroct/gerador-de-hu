@@ -4,6 +4,7 @@ import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "validate_backlog.py"
@@ -54,6 +55,48 @@ Funcionalidade: Reabrir diligência
 
 
 class ValidateBacklogTests(unittest.TestCase):
+    def test_parse_backlog_ignores_headings_inside_fences(self):
+        text = """## 1.0.0 [Epic] Épico
+Texto fora de seção.
+### Description
+Texto da descrição.
+```markdown
+## 9.0.0 [Epic] Exemplo
+```
+"""
+        items = MODULE.parse_backlog(text)
+        self.assertEqual(["1.0.0"], [item.key for item in items])
+        self.assertIn("Texto da descrição.", items[0].section("Description"))
+
+    def test_rejects_invalid_epic_key(self):
+        text = "## 1.1.0 [Epic] Épico inválido\n"
+        self.assertIn("1.1.0 não é uma chave Epic válida", MODULE.validate_backlog(text))
+
+    def test_rejects_invalid_feature_key(self):
+        text = """## 1.0.0 [Epic] Épico
+### 1.1.1 [Feature] Feature inválida
+#### Parent
+`1.0.0`
+#### Description
+Origem na spec: seção 1.
+"""
+        self.assertIn("1.1.1 não é uma chave Feature válida", MODULE.validate_backlog(text))
+
+    def test_rejects_invalid_story_key(self):
+        text = """## 1.0.0 [Epic] Épico
+### 1.1.0 [Feature] Feature
+#### Parent
+`1.0.0`
+#### Description
+Origem na spec: seção 1.
+#### 1.1.0 [User Story] História inválida
+##### Parent
+`1.1.0`
+##### Description
+Origem na spec: seção 1.1.
+"""
+        self.assertIn("1.1.0 não é uma chave User Story válida", MODULE.validate_backlog(text))
+
     def test_rejects_empty_document(self):
         self.assertIn(
             "o backlog deve conter pelo menos um item de trabalho",
@@ -127,6 +170,32 @@ class ValidateBacklogTests(unittest.TestCase):
         text = VALID.replace("1.1.1", "1.1.2")
         errors = MODULE.validate_backlog(text, update_mode=True)
         self.assertNotIn("histórias sob 1.1.0 deve começar em 1", errors)
+
+    def test_reports_unordered_group(self):
+        errors = MODULE._validate_groups({("histórias", "1.1.0"): [2, 1]}, update_mode=True)
+        self.assertIn("histórias sob 1.1.0 deve estar em ordem crescente", errors)
+
+    def test_reports_non_contiguous_group(self):
+        errors = MODULE._validate_groups({("histórias", "1.1.0"): [1, 3]}, update_mode=False)
+        self.assertIn("histórias sob 1.1.0 deve ser contíguo", errors)
+
+    def test_empty_group_has_no_errors(self):
+        self.assertEqual([], MODULE._validate_groups({}, update_mode=False))
+
+    def test_main_returns_success_for_valid_backlog(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "backlog.md"
+            path.write_text(VALID, encoding="utf-8")
+            self.assertEqual(0, MODULE.main([str(path)]))
+
+    def test_main_returns_one_for_invalid_backlog(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "backlog.md"
+            path.write_text("", encoding="utf-8")
+            self.assertEqual(1, MODULE.main([str(path)]))
+
+    def test_main_returns_two_for_unreadable_backlog(self):
+        self.assertEqual(2, MODULE.main(["/caminho/que/nao/existe/backlog.md"]))
 
 
 if __name__ == "__main__":
