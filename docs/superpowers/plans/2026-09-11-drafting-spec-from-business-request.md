@@ -1,41 +1,41 @@
-# Drafting A Spec From Business Request Implementation Plan
+# Plano de Implementação: drafting-a-spec-from-business-request
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Para trabalhadores agênticos:** REQUIRED SUB-SKILL: use superpowers:subagent-driven-development (recomendado) ou superpowers:executing-plans para implementar este plano tarefa por tarefa. As etapas usam a sintaxe de checkbox (`- [ ]`) para rastreamento.
 
-**Goal:** Add a fifth, independent skill — `drafting-a-spec-from-business-request` — that turns an informal business request (email, ticket, chat) plus read-only inspection of the local application source into a spec document compatible with the existing `generating-azure-boards-backlog-from-spec` input, without touching any of the four existing skills.
+**Objetivo:** Adicionar uma quinta skill independente — `drafting-a-spec-from-business-request` — que transforma um pedido informal de negócio (e-mail, ticket, chat) somado a uma investigação somente leitura do código-fonte local em um documento de spec compatível com a entrada que `generating-azure-boards-backlog-from-spec` já aceita hoje, sem tocar em nenhuma das quatro skills existentes.
 
-**Architecture:** A single new skill directory (`SKILL.md`, `agents/openai.yaml`, `references/business-request-investigation.md`, `tests/test_skill_integration.py`) that is a pure predecessor in the skill graph — it never calls, and is never called by, the four existing skills. Its own static test enforces that isolation the same way `generating-azure-boards-backlog-from-spec/tests/test_skill_integration.py` already enforces the acyclic graph among the other four. `pyproject.toml` and `README.md` are updated (project-level files, not skill files) so the new skill is discoverable and its tests run under the existing `pytest`/`quick_validate.py` conventions.
+**Arquitetura:** Um único diretório de skill novo (`SKILL.md`, `agents/openai.yaml`, `references/business-request-investigation.md`, `tests/test_skill_integration.py`) que é uma predecessora pura no grafo de skills — nunca chama, nem é chamada por, nenhuma das quatro skills existentes. Seu próprio teste estático garante esse isolamento, do mesmo jeito que `generating-azure-boards-backlog-from-spec/tests/test_skill_integration.py` já garante o grafo acíclico entre as outras quatro. `pyproject.toml` e `README.md` são atualizados (arquivos de projeto, não arquivos de skill) para que a nova skill fique descobrível e seus testes rodem sob as convenções já existentes de `pytest`/`quick_validate.py`.
 
-**Tech Stack:** Prompt-only skill authoring (Markdown + YAML), Python 3.12 `unittest`/`pytest` for the static isolation test, `uv run` for execution, the repo's existing `skill-creator` (`~/.codex/skills/.system/skill-creator/scripts/init_skill.py` and `quick_validate.py`) for scaffolding and structural validation — the same tool already used to bootstrap the other four skills in this repo.
+**Stack técnica:** Autoria de skill somente por prompt (Markdown + YAML), Python 3.12 `unittest`/`pytest` para o teste estático de isolamento, `uv run` para execução, o `skill-creator` já presente na máquina (`~/.codex/skills/.system/skill-creator/scripts/init_skill.py` e `quick_validate.py`) para scaffolding e validação estrutural — a mesma ferramenta já usada para inicializar as outras quatro skills deste repositório.
 
 **Spec:** docs/superpowers/specs/2026-09-11-drafting-spec-from-business-request-design.md
 
-## Global Constraints
+## Restrições Globais
 
-- None of the four existing skills (`refining-user-stories-with-3w`, `refining-user-stories-with-3c`, `refining-user-stories-with-gherkin`, `generating-azure-boards-backlog-from-spec`) may be created, removed, or modified.
-- Every business request is treated as a single unit of scope; the new skill never splits it into multiple items.
-- The new skill takes no project-path parameter; it discovers sibling repositories from wherever it is installed.
-- Code investigation is read-only; scripts, tests, builds, servers, migrations, or the application itself are never executed without explicit authorization.
-- The generated spec is saved to a file and the skill stops there; it never chains automatically into backlog generation.
-- SKILL.md frontmatter `description` ≤ 1024 chars, no `<`/`>`; `agents/openai.yaml` `short_description` is 25–64 chars (the skill-creator's own constraint, already followed by the other four skills).
+- Nenhuma das quatro skills existentes (`refining-user-stories-with-3w`, `refining-user-stories-with-3c`, `refining-user-stories-with-gherkin`, `generating-azure-boards-backlog-from-spec`) pode ser criada, removida ou modificada.
+- Todo pedido de negócio é tratado como uma única unidade de escopo; a nova skill nunca o divide em múltiplos itens.
+- A nova skill não recebe parâmetro de caminho de projeto; ela descobre repositórios irmãos a partir de onde está instalada.
+- A investigação de código é somente leitura; scripts, testes, builds, servidores, migrações ou a própria aplicação nunca são executados sem autorização explícita.
+- A spec gerada é salva em arquivo e a skill para ali; ela nunca encadeia automaticamente a geração do backlog.
+- Frontmatter do `SKILL.md`: `description` com no máximo 1024 caracteres, sem `<`/`>`; `agents/openai.yaml`: `short_description` entre 25 e 64 caracteres (restrição do próprio skill-creator, já seguida pelas outras quatro skills).
 
 ---
 
-### Task 1: Scaffold and author the `drafting-a-spec-from-business-request` skill
+### Tarefa 1: Criar e escrever o conteúdo da skill `drafting-a-spec-from-business-request`
 
-**Files:**
-- Create: `drafting-a-spec-from-business-request/SKILL.md`
-- Create: `drafting-a-spec-from-business-request/agents/openai.yaml`
-- Create: `drafting-a-spec-from-business-request/references/business-request-investigation.md`
-- Test: `drafting-a-spec-from-business-request/tests/test_skill_integration.py`
+**Arquivos:**
+- Criar: `drafting-a-spec-from-business-request/SKILL.md`
+- Criar: `drafting-a-spec-from-business-request/agents/openai.yaml`
+- Criar: `drafting-a-spec-from-business-request/references/business-request-investigation.md`
+- Teste: `drafting-a-spec-from-business-request/tests/test_skill_integration.py`
 
 **Interfaces:**
-- Consumes: nothing from other tasks (first task).
-- Produces: the skill directory itself, at the fixed path `drafting-a-spec-from-business-request/`, which Task 2 references by path (for `pyproject.toml` `testpaths`) and Task 3 references by path (for `README.md` links). No code-level interface — this is a prompt-only skill; downstream tasks depend only on the directory/file paths listed above, not on any function signature.
+- Consome: nada de outras tarefas (é a primeira tarefa).
+- Produz: o diretório da skill em si, no caminho fixo `drafting-a-spec-from-business-request/`, que a Tarefa 2 referencia por caminho (para `testpaths` do `pyproject.toml`) e a Tarefa 3 referencia por caminho (para os links do `README.md`). Não há interface de código — é uma skill somente de prompt; as tarefas seguintes dependem apenas dos caminhos de arquivo listados acima, não de nenhuma assinatura de função.
 
-- [ ] **Step 1: Scaffold the skill directory with the repo's existing skill-creator tool**
+- [ ] **Passo 1: Gerar o scaffold do diretório da skill com o skill-creator já usado no repositório**
 
-Run from the repo root (`/Volumes/DOCK/Projetos/pessoal/gerador-hu`):
+Rode a partir da raiz do repositório (`/Volumes/DOCK/Projetos/pessoal/gerador-hu`):
 
 ```bash
 uv run --with pyyaml python \
@@ -48,11 +48,11 @@ uv run --with pyyaml python \
   --interface default_prompt='Use $drafting-a-spec-from-business-request para transformar este pedido de negócio em uma spec antes de gerar o backlog.'
 ```
 
-Expected output: `[OK] Skill 'drafting-a-spec-from-business-request' initialized successfully...`. This creates `SKILL.md` (with `[TODO: ...]` placeholders — expected, replaced in Step 4), `agents/openai.yaml` (final content, no further edits needed), and an empty `references/` directory.
+Saída esperada: `[OK] Skill 'drafting-a-spec-from-business-request' initialized successfully...`. Isso cria `SKILL.md` (com placeholders `[TODO: ...]` — esperado, substituídos no Passo 4), `agents/openai.yaml` (conteúdo final, sem edição posterior necessária) e um diretório `references/` vazio.
 
-- [ ] **Step 2: Write the failing test**
+- [ ] **Passo 2: Escrever o teste que falha**
 
-Create `drafting-a-spec-from-business-request/tests/test_skill_integration.py`:
+Criar `drafting-a-spec-from-business-request/tests/test_skill_integration.py`:
 
 ```python
 import unittest
@@ -165,14 +165,14 @@ if __name__ == "__main__":
     unittest.main()
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [ ] **Passo 3: Rodar o teste para confirmar que ele falha**
 
-Run: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
-Expected: FAIL — the placeholder `SKILL.md` from Step 1 doesn't contain any of the asserted strings, and `references/business-request-investigation.md` doesn't exist yet (`FileNotFoundError` in `setUpClass`).
+Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Esperado: FALHA — o `SKILL.md` placeholder do Passo 1 não contém nenhuma das strings verificadas, e `references/business-request-investigation.md` ainda não existe (`FileNotFoundError` em `setUpClass`).
 
-- [ ] **Step 4: Write the real SKILL.md content**
+- [ ] **Passo 4: Escrever o conteúdo real do SKILL.md**
 
-Overwrite `drafting-a-spec-from-business-request/SKILL.md` completely with:
+Sobrescrever completamente `drafting-a-spec-from-business-request/SKILL.md` com:
 
 ```markdown
 ---
@@ -262,13 +262,12 @@ Tudo que não pôde ser confirmado nem pelo pedido nem pelo código.
 - Não encadeie automaticamente a geração do backlog; a spec fica pronta para uso manual do usuário.
 ```
 
-Note the fenced template block is nested inside the file using four backticks conceptually — in the
-actual file use a single set of triple backticks for the outer `## Template da spec` fence (as shown);
-do not double-fence it.
+Observação: o bloco de template aninhado dentro deste arquivo usa um único par de cercas de três
+crases para a seção `## Template da spec` (como mostrado); não duplique a cerca.
 
-- [ ] **Step 5: Write the investigation reference**
+- [ ] **Passo 5: Escrever a referência de investigação**
 
-Create `drafting-a-spec-from-business-request/references/business-request-investigation.md`:
+Criar `drafting-a-spec-from-business-request/references/business-request-investigation.md`:
 
 ```markdown
 # Investigação de código a partir de um pedido de negócio
@@ -330,17 +329,17 @@ Entregue a spec com as três categorias claramente identificadas. Quem for rodar
 contexto Brownfield de estado atual, nunca como confirmação de valor ou decisão de negócio.
 ```
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [ ] **Passo 6: Rodar o teste para confirmar que ele passa**
 
-Run: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
-Expected: PASS — 9 tests, 0 failures.
+Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Esperado: PASSA — 9 testes, 0 falhas.
 
-- [ ] **Step 7: Validate the skill structure**
+- [ ] **Passo 7: Validar a estrutura da skill**
 
-Run: `uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py drafting-a-spec-from-business-request`
-Expected: `Skill is valid!`
+Rode: `uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py drafting-a-spec-from-business-request`
+Esperado: `Skill is valid!`
 
-- [ ] **Step 8: Commit**
+- [ ] **Passo 8: Commit**
 
 ```bash
 git add drafting-a-spec-from-business-request/
@@ -359,24 +358,26 @@ EOF
 
 ---
 
-### Task 2: Wire the new skill's tests into the repo's pytest/coverage setup
+### Tarefa 2: Conectar os testes da nova skill ao pytest/coverage do repositório
 
-**Files:**
-- Modify: `pyproject.toml:47-51` (`[tool.pytest.ini_options]` `testpaths`)
+**Arquivos:**
+- Modificar: `pyproject.toml:47-51` (`[tool.pytest.ini_options]` `testpaths`)
 
 **Interfaces:**
-- Consumes: `drafting-a-spec-from-business-request/tests/test_skill_integration.py` from Task 1 (by path only).
-- Produces: a `pytest` run from the repo root that discovers both the existing skill's tests and the new skill's tests, for Task 3's verification step to rely on.
+- Consome: `drafting-a-spec-from-business-request/tests/test_skill_integration.py` da Tarefa 1 (só pelo caminho).
+- Produz: uma execução de `pytest` a partir da raiz do repositório que descobre tanto os testes da skill existente quanto os da nova skill, para o passo de verificação da Tarefa 3.
 
-- [ ] **Step 1: Write the failing check**
+- [ ] **Passo 1: Escrever a checagem que falha**
 
-Run: `uv run pytest -v` from the repo root.
-Expected (before the edit): only the 2 existing test files under
-`generating-azure-boards-backlog-from-spec/tests/` run; `drafting-a-spec-from-business-request/tests/test_skill_integration.py` is NOT collected (it sits outside the configured `testpaths`), even though it passes when run directly. This confirms the wiring gap.
+Rode: `uv run pytest -v` a partir da raiz do repositório.
+Esperado (antes da edição): só os 2 arquivos de teste existentes em
+`generating-azure-boards-backlog-from-spec/tests/` rodam;
+`drafting-a-spec-from-business-request/tests/test_skill_integration.py` NÃO é coletado (está fora do
+`testpaths` configurado), mesmo passando quando rodado diretamente. Isso confirma a lacuna de conexão.
 
-- [ ] **Step 2: Add the new tests directory to testpaths**
+- [ ] **Passo 2: Adicionar o novo diretório de testes ao testpaths**
 
-In `pyproject.toml`, find:
+Em `pyproject.toml`, encontre:
 
 ```toml
 [tool.pytest.ini_options]
@@ -386,7 +387,7 @@ testpaths = [
 addopts = "-ra"
 ```
 
-Replace with:
+Substitua por:
 
 ```toml
 [tool.pytest.ini_options]
@@ -397,14 +398,15 @@ testpaths = [
 addopts = "-ra"
 ```
 
-- [ ] **Step 3: Run the full suite to verify it passes**
+- [ ] **Passo 3: Rodar a suíte completa para confirmar que passa**
 
-Run: `uv run pytest -v` from the repo root.
-Expected: PASS — the existing tests plus the new 9 isolation/content tests all collected and green (no regressions in the four existing skills, since none of their files changed).
+Rode: `uv run pytest -v` a partir da raiz do repositório.
+Esperado: PASSA — os testes existentes mais os 9 novos testes de isolamento/conteúdo, todos coletados
+e verdes (sem regressão nas quatro skills existentes, já que nenhum arquivo delas mudou).
 
-- [ ] **Step 4: Re-run quick_validate.py across all five skills**
+- [ ] **Passo 4: Rodar de novo o quick_validate.py nas cinco skills**
 
-Run:
+Rode:
 
 ```bash
 for skill_dir in \
@@ -419,9 +421,9 @@ for skill_dir in \
 done
 ```
 
-Expected: `Skill is valid!` printed five times.
+Esperado: `Skill is valid!` impresso cinco vezes.
 
-- [ ] **Step 5: Commit**
+- [ ] **Passo 5: Commit**
 
 ```bash
 git add pyproject.toml
@@ -435,18 +437,18 @@ EOF
 
 ---
 
-### Task 3: Document the new skill in README.md
+### Tarefa 3: Documentar a nova skill no README.md
 
-**Files:**
-- Modify: `README.md` (three separate, non-adjacent edits — see below)
+**Arquivos:**
+- Modificar: `README.md` (três edições separadas e não adjacentes — ver abaixo)
 
 **Interfaces:**
-- Consumes: the skill name and path from Task 1 (`drafting-a-spec-from-business-request/SKILL.md`), the validation-loop pattern already in the file.
-- Produces: nothing consumed by later tasks — this is the last content task.
+- Consome: o nome e o caminho da skill da Tarefa 1 (`drafting-a-spec-from-business-request/SKILL.md`), o padrão do loop de validação já presente no arquivo.
+- Produz: nada consumido por tarefas posteriores — esta é a última tarefa de conteúdo.
 
-- [ ] **Step 1: Add the informal-request entry point after the existing pipeline diagram**
+- [ ] **Passo 1: Adicionar o ponto de entrada de pedido informal logo após o diagrama de pipeline existente**
 
-Find this exact block (currently lines 9–23 of `README.md`):
+Encontre este bloco exato (atualmente linhas 9–23 do `README.md`):
 
 ```markdown
 ```text
@@ -460,7 +462,8 @@ Spec
 - **3W — Who, What, Why:** identifica ator, capacidade/resultado e valor, separando fatos de lacunas.
 ```
 
-Insert a new paragraph and diagram immediately after the closing ` ``` ` of the pipeline diagram and before the `- **3W...` bullet list:
+Insira um novo parágrafo e diagrama logo depois do fechamento ` ``` ` do diagrama de pipeline e antes
+da lista `- **3W...`:
 
 ```markdown
 Quando não existe spec escrita — só um pedido informal de negócio, como um e-mail ou ticket — a skill
@@ -474,9 +477,9 @@ Pedido informal (e-mail, ticket) + código-fonte
 ```
 ```
 
-- [ ] **Step 2: Add a row to the "Skills disponíveis" table**
+- [ ] **Passo 2: Adicionar uma linha à tabela "Skills disponíveis"**
 
-Find:
+Encontre:
 
 ```markdown
 | Skill | Use quando | Saída principal |
@@ -484,7 +487,7 @@ Find:
 | [`refining-user-stories-with-3w`](refining-user-stories-with-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
 ```
 
-Replace with:
+Substitua por:
 
 ```markdown
 | Skill | Use quando | Saída principal |
@@ -493,9 +496,9 @@ Replace with:
 | [`refining-user-stories-with-3w`](refining-user-stories-with-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
 ```
 
-- [ ] **Step 3: Add the new skill to the validation loop and the pytest command list**
+- [ ] **Passo 3: Adicionar a nova skill ao loop de validação e à lista de comandos do pytest**
 
-Find:
+Encontre:
 
 ```markdown
 Execute a suíte completa da quarta skill:
@@ -519,7 +522,7 @@ done
 ```
 ```
 
-Replace with:
+Substitua por:
 
 ```markdown
 Execute a suíte completa da quarta e da quinta skill:
@@ -545,12 +548,16 @@ done
 ```
 ```
 
-- [ ] **Step 4: Verify the diff touches only README.md, pyproject.toml, and the new skill directory**
+- [ ] **Passo 4: Verificar que o diff só toca README.md, pyproject.toml e o novo diretório da skill**
 
-Run: `git status`
-Expected: modified `README.md`; the new directory `drafting-a-spec-from-business-request/` (already committed in Task 1); `pyproject.toml` (already committed in Task 2). No file under `refining-user-stories-with-3w/`, `refining-user-stories-with-3c/`, `refining-user-stories-with-gherkin/`, or `generating-azure-boards-backlog-from-spec/` appears as modified — this confirms the Global Constraint that no existing skill was altered.
+Rode: `git status`
+Esperado: `README.md` modificado; o novo diretório `drafting-a-spec-from-business-request/` (já
+commitado na Tarefa 1); `pyproject.toml` (já commitado na Tarefa 2). Nenhum arquivo em
+`refining-user-stories-with-3w/`, `refining-user-stories-with-3c/`, `refining-user-stories-with-gherkin/`
+ou `generating-azure-boards-backlog-from-spec/` aparece como modificado — isso confirma a Restrição
+Global de que nenhuma skill existente foi alterada.
 
-- [ ] **Step 5: Commit**
+- [ ] **Passo 5: Commit**
 
 ```bash
 git add README.md
@@ -564,25 +571,25 @@ EOF
 
 ---
 
-### Task 4: Manual acceptance check against the Diligência repository
+### Tarefa 4: Checagem manual de aceite contra o repositório Diligência
 
-This task is a verification exercise, not a code change to `gerador-hu` — its output is a judgment call
-recorded in the conversation with the user, not a commit. It exists because the design's testing
-strategy requires validating the skill against the real motivating example (the duplicate pre-toaf
-cancellation request) before considering the feature done.
+Esta tarefa é um exercício de verificação, não uma mudança de código no `gerador-hu` — seu resultado é
+um julgamento registrado na conversa com o usuário, não um commit. Ela existe porque a estratégia de
+testes da spec exige validar a skill contra o exemplo real que motivou o design (o cancelamento
+duplicado do pré-Toaf) antes de considerar a funcionalidade concluída.
 
-- [ ] **Step 1: Install (or symlink for a dry run) the skill where it will actually run**
+- [ ] **Passo 1: Instalar (ou usar um dry run) a skill onde ela de fato vai rodar**
 
-The skill is meant to live inside the target application's own directory. For this check, either copy
-`drafting-a-spec-from-business-request/` into a `.claude/skills/` (or equivalent) location at
-`/Users/pedroct/Projetos/sefaz/diligencia/` (the workspace root containing `diligencia-api`,
-`diligencia-front`, `diligencia-mobile` as siblings), or run the skill's instructions manually against
-that path if no install mechanism is configured yet. Confirm `git status` in `diligencia` beforehand so
-nothing uncommitted is at risk of being overwritten.
+A skill é pensada para viver dentro do próprio diretório da aplicação-alvo. Para esta checagem, copie
+`drafting-a-spec-from-business-request/` para um local como `.claude/skills/` (ou equivalente) em
+`/Users/pedroct/Projetos/sefaz/diligencia/` (a raiz do workspace que contém `diligencia-api`,
+`diligencia-front`, `diligencia-mobile` como irmãos), ou siga as instruções da skill manualmente contra
+esse caminho se ainda não houver mecanismo de instalação configurado. Confirme o `git status` do
+`diligencia` antes, para não sobrescrever nada não commitado.
 
-- [ ] **Step 2: Run the skill against the real P1 request**
+- [ ] **Passo 2: Rodar a skill contra o pedido real do P1**
 
-Provide the skill with this business request text verbatim:
+Forneça à skill este texto de pedido de negócio, na íntegra:
 
 ```text
 P1 - Título: Cancelamento do pre-toaf duplicado
@@ -595,27 +602,28 @@ mensagem o sistema deveria atualizar a página para que o usuário não consiga 
 cancelamento.
 ```
 
-- [ ] **Step 3: Check the produced spec against this acceptance checklist**
+- [ ] **Passo 3: Conferir a spec produzida contra esta checklist de aceite**
 
-- [ ] The spec treats the request as one scope — no splitting.
-- [ ] `## Repositórios considerados` lists at least `diligencia-api` as relevant (the cancellation
-      logic lives in `ToafService`/`DiligenciaController` per the earlier `grep` in this
-      conversation), with a stated reason; `diligencia-front`/`diligencia-mobile` are either included
-      with a reason or explicitly marked not relevant.
-- [ ] `## Comportamento atual (evidência no código)` cites at least one real `caminho:linha` inside
-      `diligencia-api/src/main/java/br/gov/ce/sefaz/diligencia/...` (e.g., in `ToafService.java` or
-      `DiligenciaController.java`), not a fabricated path.
-- [ ] `## Comportamento esperado` clearly separates what the email explicitly states (error message on
-      duplicate cancel; page refresh after the message closes) from anything inferred.
-- [ ] `## Lacunas e perguntas abertas` surfaces the genuinely undefined details (e.g., exact error
-      message text, which actor role(s) are affected, whether "atualizar a página" means a full reload
-      or a partial re-fetch) rather than inventing them.
-- [ ] Nothing in the file resembles an Épico/Feature/História breakdown or `Acceptance Criteria` — that
-      stays out of scope for this skill.
+- [ ] A spec trata o pedido como um único escopo — sem divisão.
+- [ ] `## Repositórios considerados` lista pelo menos `diligencia-api` como relevante (a lógica de
+      cancelamento vive em `ToafService`/`DiligenciaController`, conforme o `grep` já feito nesta
+      conversa), com um motivo declarado; `diligencia-front`/`diligencia-mobile` estão incluídos com
+      motivo ou explicitamente marcados como não relevantes.
+- [ ] `## Comportamento atual (evidência no código)` cita pelo menos um `caminho:linha` real dentro de
+      `diligencia-api/src/main/java/br/gov/ce/sefaz/diligencia/...` (ex.: em `ToafService.java` ou
+      `DiligenciaController.java`), não um caminho fabricado.
+- [ ] `## Comportamento esperado` separa claramente o que o e-mail afirma explicitamente (mensagem de
+      erro no cancelamento duplicado; atualização da página após o fechamento da mensagem) do que foi
+      inferido.
+- [ ] `## Lacunas e perguntas abertas` traz à tona os detalhes de fato indefinidos (ex.: texto exato da
+      mensagem de erro, qual(is) papel(is) de ator são afetados, se "atualizar a página" significa um
+      reload completo ou um re-fetch parcial) em vez de inventá-los.
+- [ ] Nada no arquivo se parece com uma decomposição em Épico/Feature/História nem com
+      `Acceptance Criteria` — isso permanece fora do escopo desta skill.
 
-- [ ] **Step 4: Report the outcome to the user**
+- [ ] **Passo 4: Reportar o resultado ao usuário**
 
-Summarize, in the conversation, whether the checklist passed and — if the request turns out to reveal
-more repositories or ambiguity than expected — whether that changes the "always single scope" decision
-made during brainstorming. Do not silently reinterpret that decision; if it needs revisiting, flag it
-explicitly and get the user's call before changing the skill.
+Resuma, na conversa, se a checklist passou e — caso o pedido revele mais repositórios ou ambiguidade do
+que o esperado — se isso muda a decisão de "sempre escopo único" tomada durante o brainstorming. Não
+reinterprete essa decisão silenciosamente; se ela precisar ser revista, sinalize isso explicitamente e
+peça a decisão do usuário antes de alterar a skill.
