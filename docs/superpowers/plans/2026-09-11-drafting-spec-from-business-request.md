@@ -627,3 +627,117 @@ Resuma, na conversa, se a checklist passou e — caso o pedido revele mais repos
 que o esperado — se isso muda a decisão de "sempre escopo único" tomada durante o brainstorming. Não
 reinterprete essa decisão silenciosamente; se ela precisar ser revista, sinalize isso explicitamente e
 peça a decisão do usuário antes de alterar a skill.
+
+---
+
+### Task 5: Esclarecer o formato de evidência multi-repositório na referência de investigação
+
+Adicionada após a checagem manual da Task 4 contra o repositório real do Diligência (3 repositórios
+irmãos simultaneamente em escopo): o agente que executou a skill relatou que o formato de evidência
+`caminho:linha` da referência só mostra um exemplo de repositório único, deixando sem resposta se/como
+prefixar o caminho quando mais de um repositório estiver em escopo. O agente resolveu isso sozinho, de
+forma razoável (prefixando com o nome do repositório), mas o usuário pediu que essa orientação ficasse
+explícita na skill em vez de depender de inferência a cada execução.
+
+**Arquivos:**
+- Modificar: `drafting-a-spec-from-business-request/references/business-request-investigation.md`
+- Modificar: `drafting-a-spec-from-business-request/tests/test_skill_integration.py`
+
+**Interfaces:**
+- Consome: os arquivos criados na Task 1 (mesmos caminhos).
+- Produz: nada consumido por tarefas posteriores.
+
+- [ ] **Passo 1: Escrever o teste que falha**
+
+Em `drafting-a-spec-from-business-request/tests/test_skill_integration.py`, encontre:
+
+```python
+    def test_investigation_reference_registers_divergence_without_choosing_a_side(self):
+        self.assertIn(
+            "Quando o pedido e o código divergirem, registre as duas leituras",
+            self.investigation,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Substitua por:
+
+```python
+    def test_investigation_reference_registers_divergence_without_choosing_a_side(self):
+        self.assertIn(
+            "Quando o pedido e o código divergirem, registre as duas leituras",
+            self.investigation,
+        )
+
+    def test_investigation_reference_prefixes_evidence_with_repo_name_when_multiple_repos(self):
+        self.assertIn(
+            "Quando mais de um repositório estiver em escopo, prefixe o caminho com o nome do "
+            "repositório",
+            self.investigation,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+- [ ] **Passo 2: Rodar o teste para confirmar que ele falha**
+
+Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Esperado: FALHA no novo teste
+`test_investigation_reference_prefixes_evidence_with_repo_name_when_multiple_repos` — a referência
+ainda não contém essa orientação. Os outros 9 testes continuam passando.
+
+- [ ] **Passo 3: Adicionar a orientação de multi-repositório na referência**
+
+Em `drafting-a-spec-from-business-request/references/business-request-investigation.md`, encontre:
+
+```markdown
+- **Evidenciado pelo código**: cite cada evidência como caminho relativo à raiz e linha inicial, por
+  exemplo `src/diligencias/reopen_service.py:42`. Registre `Nenhuma evidência encontrada` quando a
+  busca relevante estiver concluída, ou `Evidência indisponível: [motivo]` quando não foi possível
+  investigar. Nunca invente caminho ou linha.
+```
+
+Substitua por:
+
+```markdown
+- **Evidenciado pelo código**: cite cada evidência como caminho relativo à raiz e linha inicial, por
+  exemplo `src/diligencias/reopen_service.py:42`. Quando mais de um repositório estiver em escopo,
+  prefixe o caminho com o nome do repositório, por exemplo
+  `diligencia-api/src/main/java/.../DiligenciaService.java:612`, para que a evidência continue
+  inequívoca fora do contexto de um único repositório. Registre `Nenhuma evidência encontrada` quando a
+  busca relevante estiver concluída, ou `Evidência indisponível: [motivo]` quando não foi possível
+  investigar. Nunca invente caminho ou linha.
+```
+
+- [ ] **Passo 4: Rodar o teste para confirmar que ele passa**
+
+Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Esperado: PASSA — 10 testes, 0 falhas.
+
+- [ ] **Passo 5: Validar a estrutura da skill**
+
+Rode: `uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py drafting-a-spec-from-business-request`
+Esperado: `Skill is valid!`
+
+- [ ] **Passo 6: Commit**
+
+```bash
+git add drafting-a-spec-from-business-request/references/business-request-investigation.md drafting-a-spec-from-business-request/tests/test_skill_integration.py
+git commit -m "$(cat <<'EOF'
+docs: esclarece formato de evidência multi-repositório na skill
+
+Achado durante a checagem manual de aceite contra o repositório real
+do Diligência (3 repositórios irmãos em escopo simultâneo): o
+formato de evidência caminho:linha não dizia como desambiguar entre
+repositórios. Adiciona a orientação de prefixar com o nome do
+repositório.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
