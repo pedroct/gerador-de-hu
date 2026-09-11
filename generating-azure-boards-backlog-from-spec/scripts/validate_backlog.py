@@ -132,8 +132,11 @@ def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
             for field_name in ("Card", "Conversation", "Confirmation", "Prontidão"):
                 if f"{field_name}:" not in status:
                     errors.append(f"{item.key} is missing refinement field {field_name}")
-            if "Confirmation: Ausente" in status and item.section("Acceptance Criteria"):
-                errors.append(f"{item.key} has Acceptance Criteria while Confirmation is Ausente")
+            for confirmation in ("Ausente", "Parcial"):
+                if f"Confirmation: {confirmation}" in status and item.section("Acceptance Criteria"):
+                    errors.append(
+                        f"{item.key} has Acceptance Criteria while Confirmation is {confirmation}"
+                    )
             if "Acceptance Criteria" not in item.sections:
                 errors.append(f"{item.key} is missing Acceptance Criteria heading")
             if "Refinement Status" not in item.sections:

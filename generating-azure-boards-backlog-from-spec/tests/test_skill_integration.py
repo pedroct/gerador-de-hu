@@ -9,6 +9,12 @@ class SkillIntegrationTests(unittest.TestCase):
     def setUpClass(cls):
         cls.three_w = (ROOT / "refining-user-stories-with-3w" / "SKILL.md").read_text()
         cls.gherkin = (ROOT / "refining-user-stories-with-gherkin" / "SKILL.md").read_text()
+        cls.gherkin_practices = (
+            ROOT
+            / "refining-user-stories-with-gherkin"
+            / "references"
+            / "gherkin-practices.md"
+        ).read_text()
         cls.three_c = (ROOT / "refining-user-stories-with-3c" / "SKILL.md").read_text()
         cls.backlog = (ROOT / "generating-azure-boards-backlog-from-spec" / "SKILL.md").read_text()
 
@@ -62,6 +68,11 @@ class SkillIntegrationTests(unittest.TestCase):
             "estado da Confirmation (`Ausente`, `Parcial` ou `Completa`)",
             self.gherkin,
         )
+        self.assertIn(
+            "estado local da Confirmation (`Ausente`, `Parcial` ou `Completa`)",
+            self.gherkin_practices,
+        )
+        self.assertNotIn("veredito de prontidão", self.gherkin_practices)
 
     def test_three_c_passes_complete_payload_to_gherkin(self):
         self.assertIn(

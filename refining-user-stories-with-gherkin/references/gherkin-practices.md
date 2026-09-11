@@ -83,4 +83,4 @@ Perguntas que permanecem: quando saldo, limite e destinatário são validados; q
 - Termos vagos foram quantificados ou registrados como dúvida?
 - A sintaxe, o idioma, os dois-pontos e a indentação estão corretos?
 - Cada bloco está completo, sem regras ou cenários usados como placeholders?
-- As decisões pendentes e o veredito de prontidão estão explícitos?
+- As decisões pendentes e o estado local da Confirmation (`Ausente`, `Parcial` ou `Completa`) estão explícitos?

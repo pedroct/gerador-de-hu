@@ -393,7 +393,7 @@ cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
 uv run python -m unittest tests/test_validate_backlog.py -v
 ```
 
-Expected: 10 tests, `OK`.
+Expected: 14 tests, `OK`.
 
 - [ ] **Step 7: Criar a fixture válida e testar a CLI**
 
@@ -635,7 +635,7 @@ cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
 uv run python -m unittest tests/test_skill_integration.py -v
 ```
 
-Expected: 3 tests, `OK`.
+Expected: 8 tests, `OK`.
 
 ---
 
@@ -712,7 +712,7 @@ cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
 uv run python -m unittest discover -s tests -v
 ```
 
-Expected: 13 tests, `OK`.
+Expected: 22 tests, `OK`.
 
 - [ ] **Step 2: Validar os quatro pacotes de skill**
 

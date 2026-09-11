@@ -9,8 +9,8 @@ No processo Agile, a Microsoft orienta que `Description` detalhe **quem**, **o q
 
 | Campo | Reference name | Conteúdo 3C |
 |---|---|---|
-| Description | `System.Description` | Card 3W e síntese atual da Conversation |
-| Acceptance Criteria | `Microsoft.VSTS.Common.AcceptanceCriteria` | Confirmation acordada e verificável |
+| Description | `System.Description` | Card 3W e síntese atual da Conversation, incluindo regras e bloqueadores |
+| Acceptance Criteria | `Microsoft.VSTS.Common.AcceptanceCriteria` | Exclusivamente blocos Gherkin da Confirmation completa |
 
 ## Description
 
@@ -41,7 +41,7 @@ Mantenha uma síntese viva: atualize ou remova informação superada em vez de a
 
 ## Acceptance Criteria
 
-Inclua apenas regras confirmadas e exemplos completos produzidos pela skill Gherkin. Não inclua:
+Preencha o campo somente quando o estado for `Confirmation: Completa`. Nesse caso, inclua exclusivamente os blocos Gherkin completos produzidos pela skill Gherkin; as regras que os fundamentam permanecem registradas na Conversation em `Description`. Não inclua:
 
 - perguntas ou decisões pendentes;
 - hipóteses e propostas ainda não aceitas;
@@ -49,7 +49,7 @@ Inclua apenas regras confirmadas e exemplos completos produzidos pela skill Gher
 - implementação, tarefas ou contrato técnico que não seja comportamento explicitamente contratado;
 - explicações sobre por que a história ainda não está pronta.
 
-Sem regra confirmada suficiente, deixe o campo vazio. Não apresente explicação, placeholder nem bloco de código vazio como conteúdo do campo. Use somente a nota operacional `Ação no Azure Boards: deixe o campo sem conteúdo` e informe que os bloqueadores estão em `Description`.
+Com `Confirmation: Ausente` ou `Confirmation: Parcial`, deixe o campo efetivamente vazio, mesmo que já exista alguma regra confirmada. Não apresente explicação, placeholder nem bloco de código vazio como conteúdo do campo. Use somente a nota operacional `Ação no Azure Boards: deixe o campo sem conteúdo`; regras, lacunas e bloqueadores ficam na Conversation em `Description`.
 
 Forma obrigatória na resposta quando o campo estiver vazio:
 

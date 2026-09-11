@@ -29,14 +29,19 @@ Origem na spec: seção 2.1.
 ##### Parent
 `1.1.0`
 ##### Description
-### Card
+###### Card
 História confirmada.
-### Conversation
+###### Conversation
 Regra confirmada.
 ##### Acceptance Criteria
 ```gherkin
 # language: pt
 Funcionalidade: Reabrir diligência
+
+  Cenário: Reabrir uma diligência dentro do prazo
+    Dado que uma diligência pode ser reaberta dentro do prazo
+    Quando o analista responsável a reabre com uma justificativa
+    Então o status da diligência deve voltar para "Em análise"
 ```
 ##### Refinement Status
 - Card: Estruturado
@@ -81,12 +86,14 @@ class ValidateBacklogTests(unittest.TestCase):
         text = VALID.replace("`1.1.0`", "`1.2.0`")
         self.assertIn("1.1.1 expected parent 1.1.0, got 1.2.0", MODULE.validate_backlog(text))
 
-    def test_rejects_acceptance_content_when_confirmation_absent(self):
-        text = VALID.replace("Confirmation: Completa", "Confirmation: Ausente")
-        self.assertIn(
-            "1.1.1 has Acceptance Criteria while Confirmation is Ausente",
-            MODULE.validate_backlog(text),
-        )
+    def test_rejects_acceptance_content_when_confirmation_is_not_complete(self):
+        for confirmation in ("Ausente", "Parcial"):
+            with self.subTest(confirmation=confirmation):
+                text = VALID.replace("Confirmation: Completa", f"Confirmation: {confirmation}")
+                self.assertIn(
+                    f"1.1.1 has Acceptance Criteria while Confirmation is {confirmation}",
+                    MODULE.validate_backlog(text),
+                )
 
     def test_requires_story_origin(self):
         text = VALID.replace("- Origem na spec: seção 2.1.1\n", "")

@@ -23,9 +23,9 @@ A 3C é a única dona da prontidão geral. Estados locais da 3W e Gherkin são i
 
 Antes de formatar a entrega, leia [references/azure-boards-fields.md](references/azure-boards-fields.md).
 
-- `Description` recebe Card e síntese viva da Conversation: 3W, contexto, decisões, propostas não confirmadas e perguntas pendentes.
-- `Acceptance Criteria` recebe somente Confirmation: regras acordadas e exemplos Gherkin completos.
-- Se não houver confirmação, indique fora do conteúdo copiável que `Acceptance Criteria` deve permanecer vazio e registre o motivo em `Description`.
+- `Description` recebe Card e síntese viva da Conversation: 3W, contexto, regras e decisões confirmadas, propostas não confirmadas e perguntas ou bloqueadores pendentes.
+- `Acceptance Criteria` recebe exclusivamente os blocos Gherkin completos da Confirmation, e somente quando `Confirmation: Completa`.
+- Com `Confirmation: Ausente` ou `Confirmation: Parcial`, indique fora do conteúdo copiável que `Acceptance Criteria` deve permanecer vazio; mantenha regras, lacunas e bloqueadores em `Description`, dentro da Conversation.
 - Produzir conteúdo para os campos não autoriza criar ou alterar work items no Azure Boards.
 
 ## Contrato da entrega
@@ -33,7 +33,7 @@ Antes de formatar a entrega, leia [references/azure-boards-fields.md](references
 Entregue blocos separados e prontos para copiar:
 
 1. **Azure Boards — Description**
-2. **Azure Boards — Acceptance Criteria** com conteúdo confirmatório; se ausente, renderize exatamente `**Ação no Azure Boards:** deixe o campo sem conteúdo.` Não abra bloco de código nem use placeholder.
+2. **Azure Boards — Acceptance Criteria** contendo somente blocos Gherkin da Confirmation quando ela estiver `Completa`; com `Ausente` ou `Parcial`, renderize exatamente `**Ação no Azure Boards:** deixe o campo sem conteúdo.` Não abra bloco de código nem use placeholder.
 3. **Estado 3C e prontidão** — fora dos campos quando for informação operacional, salvo se o usuário pedir seu registro em `Description`
 
 ## Sinais de alerta

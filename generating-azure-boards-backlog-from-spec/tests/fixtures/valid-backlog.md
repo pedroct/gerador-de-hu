@@ -14,14 +14,19 @@ Origem na spec: seção 2.1.
 ##### Parent
 `1.1.0`
 ##### Description
-### Card
+###### Card
 História confirmada.
-### Conversation
+###### Conversation
 Regra confirmada.
 ##### Acceptance Criteria
 ```gherkin
 # language: pt
 Funcionalidade: Reabrir diligência
+
+  Cenário: Reabrir uma diligência dentro do prazo
+    Dado que uma diligência pode ser reaberta dentro do prazo
+    Quando o analista responsável a reabre com uma justificativa
+    Então o status da diligência deve voltar para "Em análise"
 ```
 ##### Refinement Status
 - Card: Estruturado
