@@ -14,6 +14,16 @@ Spec
          └─ refining-user-stories-with-gherkin
 ```
 
+Quando não existe spec escrita — só um pedido informal de negócio, como um e-mail ou ticket — a skill
+`drafting-a-spec-from-business-request` investiga o código-fonte já disponível onde está instalada e
+produz essa spec como um passo manual anterior:
+
+```text
+Pedido informal (e-mail, ticket) + código-fonte
+ └─ drafting-a-spec-from-business-request
+     └─ Spec
+```
+
 - **3W — Who, What, Why:** identifica ator, capacidade/resultado e valor, separando fatos de lacunas.
 - **3C — Card, Conversation, Confirmation:** organiza o cartão, registra decisões e coordena a confirmação. É a única skill que define a prontidão geral.
 - **Gherkin:** converte apenas regras confirmadas em exemplos verificáveis e classifica a Confirmation como `Ausente`, `Parcial` ou `Completa`.
@@ -60,6 +70,7 @@ Os status comparam apenas o projeto com um requisito rastreável da spec. Códig
 
 | Skill | Use quando | Saída principal |
 |---|---|---|
+| [`drafting-a-spec-from-business-request`](drafting-a-spec-from-business-request/SKILL.md) | Só há um pedido informal de negócio (e-mail, ticket) e nenhuma spec escrita | Documento de spec em Markdown, com repositórios considerados, evidência de código e lacunas |
 | [`refining-user-stories-with-3w`](refining-user-stories-with-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
 | [`refining-user-stories-with-3c`](refining-user-stories-with-3c/SKILL.md) | A história precisa de conversa e confirmação | Card, Conversation, Confirmation e prontidão 3C |
 | [`refining-user-stories-with-gherkin`](refining-user-stories-with-gherkin/SKILL.md) | Regras confirmadas precisam de exemplos BDD | Regras, Gherkin e estado local da Confirmation |
@@ -139,16 +150,18 @@ Cenário: Reabertura dentro do prazo
 
 ## Validação e desenvolvimento
 
-Execute a suíte completa da quarta skill:
+Execute a suíte completa da quarta e da quinta skill:
 
 ```bash
 uv run python -m unittest discover -s generating-azure-boards-backlog-from-spec/tests -v
+uv run python -m unittest discover -s drafting-a-spec-from-business-request/tests -v
 ```
 
-Valide os quatro pacotes com o utilitário oficial:
+Valide os cinco pacotes com o utilitário oficial:
 
 ```bash
 for skill_dir in \
+  drafting-a-spec-from-business-request \
   generating-azure-boards-backlog-from-spec \
   refining-user-stories-with-3c \
   refining-user-stories-with-3w \
