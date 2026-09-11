@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sonarqube": {
+      "command": "/Volumes/DOCK/Projetos/pessoal/gerador-hu/scripts/run-sonarqube-mcp.sh",
+      "args": []
+    }
+  }
+}

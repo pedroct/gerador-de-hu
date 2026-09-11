@@ -12,6 +12,9 @@ ITEM_RE = re.compile(
 )
 WORK_ITEM_HINT_RE = re.compile(r"^#+ .*(?:\[Epic\]|\[Feature\]|\[User Story\])")
 SECTION_NAMES = {"Parent", "Description", "Acceptance Criteria", "Refinement Status"}
+ACCEPTANCE_CRITERIA = "Acceptance Criteria"
+REFINEMENT_STATUS = "Refinement Status"
+USER_STORY = "User Story"
 
 
 @dataclass
@@ -26,6 +29,23 @@ class BacklogItem:
         return "\n".join(self.sections.get(name, [])).strip()
 
 
+def _new_item(match: re.Match[str]) -> BacklogItem:
+    return BacklogItem(
+        key=match.group("key"),
+        kind=match.group("kind"),
+        title=match.group("title"),
+        level=len(match.group("marks")),
+    )
+
+
+def _section_heading(raw: str, level: int) -> str | None:
+    prefix = "#" * (level + 1) + " "
+    if not raw.startswith(prefix):
+        return None
+    section_name = raw[len(prefix) :]
+    return section_name if section_name in SECTION_NAMES else None
+
+
 def parse_backlog(text: str) -> list[BacklogItem]:
     items: list[BacklogItem] = []
     current: BacklogItem | None = None
@@ -34,24 +54,20 @@ def parse_backlog(text: str) -> list[BacklogItem]:
     for raw in text.splitlines():
         if raw.startswith("```"):
             in_fence = not in_fence
-        match = None if in_fence else ITEM_RE.match(raw)
+        match = ITEM_RE.match(raw) if not in_fence else None
         if match:
-            current = BacklogItem(
-                key=match.group("key"),
-                kind=match.group("kind"),
-                title=match.group("title"),
-                level=len(match.group("marks")),
-            )
+            current = _new_item(match)
             items.append(current)
             section = None
             continue
-        if current and not in_fence:
-            prefix = "#" * (current.level + 1) + " "
-            if raw.startswith(prefix) and raw[len(prefix) :] in SECTION_NAMES:
-                section = raw[len(prefix) :]
-                current.sections.setdefault(section, [])
-                continue
-        if current and section:
+        if not current or in_fence:
+            continue
+        section_name = _section_heading(raw, current.level)
+        if section_name:
+            section = section_name
+            current.sections.setdefault(section, [])
+            continue
+        if section:
             current.sections[section].append(raw)
     return items
 
@@ -85,6 +101,90 @@ def _parent_value(item: BacklogItem) -> str:
     return item.section("Parent").strip().strip("`")
 
 
+def _validate_hierarchy(item: BacklogItem, keys: set[str]) -> list[str]:
+    errors: list[str] = []
+    expected = {"Epic": (2, "epics"), "Feature": (3, "features"), USER_STORY: (4, "stories")}
+    marks, _ = expected[item.kind]
+    if item.level != marks:
+        errors.append(f"{item.key} has wrong heading level for {item.kind}")
+
+    e, f, s = _parts(item.key)
+    if item.kind == "Epic":
+        if (f, s) != (0, 0):
+            errors.append(f"{item.key} is not a valid Epic key")
+        return errors
+
+    if f == 0 or (item.kind == "Feature" and s != 0) or (item.kind == USER_STORY and s == 0):
+        errors.append(f"{item.key} is not a valid {item.kind} key")
+    expected_parent = f"{e}.0.0" if item.kind == "Feature" else f"{e}.{f}.0"
+    actual = _parent_value(item)
+    if actual != expected_parent:
+        errors.append(f"{item.key} expected parent {expected_parent}, got {actual or '<missing>'}")
+    if expected_parent not in keys:
+        errors.append(f"{item.key} parent {expected_parent} does not exist")
+    return errors
+
+
+def _validate_user_story(item: BacklogItem) -> list[str]:
+    status = item.section(REFINEMENT_STATUS)
+    errors = [
+        f"{item.key} is missing refinement field {field_name}"
+        for field_name in ("Card", "Conversation", "Confirmation", "Prontidão")
+        if f"{field_name}:" not in status
+    ]
+    confirmation = next(
+        (state for state in ("Ausente", "Parcial") if f"Confirmation: {state}" in status),
+        None,
+    )
+    if confirmation and item.section(ACCEPTANCE_CRITERIA):
+        errors.append(
+            f"{item.key} has Acceptance Criteria while Confirmation is {confirmation}"
+        )
+    if ACCEPTANCE_CRITERIA not in item.sections:
+        errors.append(f"{item.key} is missing Acceptance Criteria heading")
+    if REFINEMENT_STATUS not in item.sections:
+        errors.append(f"{item.key} is missing Refinement Status")
+    return errors
+
+
+def _validate_item(item: BacklogItem, keys: set[str]) -> list[str]:
+    errors = _validate_hierarchy(item, keys)
+    if item.kind == USER_STORY:
+        errors.extend(_validate_user_story(item))
+    if not item.section("Description"):
+        errors.append(f"{item.key} has empty Description")
+    origin_text = item.section("Description") + "\n" + item.section(REFINEMENT_STATUS)
+    if not _has_origin_reference(origin_text):
+        errors.append(f"{item.key} is missing Origem na spec")
+    return errors
+
+
+def _group_key(item: BacklogItem) -> tuple[tuple[str, str], int]:
+    e, f, s = _parts(item.key)
+    if item.kind == "Epic":
+        return ("epics", "root"), e
+    if item.kind == "Feature":
+        return ("features", f"{e}.0.0"), f
+    return ("stories", f"{e}.{f}.0"), s
+
+
+def _validate_groups(groups: dict[tuple[str, str], list[int]], update_mode: bool) -> list[str]:
+    errors: list[str] = []
+    for (label, parent), numbers in groups.items():
+        if numbers != sorted(numbers):
+            errors.append(f"{label} under {parent} must be ascending")
+        if update_mode:
+            continue
+        ordered = sorted(set(numbers))
+        if not ordered or ordered == list(range(1, len(ordered) + 1)):
+            continue
+        if ordered[0] != 1:
+            errors.append(f"{label} under {parent} must start at 1")
+        else:
+            errors.append(f"{label} under {parent} must be contiguous")
+    return errors
+
+
 def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
     items = parse_backlog(text)
     errors: list[str] = []
@@ -95,75 +195,14 @@ def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
     seen: set[str] = set()
     keys = {item.key for item in items}
     groups: dict[tuple[str, str], list[int]] = {}
-    expected = {"Epic": (2, "epics"), "Feature": (3, "features"), "User Story": (4, "stories")}
-
     for item in items:
         if item.key in seen:
             errors.append(f"duplicate key: {item.key}")
         seen.add(item.key)
-        marks, label = expected[item.kind]
-        if item.level != marks:
-            errors.append(f"{item.key} has wrong heading level for {item.kind}")
-        e, f, s = _parts(item.key)
-        if item.kind == "Epic":
-            if (f, s) != (0, 0):
-                errors.append(f"{item.key} is not a valid Epic key")
-            groups.setdefault((label, "root"), []).append(e)
-        elif item.kind == "Feature":
-            if f == 0 or s != 0:
-                errors.append(f"{item.key} is not a valid Feature key")
-            expected_parent = f"{e}.0.0"
-            actual = _parent_value(item)
-            if actual != expected_parent:
-                errors.append(
-                    f"{item.key} expected parent {expected_parent}, got {actual or '<missing>'}"
-                )
-            if expected_parent not in keys:
-                errors.append(f"{item.key} parent {expected_parent} does not exist")
-            groups.setdefault((label, expected_parent), []).append(f)
-        else:
-            if f == 0 or s == 0:
-                errors.append(f"{item.key} is not a valid User Story key")
-            expected_parent = f"{e}.{f}.0"
-            actual = _parent_value(item)
-            if actual != expected_parent:
-                errors.append(
-                    f"{item.key} expected parent {expected_parent}, got {actual or '<missing>'}"
-                )
-            if expected_parent not in keys:
-                errors.append(f"{item.key} parent {expected_parent} does not exist")
-            groups.setdefault((label, expected_parent), []).append(s)
-            status = item.section("Refinement Status")
-            for field_name in ("Card", "Conversation", "Confirmation", "Prontidão"):
-                if f"{field_name}:" not in status:
-                    errors.append(f"{item.key} is missing refinement field {field_name}")
-            for confirmation in ("Ausente", "Parcial"):
-                if f"Confirmation: {confirmation}" in status and item.section(
-                    "Acceptance Criteria"
-                ):
-                    errors.append(
-                        f"{item.key} has Acceptance Criteria while Confirmation is {confirmation}"
-                    )
-            if "Acceptance Criteria" not in item.sections:
-                errors.append(f"{item.key} is missing Acceptance Criteria heading")
-            if "Refinement Status" not in item.sections:
-                errors.append(f"{item.key} is missing Refinement Status")
-        if not item.section("Description"):
-            errors.append(f"{item.key} has empty Description")
-        origin_text = item.section("Description") + "\n" + item.section("Refinement Status")
-        if not _has_origin_reference(origin_text):
-            errors.append(f"{item.key} is missing Origem na spec")
-
-    for (label, parent), numbers in groups.items():
-        if numbers != sorted(numbers):
-            errors.append(f"{label} under {parent} must be ascending")
-        if not update_mode:
-            ordered = sorted(set(numbers))
-            if ordered and ordered != list(range(1, len(ordered) + 1)):
-                if ordered[0] != 1:
-                    errors.append(f"{label} under {parent} must start at 1")
-                else:
-                    errors.append(f"{label} under {parent} must be contiguous")
+        errors.extend(_validate_item(item, keys))
+        group, number = _group_key(item)
+        groups.setdefault(group, []).append(number)
+    errors.extend(_validate_groups(groups, update_mode))
     return errors
 
 

@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "validate_backlog.py"
 SPEC = importlib.util.spec_from_file_location("validate_backlog", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
-assert SPEC and SPEC.loader
+assert SPEC is not None
+assert SPEC.loader is not None
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 

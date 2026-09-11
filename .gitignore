@@ -15,4 +15,3 @@ coverage.xml
 .DS_Store
 .vscode/settings.json
 docs/padroes_de_stack.md
-.mcp.json
