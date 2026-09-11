@@ -32,6 +32,38 @@ Pedido informal (e-mail, ticket) + código-fonte
 
 As dependências são acíclicas: 3W e Gherkin são folhas; a skill de backlog chama somente 3C; `drafting-a-spec-from-business-request` é uma predecessora isolada, que nunca chama nem é chamada pelas outras quatro skills.
 
+## Instalação
+
+As skills seguem o formato aberto (`SKILL.md` por pasta) suportado pelo [`npx skills`](https://skills.sh), que instala diretamente a partir deste repositório do GitHub — não é necessário publicar em nenhum registro. Funciona tanto para uso com Claude (Claude Code) quanto com agentes da OpenAI (Codex):
+
+```bash
+# listar as skills disponíveis no repositório
+npx skills add pedroct/gerador-de-hu --list
+
+# instalar todas, no projeto atual, para Claude Code
+npx skills add pedroct/gerador-de-hu --all -a claude-code
+
+# instalar todas, no projeto atual, para Codex (OpenAI)
+npx skills add pedroct/gerador-de-hu --all -a codex
+
+# instalar só uma skill específica
+npx skills add pedroct/gerador-de-hu --skill drafting-a-spec-from-business-request -a claude-code
+```
+
+A instalação pode ser por projeto (padrão) ou global:
+
+| Escopo | Flag | Onde fica |
+|---|---|---|
+| Projeto | *(nenhuma)* | `./<agente>/skills/` — versionado com o projeto, compartilhado com o time |
+| Global | `-g` | `~/<agente>/skills/` — disponível em qualquer projeto da máquina |
+
+```bash
+# instalar globalmente, disponível em todos os projetos
+npx skills add pedroct/gerador-de-hu --all -a claude-code -g
+```
+
+Cada skill inclui `agents/openai.yaml` (metadado de exibição específico para agentes OpenAI); o `SKILL.md` é o formato portátil que tanto Claude quanto agentes OpenAI leem diretamente, sem exigir esse arquivo extra.
+
 ## Início rápido
 
 ### Fluxo Greenfield
