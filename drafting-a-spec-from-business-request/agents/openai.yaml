@@ -1,0 +1,4 @@
+interface:
+  display_name: "Redigir spec a partir de pedido de negócio"
+  short_description: "Investiga código e redige spec a partir de pedido informal"
+  default_prompt: "Use $drafting-a-spec-from-business-request para transformar este pedido de negócio em uma spec antes de gerar o backlog."
