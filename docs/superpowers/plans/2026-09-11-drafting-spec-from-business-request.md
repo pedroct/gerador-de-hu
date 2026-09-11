@@ -21,7 +21,7 @@
 
 ---
 
-### Tarefa 1: Criar e escrever o conteúdo da skill `drafting-a-spec-from-business-request`
+### Task 1: Criar e escrever o conteúdo da skill `drafting-a-spec-from-business-request`
 
 **Arquivos:**
 - Criar: `drafting-a-spec-from-business-request/SKILL.md`
@@ -358,7 +358,7 @@ EOF
 
 ---
 
-### Tarefa 2: Conectar os testes da nova skill ao pytest/coverage do repositório
+### Task 2: Conectar os testes da nova skill ao pytest/coverage do repositório
 
 **Arquivos:**
 - Modificar: `pyproject.toml:47-51` (`[tool.pytest.ini_options]` `testpaths`)
@@ -437,7 +437,7 @@ EOF
 
 ---
 
-### Tarefa 3: Documentar a nova skill no README.md
+### Task 3: Documentar a nova skill no README.md
 
 **Arquivos:**
 - Modificar: `README.md` (três edições separadas e não adjacentes — ver abaixo)
@@ -571,7 +571,7 @@ EOF
 
 ---
 
-### Tarefa 4: Checagem manual de aceite contra o repositório Diligência
+### Task 4: Checagem manual de aceite contra o repositório Diligência
 
 Esta tarefa é um exercício de verificação, não uma mudança de código no `gerador-hu` — seu resultado é
 um julgamento registrado na conversa com o usuário, não um commit. Ela existe porque a estratégia de
