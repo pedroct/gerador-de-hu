@@ -38,6 +38,20 @@ Se nenhum repositório candidato tiver relação com o pedido, registre essa aus
 apenas com o conteúdo do pedido, equivalente ao modo Greenfield da quarta skill — sem travar a entrega
 do documento.
 
+## Classificação do pedido
+
+Classifique o pedido comparando `Comportamento atual` com `Comportamento esperado`:
+
+- **Defeito**: a evidência de código mostra o sistema fazendo algo que o próprio pedido, ou uma regra
+  já estabelecida no código, trata como incorreto — por exemplo, permitir uma ação que deveria ser
+  bloqueada. O sistema hoje se comporta de um jeito que ele mesmo (ou o pedido) reconhece como errado.
+- **Melhoria**: o pedido descreve uma capacidade ou resultado que hoje não existe, sem que o
+  comportamento atual esteja incorreto em si — apenas incompleto ou ausente.
+- **Outro**: a evidência não permite decidir com confiança entre as duas opções acima. Registre a
+  incerteza em vez de escolher por plausibilidade.
+
+Essa classificação é metadado da spec, para apoiar decisões de tipo de work item mais adiante; esta skill não cria, seleciona nem sugere tipo de work item específico (ex.: Bug) — isso continua fora do seu escopo.
+
 ## Template da spec
 
 ```markdown
@@ -66,6 +80,11 @@ Síntese fiel do que o pedido descreve, sem inferências.
 - Afirmado explicitamente pelo pedido: ...
 - Inferido (marcado como inferência, não fato confirmado): ...
 
+## Classificação
+- **Tipo**: Defeito | Melhoria | Outro
+- **Justificativa**: evidência que sustenta a classificação, referenciando Comportamento atual e
+  Comportamento esperado.
+
 ## Atores e vocabulário identificados no código
 Lista de atores, entidades e termos de domínio encontrados, com evidência.
 
@@ -83,3 +102,5 @@ Tudo que não pôde ser confirmado nem pelo pedido nem pelo código.
 - Não produza Épico, Feature, História, Description nem Acceptance Criteria; isso continua sendo
   responsabilidade de `generating-azure-boards-backlog-from-spec` e da 3C.
 - Não encadeie automaticamente a geração do backlog; a spec fica pronta para uso manual do usuário.
+- Classifique o pedido (Defeito, Melhoria ou Outro) com justificativa, mas não decida nem crie tipo de
+  work item (ex.: Bug); isso continua fora do escopo desta skill.

@@ -135,6 +135,19 @@ class DraftingSkillIsolationTests(unittest.TestCase):
             self.investigation,
         )
 
+    def test_skill_classifies_request_as_defect_improvement_or_other(self):
+        self.assertIn("## Classificação", self.drafting)
+        self.assertIn("Defeito | Melhoria | Outro", self.drafting)
+        self.assertIn("**Defeito**", self.drafting)
+        self.assertIn("**Melhoria**", self.drafting)
+        self.assertIn("**Outro**", self.drafting)
+
+    def test_skill_does_not_select_a_work_item_type(self):
+        self.assertIn(
+            "esta skill não cria, seleciona nem sugere tipo de work item específico",
+            self.drafting,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
