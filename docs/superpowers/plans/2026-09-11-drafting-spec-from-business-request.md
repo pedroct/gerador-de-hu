@@ -741,3 +741,189 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 EOF
 )"
 ```
+
+---
+
+### Task 6: Classificar o pedido como Defeito, Melhoria ou Outro na spec
+
+Adicionada depois de o usuário perguntar, já com a branch pronta para finalizar, se a skill consegue
+distinguir defeito de melhoria durante a investigação — importante porque, mais adiante (fora desta
+skill), essa distinção decide se o item vira um work item tipo `Bug` no Azure Boards. Escopo combinado
+com o usuário: só a classificação na spec entra nesta branch; ensinar
+`generating-azure-boards-backlog-from-spec` a gerar `Bug` a partir dela é uma mudança maior, numa das
+quatro skills existentes, tratada depois, fora desta branch.
+
+**Arquivos:**
+- Modificar: `drafting-a-spec-from-business-request/SKILL.md`
+- Modificar: `drafting-a-spec-from-business-request/tests/test_skill_integration.py`
+
+**Interfaces:**
+- Consome: os arquivos criados na Task 1 (mesmos caminhos).
+- Produz: nada consumido por tarefas posteriores.
+
+- [ ] **Passo 1: Escrever o teste que falha**
+
+Em `drafting-a-spec-from-business-request/tests/test_skill_integration.py`, encontre:
+
+```python
+    def test_investigation_reference_prefixes_evidence_with_repo_name_when_multiple_repos(self):
+        self.assertIn(
+            "Quando mais de um repositório estiver em escopo, prefixe o caminho com o nome do "
+            "repositório",
+            self.investigation,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Substitua por:
+
+```python
+    def test_investigation_reference_prefixes_evidence_with_repo_name_when_multiple_repos(self):
+        self.assertIn(
+            "Quando mais de um repositório estiver em escopo, prefixe o caminho com o nome do "
+            "repositório",
+            self.investigation,
+        )
+
+    def test_skill_classifies_request_as_defect_improvement_or_other(self):
+        self.assertIn("## Classificação", self.drafting)
+        self.assertIn("Defeito | Melhoria | Outro", self.drafting)
+        self.assertIn("**Defeito**", self.drafting)
+        self.assertIn("**Melhoria**", self.drafting)
+        self.assertIn("**Outro**", self.drafting)
+
+    def test_skill_does_not_select_a_work_item_type(self):
+        self.assertIn(
+            "esta skill não cria, seleciona nem sugere tipo de work item específico",
+            self.drafting,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+- [ ] **Passo 2: Rodar o teste para confirmar que ele falha**
+
+Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Esperado: FALHA nos dois novos testes
+(`test_skill_classifies_request_as_defect_improvement_or_other` e
+`test_skill_does_not_select_a_work_item_type`) — o SKILL.md ainda não tem a seção de classificação. Os
+outros 10 testes continuam passando.
+
+- [ ] **Passo 3: Adicionar a seção de classificação ao corpo do SKILL.md**
+
+Em `drafting-a-spec-from-business-request/SKILL.md`, encontre:
+
+```markdown
+Se nenhum repositório candidato tiver relação com o pedido, registre essa ausência e produza a spec
+apenas com o conteúdo do pedido, equivalente ao modo Greenfield da quarta skill — sem travar a entrega
+do documento.
+
+## Template da spec
+```
+
+Substitua por:
+
+```markdown
+Se nenhum repositório candidato tiver relação com o pedido, registre essa ausência e produza a spec
+apenas com o conteúdo do pedido, equivalente ao modo Greenfield da quarta skill — sem travar a entrega
+do documento.
+
+## Classificação do pedido
+
+Classifique o pedido comparando `Comportamento atual` com `Comportamento esperado`:
+
+- **Defeito**: a evidência de código mostra o sistema fazendo algo que o próprio pedido, ou uma regra
+  já estabelecida no código, trata como incorreto — por exemplo, permitir uma ação que deveria ser
+  bloqueada. O sistema hoje se comporta de um jeito que ele mesmo (ou o pedido) reconhece como errado.
+- **Melhoria**: o pedido descreve uma capacidade ou resultado que hoje não existe, sem que o
+  comportamento atual esteja incorreto em si — apenas incompleto ou ausente.
+- **Outro**: a evidência não permite decidir com confiança entre as duas opções acima. Registre a
+  incerteza em vez de escolher por plausibilidade.
+
+Essa classificação é metadado da spec, para apoiar decisões de tipo de work item mais adiante; esta
+skill não cria, seleciona nem sugere tipo de work item específico (ex.: Bug) — isso continua fora do
+seu escopo.
+
+## Template da spec
+```
+
+- [ ] **Passo 4: Adicionar a seção ao template da spec**
+
+No mesmo arquivo, dentro do bloco `## Template da spec`, encontre:
+
+```markdown
+## Comportamento esperado
+- Afirmado explicitamente pelo pedido: ...
+- Inferido (marcado como inferência, não fato confirmado): ...
+
+## Atores e vocabulário identificados no código
+```
+
+Substitua por:
+
+```markdown
+## Comportamento esperado
+- Afirmado explicitamente pelo pedido: ...
+- Inferido (marcado como inferência, não fato confirmado): ...
+
+## Classificação
+- **Tipo**: Defeito | Melhoria | Outro
+- **Justificativa**: evidência que sustenta a classificação, referenciando Comportamento atual e
+  Comportamento esperado.
+
+## Atores e vocabulário identificados no código
+```
+
+- [ ] **Passo 5: Reforçar o limite na lista de Boundaries**
+
+No mesmo arquivo, encontre:
+
+```markdown
+- Não encadeie automaticamente a geração do backlog; a spec fica pronta para uso manual do usuário.
+```
+
+Substitua por:
+
+```markdown
+- Não encadeie automaticamente a geração do backlog; a spec fica pronta para uso manual do usuário.
+- Classifique o pedido (Defeito, Melhoria ou Outro) com justificativa, mas não decida nem crie tipo de
+  work item (ex.: Bug); isso continua fora do escopo desta skill.
+```
+
+- [ ] **Passo 6: Rodar o teste para confirmar que ele passa**
+
+Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Esperado: PASSA — 12 testes, 0 falhas.
+
+- [ ] **Passo 7: Validar a estrutura da skill**
+
+Rode: `uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py drafting-a-spec-from-business-request`
+Esperado: `Skill is valid!`
+
+- [ ] **Passo 8: Rodar a suíte completa do repositório**
+
+Rode: `uv run pytest -v` a partir da raiz do repositório.
+Esperado: PASSA — sem regressão nos testes das outras skills.
+
+- [ ] **Passo 9: Commit**
+
+```bash
+git add drafting-a-spec-from-business-request/SKILL.md drafting-a-spec-from-business-request/tests/test_skill_integration.py
+git commit -m "$(cat <<'EOF'
+feat: classifica pedido como defeito, melhoria ou outro na spec
+
+Pedido do usuário após revisar a branch: a spec precisa registrar se
+o pedido descreve um defeito ou uma melhoria, para apoiar decisões
+futuras de tipo de work item no Azure Boards. A skill apenas
+classifica e justifica com evidência; não cria nem seleciona tipo de
+work item — isso permanece fora do seu escopo.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
