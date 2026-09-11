@@ -1,0 +1,49 @@
+minimum_pre_commit_version: "4.0.0"
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+default_stages: [pre-commit]
+exclude: ^(uv\.lock)$
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff (lint + autofix)
+        entry: uv run ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff (format)
+        entry: uv run ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+      - id: mypy
+        name: mypy (strict)
+        entry: uv run mypy
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+      - id: bandit
+        name: bandit (SAST Python)
+        entry: uv run bandit -c pyproject.toml -q
+        language: system
+        types: [python]
+      - id: semgrep
+        name: semgrep (SAST)
+        entry: uv run semgrep --error --skip-unknown-extensions --config p/security-audit --config p/secrets
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: commitizen-check
+        name: commitizen (Conventional Commits)
+        entry: uv run cz check --commit-msg-file
+        language: system
+        stages: [commit-msg]

@@ -1,0 +1,6 @@
+- [x] Manifesto e dependências pinadas
+- [x] Lockfile uv
+- [x] Ruff, mypy, pytest/cov e pre-commit
+- [x] Conventional Commits e semantic-release
+- [x] Sonar e `.env.example`
+- [x] Verificações locais

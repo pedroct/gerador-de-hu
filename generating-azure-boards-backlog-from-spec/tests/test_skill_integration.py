@@ -1,5 +1,5 @@
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -10,10 +10,7 @@ class SkillIntegrationTests(unittest.TestCase):
         cls.three_w = (ROOT / "refining-user-stories-with-3w" / "SKILL.md").read_text()
         cls.gherkin = (ROOT / "refining-user-stories-with-gherkin" / "SKILL.md").read_text()
         cls.gherkin_practices = (
-            ROOT
-            / "refining-user-stories-with-gherkin"
-            / "references"
-            / "gherkin-practices.md"
+            ROOT / "refining-user-stories-with-gherkin" / "references" / "gherkin-practices.md"
         ).read_text()
         cls.three_c = (ROOT / "refining-user-stories-with-3c" / "SKILL.md").read_text()
         cls.backlog = (ROOT / "generating-azure-boards-backlog-from-spec" / "SKILL.md").read_text()
@@ -59,9 +56,7 @@ class SkillIntegrationTests(unittest.TestCase):
         )
 
     def test_leaf_skills_do_not_emit_general_readiness(self):
-        self.assertIn(
-            "Não produza Conversation, Gherkin ou prontidão geral.", self.three_w
-        )
+        self.assertIn("Não produza Conversation, Gherkin ou prontidão geral.", self.three_w)
         self.assertIn("Não emita prontidão geral.", self.gherkin)
 
     def test_three_w_returns_only_its_leaf_outputs(self):
@@ -111,7 +106,9 @@ class SkillIntegrationTests(unittest.TestCase):
     def test_backlog_calls_only_three_c(self):
         self.assertIn("REQUIRED SUB-SKILL:** use refining-user-stories-with-3c", self.backlog)
         self.assertNotIn("REQUIRED SUB-SKILL:** use refining-user-stories-with-3w", self.backlog)
-        self.assertNotIn("REQUIRED SUB-SKILL:** use refining-user-stories-with-gherkin", self.backlog)
+        self.assertNotIn(
+            "REQUIRED SUB-SKILL:** use refining-user-stories-with-gherkin", self.backlog
+        )
         self.assert_has_no_named_skill_invocation(
             self.backlog,
             ("refining-user-stories-with-3w", "refining-user-stories-with-gherkin"),
@@ -158,12 +155,8 @@ class SkillIntegrationTests(unittest.TestCase):
             "Código existente não confirma valor nem decisão de negócio e não cria regra",
             self.brownfield,
         )
-        self.assertIn(
-            "não geram itens duplicados por padrão", self.brownfield
-        )
-        self.assertIn(
-            "documentar comportamento existente", self.brownfield
-        )
+        self.assertIn("não geram itens duplicados por padrão", self.brownfield)
+        self.assertIn("documentar comportamento existente", self.brownfield)
 
     def test_implementation_evidence_stays_out_of_acceptance_criteria(self):
         self.assertIn("##### Implementation Evidence", self.backlog_contract)
@@ -172,15 +165,9 @@ class SkillIntegrationTests(unittest.TestCase):
             "Evidência de implementação nunca pertence a `Acceptance Criteria`",
             self.backlog_contract,
         )
-        self.assertIn(
-            "não infira Who, What, Why ou valor", self.three_w
-        )
-        self.assertIn(
-            "não transforma código em confirmação", self.gherkin
-        )
-        self.assertIn(
-            "Implementation Evidence", self.three_c
-        )
+        self.assertIn("não infira Who, What, Why ou valor", self.three_w)
+        self.assertIn("não transforma código em confirmação", self.gherkin)
+        self.assertIn("Implementation Evidence", self.three_c)
 
     def test_contract_and_readme_document_both_modes(self):
         self.assertIn("- Modo: Greenfield | Brownfield", self.backlog_contract)

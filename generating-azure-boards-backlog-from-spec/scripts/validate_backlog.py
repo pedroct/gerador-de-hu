@@ -47,8 +47,8 @@ def parse_backlog(text: str) -> list[BacklogItem]:
             continue
         if current and not in_fence:
             prefix = "#" * (current.level + 1) + " "
-            if raw.startswith(prefix) and raw[len(prefix):] in SECTION_NAMES:
-                section = raw[len(prefix):]
+            if raw.startswith(prefix) and raw[len(prefix) :] in SECTION_NAMES:
+                section = raw[len(prefix) :]
                 current.sections.setdefault(section, [])
                 continue
         if current and section:
@@ -77,7 +77,8 @@ def _has_origin_reference(text: str) -> bool:
 
 
 def _parts(key: str) -> tuple[int, int, int]:
-    return tuple(int(part) for part in key.split("."))
+    parts = tuple(int(part) for part in key.split("."))
+    return parts[0], parts[1], parts[2]
 
 
 def _parent_value(item: BacklogItem) -> str:
@@ -114,7 +115,9 @@ def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
             expected_parent = f"{e}.0.0"
             actual = _parent_value(item)
             if actual != expected_parent:
-                errors.append(f"{item.key} expected parent {expected_parent}, got {actual or '<missing>'}")
+                errors.append(
+                    f"{item.key} expected parent {expected_parent}, got {actual or '<missing>'}"
+                )
             if expected_parent not in keys:
                 errors.append(f"{item.key} parent {expected_parent} does not exist")
             groups.setdefault((label, expected_parent), []).append(f)
@@ -124,7 +127,9 @@ def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
             expected_parent = f"{e}.{f}.0"
             actual = _parent_value(item)
             if actual != expected_parent:
-                errors.append(f"{item.key} expected parent {expected_parent}, got {actual or '<missing>'}")
+                errors.append(
+                    f"{item.key} expected parent {expected_parent}, got {actual or '<missing>'}"
+                )
             if expected_parent not in keys:
                 errors.append(f"{item.key} parent {expected_parent} does not exist")
             groups.setdefault((label, expected_parent), []).append(s)
@@ -133,7 +138,9 @@ def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
                 if f"{field_name}:" not in status:
                     errors.append(f"{item.key} is missing refinement field {field_name}")
             for confirmation in ("Ausente", "Parcial"):
-                if f"Confirmation: {confirmation}" in status and item.section("Acceptance Criteria"):
+                if f"Confirmation: {confirmation}" in status and item.section(
+                    "Acceptance Criteria"
+                ):
                     errors.append(
                         f"{item.key} has Acceptance Criteria while Confirmation is {confirmation}"
                     )
@@ -163,7 +170,11 @@ def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate an Azure Boards backlog Markdown file")
     parser.add_argument("path", type=Path)
-    parser.add_argument("--update", action="store_true", help="allow numbering gaps in an updated backlog")
+    parser.add_argument(
+        "--update",
+        action="store_true",
+        help="allow numbering gaps in an updated backlog",
+    )
     args = parser.parse_args(argv)
     try:
         text = args.path.read_text(encoding="utf-8")

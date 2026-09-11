@@ -1,0 +1,78 @@
+[project]
+name = "gerador-hu"
+version = "0.1.0"
+description = "Skills para refinamento de histórias de usuário e geração de backlog"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "bandit==1.9.4",
+  "commitizen==4.16.2",
+  "mypy==2.1.0",
+  "pip-audit==2.10.0",
+  "pre-commit==4.6.0",
+  "pytest==9.0.3",
+  "pytest-cov==7.0.0",
+  "python-semantic-release==10.5.3",
+  "ruff==0.15.14",
+  "semgrep==1.165.0",
+  "sqlfluff==4.2.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["tasks/", ".venv/", ".git/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+files = [
+  "generating-azure-boards-backlog-from-spec/scripts",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+  "generating-azure-boards-backlog-from-spec/tests",
+]
+addopts = "-ra"
+
+[tool.coverage.run]
+branch = true
+source = [
+  "generating-azure-boards-backlog-from-spec/scripts",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "if __name__ == .__main__.:",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+
+[tool.semantic_release]
+branch = "main"
+version_toml = ["pyproject.toml:project.version"]
+allow_zero_version = true
+commit_parser = "conventional"
+build_command = ""
+
+[tool.semantic_release.changelog]
+mode = "update"
