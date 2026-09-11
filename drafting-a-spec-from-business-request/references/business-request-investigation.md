@@ -17,7 +17,9 @@ de entidades, telas, endpoints citados ou implícitos) e o motivo — inclusive 
 2. Faça somente leitura segura: inventário com `rg` (incluindo `rg --files`) ou `find`, estado do
    repositório com `git status`, leitura de arquivos de código e testes e leitura de arquivos de
    configuração. Use a ferramenta menos abrangente que responda à pergunta.
-3. Não execute scripts, testes, builds, servidores, migrações ou a aplicação sem autorização explícita. Não altere arquivos, dependências, banco de dados, serviços nem configuração como parte da investigação.
+3. Não execute scripts, testes, builds, servidores, migrações ou a aplicação
+   sem autorização explícita. Não altere arquivos, dependências, banco de dados, serviços nem
+   configuração como parte da investigação.
 4. Inspecione pontos de entrada, regras de domínio, atores e vocabulário somente quando forem
    relevantes ao pedido. O nome de um arquivo, símbolo ou teste isolado não prova o comportamento
    completo.
@@ -31,8 +33,11 @@ Separe sempre:
 
 - **Afirmado pelo pedido**: o que o texto original declara, citado ou parafraseado fielmente.
 - **Evidenciado pelo código**: cite cada evidência como caminho relativo à raiz e linha inicial, por
-  exemplo `src/diligencias/reopen_service.py:42`. Quando mais de um repositório estiver em escopo, prefixe o caminho com o nome do repositório, por exemplo `diligencia-api/src/main/java/.../DiligenciaService.java:612`, para que a evidência continue inequívoca fora do contexto de um único repositório. Registre `Nenhuma evidência encontrada` quando a
-  busca relevante estiver concluída, ou `Evidência indisponível: [motivo]` quando não foi possível
+  exemplo `src/diligencias/reopen_service.py:42`.
+  Quando mais de um repositório estiver em escopo, prefixe o caminho com o nome do repositório, por
+  exemplo `diligencia-api/src/main/java/.../DiligenciaService.java:612`, para que a evidência continue
+  inequívoca fora do contexto de um único repositório. Registre `Nenhuma evidência encontrada` quando
+  a busca relevante estiver concluída, ou `Evidência indisponível: [motivo]` quando não foi possível
   investigar. Nunca invente caminho ou linha.
 - **Lacuna**: o que não pôde ser confirmado nem pelo pedido nem pelo código; permanece como pergunta
   aberta.

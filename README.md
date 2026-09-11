@@ -4,7 +4,7 @@ Skills para transformar especificações em histórias de usuário refinadas e e
 
 ## O que o projeto faz
 
-O fluxo combina três técnicas complementares:
+O fluxo combina cinco capacidades complementares:
 
 ```text
 Spec
@@ -24,12 +24,13 @@ Pedido informal (e-mail, ticket) + código-fonte
      └─ Spec
 ```
 
+- **Drafting a partir de pedido de negócio:** investiga o código-fonte a partir de um pedido informal (e-mail, ticket) e produz a spec inicial, separando o que foi afirmado, evidenciado e lacunas.
 - **3W — Who, What, Why:** identifica ator, capacidade/resultado e valor, separando fatos de lacunas.
 - **3C — Card, Conversation, Confirmation:** organiza o cartão, registra decisões e coordena a confirmação. É a única skill que define a prontidão geral.
 - **Gherkin:** converte apenas regras confirmadas em exemplos verificáveis e classifica a Confirmation como `Ausente`, `Parcial` ou `Completa`.
 - **Backlog a partir de spec:** agrupa requisitos rastreáveis em Épicos, Features e Histórias, preserva lacunas e gera o documento final.
 
-As dependências são acíclicas: 3W e Gherkin são folhas; a skill de backlog chama somente 3C.
+As dependências são acíclicas: 3W e Gherkin são folhas; a skill de backlog chama somente 3C; `drafting-a-spec-from-business-request` é uma predecessora isolada, que nunca chama nem é chamada pelas outras quatro skills.
 
 ## Início rápido
 

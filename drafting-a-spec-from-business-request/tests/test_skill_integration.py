@@ -24,6 +24,30 @@ class DraftingSkillIsolationTests(unittest.TestCase):
         cls.backlog = (
             ROOT / "generating-azure-boards-backlog-from-spec" / "SKILL.md"
         ).read_text()
+        # refining-user-stories-with-3w has no references/ directory; the other three do.
+        cls.existing_skill_references = [
+            (
+                ROOT / "refining-user-stories-with-3c" / "references" / "azure-boards-fields.md"
+            ).read_text(),
+            (
+                ROOT
+                / "refining-user-stories-with-gherkin"
+                / "references"
+                / "gherkin-practices.md"
+            ).read_text(),
+            (
+                ROOT
+                / "generating-azure-boards-backlog-from-spec"
+                / "references"
+                / "backlog-markdown-contract.md"
+            ).read_text(),
+            (
+                ROOT
+                / "generating-azure-boards-backlog-from-spec"
+                / "references"
+                / "brownfield-validation.md"
+            ).read_text(),
+        ]
 
     def assert_has_no_named_skill_invocation(self, text, other_skill_names):
         invocation_words = (
@@ -41,18 +65,19 @@ class DraftingSkillIsolationTests(unittest.TestCase):
 
     def test_drafting_skill_does_not_call_existing_skills(self):
         self.assertNotIn("REQUIRED SUB-SKILL", self.drafting)
-        self.assert_has_no_named_skill_invocation(
-            self.drafting,
-            (
-                "refining-user-stories-with-3w",
-                "refining-user-stories-with-3c",
-                "refining-user-stories-with-gherkin",
-                "generating-azure-boards-backlog-from-spec",
-            ),
+        other_skill_names = (
+            "refining-user-stories-with-3w",
+            "refining-user-stories-with-3c",
+            "refining-user-stories-with-gherkin",
+            "generating-azure-boards-backlog-from-spec",
         )
+        self.assert_has_no_named_skill_invocation(self.drafting, other_skill_names)
+        self.assert_has_no_named_skill_invocation(self.investigation, other_skill_names)
 
     def test_existing_skills_do_not_reference_drafting_skill(self):
         for text in (self.three_w, self.three_c, self.gherkin, self.backlog):
+            self.assertNotIn("drafting-a-spec-from-business-request", text)
+        for text in self.existing_skill_references:
             self.assertNotIn("drafting-a-spec-from-business-request", text)
 
     def test_drafting_skill_treats_request_as_single_scope(self):
