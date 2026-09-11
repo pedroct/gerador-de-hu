@@ -47,8 +47,9 @@ files = [
 [tool.pytest.ini_options]
 testpaths = [
   "generating-azure-boards-backlog-from-spec/tests",
+  "drafting-a-spec-from-business-request/tests",
 ]
-addopts = "-ra"
+addopts = "-ra --import-mode=importlib"
 
 [tool.coverage.run]
 branch = true
