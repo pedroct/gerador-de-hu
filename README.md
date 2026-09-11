@@ -64,6 +64,22 @@ npx skills add pedroct/gerador-de-hu --all -a claude-code -g
 
 Cada skill inclui `agents/openai.yaml` (metadado de exibição específico para agentes OpenAI); o `SKILL.md` é o formato portátil que tanto Claude quanto agentes OpenAI leem diretamente, sem exigir esse arquivo extra.
 
+### Como usar depois de instalado
+
+Abra o agente (Claude Code, Codex etc.) a partir do diretório onde a skill foi instalada — se o projeto tiver múltiplos repositórios irmãos (como api, front e mobile de uma mesma aplicação), abra a partir da raiz que os agrupa, não de dentro de um deles, para que `drafting-a-spec-from-business-request` consiga descobrir os repositórios relevantes.
+
+A partir daí, duas formas funcionam:
+
+1. **Chamando a skill explicitamente**, seguida do texto do pedido:
+
+   ```
+   /drafting-a-spec-from-business-request
+
+   <cole aqui o texto do pedido enviado pela área de negócios>
+   ```
+
+2. **Deixando a detecção automática funcionar**: basta colar o texto do pedido numa conversa nova, sem digitar comando algum — a `description` do `SKILL.md` já orienta o agente a reconhecer um pedido informal sem spec escrita e acionar a skill sozinho.
+
 ## Início rápido
 
 ### Fluxo Greenfield
