@@ -103,32 +103,34 @@ def _parent_value(item: BacklogItem) -> str:
 
 def _validate_hierarchy(item: BacklogItem, keys: set[str]) -> list[str]:
     errors: list[str] = []
-    expected = {"Epic": (2, "epics"), "Feature": (3, "features"), USER_STORY: (4, "stories")}
+    expected = {"Epic": (2, "épicos"), "Feature": (3, "features"), USER_STORY: (4, "histórias")}
     marks, _ = expected[item.kind]
     if item.level != marks:
-        errors.append(f"{item.key} has wrong heading level for {item.kind}")
+        errors.append(f"{item.key} tem nível de título incorreto para {item.kind}")
 
     e, f, s = _parts(item.key)
     if item.kind == "Epic":
         if (f, s) != (0, 0):
-            errors.append(f"{item.key} is not a valid Epic key")
+            errors.append(f"{item.key} não é uma chave Epic válida")
         return errors
 
     if f == 0 or (item.kind == "Feature" and s != 0) or (item.kind == USER_STORY and s == 0):
-        errors.append(f"{item.key} is not a valid {item.kind} key")
+        errors.append(f"{item.key} não é uma chave {item.kind} válida")
     expected_parent = f"{e}.0.0" if item.kind == "Feature" else f"{e}.{f}.0"
     actual = _parent_value(item)
     if actual != expected_parent:
-        errors.append(f"{item.key} expected parent {expected_parent}, got {actual or '<missing>'}")
+        errors.append(
+            f"{item.key} esperava o pai {expected_parent}, recebeu {actual or '<ausente>'}"
+        )
     if expected_parent not in keys:
-        errors.append(f"{item.key} parent {expected_parent} does not exist")
+        errors.append(f"{item.key} não possui o pai {expected_parent}")
     return errors
 
 
 def _validate_user_story(item: BacklogItem) -> list[str]:
     status = item.section(REFINEMENT_STATUS)
     errors = [
-        f"{item.key} is missing refinement field {field_name}"
+        f"{item.key} não possui o campo de refinamento {field_name}"
         for field_name in ("Card", "Conversation", "Confirmation", "Prontidão")
         if f"{field_name}:" not in status
     ]
@@ -138,12 +140,12 @@ def _validate_user_story(item: BacklogItem) -> list[str]:
     )
     if confirmation and item.section(ACCEPTANCE_CRITERIA):
         errors.append(
-            f"{item.key} has Acceptance Criteria while Confirmation is {confirmation}"
+            f"{item.key} possui Acceptance Criteria enquanto Confirmation está {confirmation}"
         )
     if ACCEPTANCE_CRITERIA not in item.sections:
-        errors.append(f"{item.key} is missing Acceptance Criteria heading")
+        errors.append(f"{item.key} não possui o título Acceptance Criteria")
     if REFINEMENT_STATUS not in item.sections:
-        errors.append(f"{item.key} is missing Refinement Status")
+        errors.append(f"{item.key} não possui Refinement Status")
     return errors
 
 
@@ -152,36 +154,36 @@ def _validate_item(item: BacklogItem, keys: set[str]) -> list[str]:
     if item.kind == USER_STORY:
         errors.extend(_validate_user_story(item))
     if not item.section("Description"):
-        errors.append(f"{item.key} has empty Description")
+        errors.append(f"{item.key} possui Description vazia")
     origin_text = item.section("Description") + "\n" + item.section(REFINEMENT_STATUS)
     if not _has_origin_reference(origin_text):
-        errors.append(f"{item.key} is missing Origem na spec")
+        errors.append(f"{item.key} não possui Origem na spec")
     return errors
 
 
 def _group_key(item: BacklogItem) -> tuple[tuple[str, str], int]:
     e, f, s = _parts(item.key)
     if item.kind == "Epic":
-        return ("epics", "root"), e
+        return ("épicos", "raiz"), e
     if item.kind == "Feature":
         return ("features", f"{e}.0.0"), f
-    return ("stories", f"{e}.{f}.0"), s
+    return ("histórias", f"{e}.{f}.0"), s
 
 
 def _validate_groups(groups: dict[tuple[str, str], list[int]], update_mode: bool) -> list[str]:
     errors: list[str] = []
     for (label, parent), numbers in groups.items():
         if numbers != sorted(numbers):
-            errors.append(f"{label} under {parent} must be ascending")
+            errors.append(f"{label} sob {parent} deve estar em ordem crescente")
         if update_mode:
             continue
         ordered = sorted(set(numbers))
         if not ordered or ordered == list(range(1, len(ordered) + 1)):
             continue
         if ordered[0] != 1:
-            errors.append(f"{label} under {parent} must start at 1")
+            errors.append(f"{label} sob {parent} deve começar em 1")
         else:
-            errors.append(f"{label} under {parent} must be contiguous")
+            errors.append(f"{label} sob {parent} deve ser contíguo")
     return errors
 
 
@@ -189,15 +191,15 @@ def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
     items = parse_backlog(text)
     errors: list[str] = []
     if not items:
-        errors.append("backlog must contain at least one work item")
+        errors.append("o backlog deve conter pelo menos um item de trabalho")
     for heading in _malformed_work_item_headings(text):
-        errors.append(f"invalid work item heading: {heading}")
+        errors.append(f"título de item de trabalho inválido: {heading}")
     seen: set[str] = set()
     keys = {item.key for item in items}
     groups: dict[tuple[str, str], list[int]] = {}
     for item in items:
         if item.key in seen:
-            errors.append(f"duplicate key: {item.key}")
+            errors.append(f"chave duplicada: {item.key}")
         seen.add(item.key)
         errors.extend(_validate_item(item, keys))
         group, number = _group_key(item)
@@ -207,25 +209,27 @@ def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Validate an Azure Boards backlog Markdown file")
+    parser = argparse.ArgumentParser(
+        description="Valida um arquivo Markdown de backlog do Azure Boards"
+    )
     parser.add_argument("path", type=Path)
     parser.add_argument(
         "--update",
         action="store_true",
-        help="allow numbering gaps in an updated backlog",
+        help="permite lacunas na numeração de um backlog atualizado",
     )
     args = parser.parse_args(argv)
     try:
         text = args.path.read_text(encoding="utf-8")
     except OSError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        print(f"erro: {exc}", file=sys.stderr)
         return 2
     errors = validate_backlog(text, update_mode=args.update)
     if errors:
         for error in errors:
             print(f"- {error}")
         return 1
-    print("Backlog structure is valid")
+    print("A estrutura do backlog é válida")
     return 0
 
 
