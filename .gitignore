@@ -12,3 +12,6 @@ coverage.xml
 .env
 .env.*
 !.env.example
+.DS_Store
+.vscode/settings.json
+docs/padroes_de_stack.md
