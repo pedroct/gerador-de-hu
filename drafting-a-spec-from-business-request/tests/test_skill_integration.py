@@ -103,6 +103,13 @@ class DraftingSkillIsolationTests(unittest.TestCase):
             self.investigation,
         )
 
+    def test_investigation_reference_prefixes_evidence_with_repo_name_when_multiple_repos(self):
+        self.assertIn(
+            "Quando mais de um repositório estiver em escopo, prefixe o caminho com o nome do "
+            "repositório",
+            self.investigation,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

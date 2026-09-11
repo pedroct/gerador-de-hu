@@ -31,7 +31,7 @@ Separe sempre:
 
 - **Afirmado pelo pedido**: o que o texto original declara, citado ou parafraseado fielmente.
 - **Evidenciado pelo código**: cite cada evidência como caminho relativo à raiz e linha inicial, por
-  exemplo `src/diligencias/reopen_service.py:42`. Registre `Nenhuma evidência encontrada` quando a
+  exemplo `src/diligencias/reopen_service.py:42`. Quando mais de um repositório estiver em escopo, prefixe o caminho com o nome do repositório, por exemplo `diligencia-api/src/main/java/.../DiligenciaService.java:612`, para que a evidência continue inequívoca fora do contexto de um único repositório. Registre `Nenhuma evidência encontrada` quando a
   busca relevante estiver concluída, ou `Evidência indisponível: [motivo]` quando não foi possível
   investigar. Nunca invente caminho ou linha.
 - **Lacuna**: o que não pôde ser confirmado nem pelo pedido nem pelo código; permanece como pergunta
