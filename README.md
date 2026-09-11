@@ -1,6 +1,6 @@
 # Gerador de Histórias de Usuário
 
-Skills para transformar especificações em histórias de usuário refinadas e em um backlog Markdown pronto para revisão e posterior cadastro no Azure Boards.
+Skills para transformar especificações em histórias de usuário refinadas e em um backlog Markdown pronto para revisão e posterior cadastro no Azure Boards, tanto sem implementação existente quanto comparando a spec com um projeto já implementado.
 
 ## O que o projeto faz
 
@@ -23,9 +23,19 @@ As dependências são acíclicas: 3W e Gherkin são folhas; a skill de backlog c
 
 ## Início rápido
 
+### Fluxo Greenfield
+
 1. Forneça uma spec à skill `generating-azure-boards-backlog-from-spec`.
-2. Peça um backlog Markdown para Azure Boards.
-3. Revise o arquivo gerado e valide sua estrutura:
+2. Quando não houver código-fonte relevante disponível, a skill registra `Modo: Greenfield` e decompõe somente os requisitos rastreáveis da spec. Nenhuma inspeção de implementação é exigida.
+3. Peça um backlog Markdown para Azure Boards e revise lacunas de 3W, Conversation e Confirmation.
+
+### Fluxo Brownfield
+
+1. Forneça a spec e a raiz do projeto existente. Se a presença de código relevante for ambígua, o fluxo assume Brownfield e registra essa incerteza.
+2. A skill inspeciona código, testes e configuração em modo somente leitura antes do refinamento. Ela não executa scripts, testes, builds, servidores, migrações nem a aplicação sem autorização explícita.
+3. Cada requisito da spec recebe evidência `caminho:linha`, status, impacto e confiança. O backlog cria trabalho para lacunas, divergências e mudanças; requisitos implementados permanecem na cobertura sem gerar duplicatas por padrão.
+
+Nos dois fluxos, valide a estrutura do arquivo gerado:
 
 ```bash
 cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
@@ -33,6 +43,18 @@ uv run python scripts/validate_backlog.py caminho/para/backlog.md
 ```
 
 O validador retorna `Backlog structure is valid` quando a hierarquia, as chaves, os pais e os campos obrigatórios estão corretos.
+
+### Exemplos de classificação Brownfield
+
+Os status comparam apenas o projeto com um requisito rastreável da spec. Código não cria requisito nem confirma valor ou decisão de negócio.
+
+| Situação observada | Status |
+|---|---|
+| Serviço e validação aplicam toda a regra de reabertura em até 24 horas | `Implementado` |
+| Reabertura existe, mas a janela de 24 horas não é validada | `Parcialmente implementado` |
+| Serviço permite reabrir depois de 24 horas, contrariando a spec | `Divergente` |
+| Busca concluída no escopo relevante sem encontrar a capacidade | `Não encontrado` |
+| Projeto ou arquivos necessários não estão acessíveis, ou o escopo segue ambíguo | `Impossível validar` |
 
 ## Skills disponíveis
 
@@ -61,6 +83,8 @@ Cada Feature declara `Parent` apontando para um Épico existente; cada História
 |---|---|---|
 | `Description` da História | `System.Description` | Card 3W e síntese da Conversation, incluindo decisões, propostas não confirmadas e lacunas |
 | `Acceptance Criteria` | `Microsoft.VSTS.Common.AcceptanceCriteria` | Somente blocos Gherkin da Confirmation quando o estado for `Completa` |
+| `Implementation Evidence` | Metadado de revisão | Estado atual Brownfield com status e referências `caminho:linha`; nunca é copiado para Acceptance Criteria |
+| `Validation Summary` | Metadado de cobertura | Matriz requisito × evidência Brownfield, ou indicação de que não se aplica em Greenfield |
 | `Refinement Status` | Metadado de revisão | Estado de Card, Conversation, Confirmation, prontidão e origem na spec; não é copiado automaticamente |
 
 Com Confirmation `Ausente` ou `Parcial`, `Acceptance Criteria` permanece efetivamente vazio. Regras pendentes, hipóteses e justificativas continuam em `Description`/Conversation. A geração não cria nem altera work items.
@@ -68,6 +92,21 @@ Com Confirmation `Ausente` ou `Parcial`, `Acceptance Criteria` permanece efetiva
 ## Exemplo mínimo
 
 ````markdown
+# Backlog para Azure Boards
+
+## Metadados e cobertura
+- Spec de origem: seção 2 da spec de diligências
+- Escopo analisado: seção 2
+- Modo: Greenfield
+- Raiz analisada: Não se aplica — nenhum código-fonte relevante disponível
+- Código-fonte relevante: Ausente
+- Incerteza de detecção: Nenhuma
+- Itens não cobertos: Nenhum
+
+## Validation Summary
+
+Não se aplica — modo Greenfield; nenhum código-fonte relevante disponível.
+
 ## 1.0.0 [Epic] Reabrir diligências
 
 ### Description
@@ -85,6 +124,8 @@ Origem na spec: seção 2.
 Como analista, quero reabrir uma diligência em até 24 horas, para corrigir informações.
 ###### Conversation
 A regra de prazo e o retorno para Em análise foram confirmados.
+##### Implementation Evidence
+Não se aplica — modo Greenfield; nenhum código-fonte relevante disponível.
 ##### Acceptance Criteria
 ```gherkin
 # language: pt

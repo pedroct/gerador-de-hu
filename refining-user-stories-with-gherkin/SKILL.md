@@ -13,6 +13,8 @@ Transformar requisitos ainda imprecisos em entendimento compartilhado e exemplos
 
 Consuma a história ou Card, os fatos e as decisões registradas na Conversation, incluindo as regras decididas. Aponte lacunas sem chamar outra skill. Se o ator, o valor ou uma regra necessária estiver ausente, reporte a lacuna.
 
+Evidência Brownfield pode ser recebida como contexto rotulado do estado atual. Ela pode revelar lacunas ou divergências a discutir, mas não transforma código em confirmação. Escreva Gherkin somente com comportamento desejado confirmado pela Conversation; caminho, teste, símbolo e comportamento existente não criam regra nem completam decisão pendente.
+
 Esta é uma skill-folha. Retorne regras confirmadas, exemplos e estado da Confirmation (`Ausente`, `Parcial` ou `Completa`). Não emita prontidão geral. Sob a 3C, aceite como confirmadas somente decisões da Conversation.
 
 ## Fluxo de refinamento
@@ -23,6 +25,8 @@ Esta é uma skill-folha. Retorne regras confirmadas, exemplos e estado da Confir
 4. **Avalie a Confirmation.** Rastreie cada exemplo até uma regra, liste decisões pendentes e classifique o estado como `Ausente`, `Parcial` ou `Completa`.
 
 No Azure Boards, regras confirmadas e exemplos pertencem a `Acceptance Criteria`; hipóteses, perguntas e histórico permanecem em `Description`. Se nenhuma regra puder formar exemplo legítimo, mantenha `Acceptance Criteria` vazio.
+
+Não inclua evidência de implementação nos artefatos desta skill. O chamador a mantém em `Implementation Evidence` ou em síntese rotulada na Description/Conversation, nunca no Gherkin nem em `Acceptance Criteria`.
 
 ## Contrato da entrega
 

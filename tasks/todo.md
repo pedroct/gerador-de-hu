@@ -1,0 +1,5 @@
+- [x] Baseline Brownfield
+- [x] Contrato da skill de backlog
+- [x] Integração 3W/3C/Gherkin
+- [x] Testes e referências
+- [x] README e verificação final

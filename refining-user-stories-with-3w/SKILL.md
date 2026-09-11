@@ -11,7 +11,7 @@ Use 3W para descobrir intenção, não apenas preencher `Como / quero / para`. U
 
 ## Fluxo
 
-1. **Preserve a evidência.** Separe informações confirmadas, hipóteses e dúvidas. Não invente persona, motivação, comportamento ou métrica para completar um W.
+1. **Preserve a evidência.** Separe informações confirmadas, hipóteses e dúvidas. Evidência Brownfield de código pode contextualizar o estado atual, mas não infira Who, What, Why ou valor a partir dela. Não invente persona, motivação, comportamento ou métrica para completar um W.
 2. **Who — quem?** Identifique o ator ou beneficiário cujo comportamento, necessidade ou resultado orienta a história. Registre contexto que altere a necessidade. Se atores buscam resultados diferentes, registre a possível divisão nas perguntas priorizadas. Um papel genérico é suficiente apenas quando distingui-lo não mudaria a história.
 3. **What — o quê?** Expresse a capacidade ou resultado pretendido, em linguagem do domínio e independente de implementação. Preserve canais, telas, APIs e componentes como restrições ou hipóteses separadas. Verifique se soluções alternativas ainda poderiam atender ao mesmo `What`.
 4. **Why — por quê?** Expresse a mudança útil para o ator ou negócio: problema evitado, decisão habilitada ou resultado alcançado. O `Why` precisa explicar o valor do `What`, não repeti-lo com palavras como “para conseguir”, “para facilitar” ou “para ficar informado”. Registre evidência ou medida somente se fornecida.
@@ -26,6 +26,8 @@ Salvo formato solicitado pelo usuário, entregue:
 2. **História proposta** — use `Como [Who], quero [What], para [Why]` somente se os três Ws estiverem confirmados. Caso contrário, entregue **Rascunho incompleto** e escreva `[a definir]` em cada cláusula fraca ou pendente.
 3. **Perguntas priorizadas** — decisão necessária e impacto da resposta. Se houver atores, capacidades ou valores possivelmente independentes, registre aqui a hipótese de divisão a confirmar.
 4. **Estado 3W** — `Completo` ou `Incompleto`, com justificativa objetiva.
+
+Quando receber evidência Brownfield, cite-a apenas na coluna de evidência ou nas lacunas pertinentes, identificada como estado atual. Um caminho, símbolo, teste ou comportamento implementado não muda um W de `Fraco` ou `Pendente` para `Confirmado` sem fonte da spec ou decisão de negócio correspondente.
 
 ## Limite da skill
 

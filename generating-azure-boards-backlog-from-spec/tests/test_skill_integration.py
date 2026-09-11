@@ -17,6 +17,20 @@ class SkillIntegrationTests(unittest.TestCase):
         ).read_text()
         cls.three_c = (ROOT / "refining-user-stories-with-3c" / "SKILL.md").read_text()
         cls.backlog = (ROOT / "generating-azure-boards-backlog-from-spec" / "SKILL.md").read_text()
+        cls.backlog_contract = (
+            ROOT
+            / "generating-azure-boards-backlog-from-spec"
+            / "references"
+            / "backlog-markdown-contract.md"
+        ).read_text()
+        brownfield_path = (
+            ROOT
+            / "generating-azure-boards-backlog-from-spec"
+            / "references"
+            / "brownfield-validation.md"
+        )
+        cls.brownfield = brownfield_path.read_text() if brownfield_path.exists() else ""
+        cls.readme = (ROOT / "README.md").read_text()
 
     def assert_has_no_named_skill_invocation(self, text, other_skill_names):
         invocation_words = (
@@ -102,6 +116,80 @@ class SkillIntegrationTests(unittest.TestCase):
             self.backlog,
             ("refining-user-stories-with-3w", "refining-user-stories-with-gherkin"),
         )
+
+    def test_backlog_detects_greenfield_brownfield_and_ambiguous_mode(self):
+        self.assertIn("**Greenfield:**", self.backlog)
+        self.assertIn("**Brownfield:**", self.backlog)
+        self.assertIn("escolha Brownfield conservadoramente", self.backlog)
+        self.assertIn("registre a incerteza", self.backlog)
+        self.assertIn("não exija uma inspeção inexistente", self.backlog)
+        self.assertIn("antes de decompor ou refinar", self.backlog)
+
+    def test_brownfield_reference_defines_matrix_and_exact_statuses(self):
+        self.assertTrue(self.brownfield, "brownfield-validation.md must exist")
+        self.assertIn(
+            "| Requisito | Evidência `caminho:linha` | Status | Impacto | Confiança |",
+            self.brownfield,
+        )
+        expected_statuses = (
+            "`Implementado`",
+            "`Parcialmente implementado`",
+            "`Divergente`",
+            "`Não encontrado`",
+            "`Impossível validar`",
+        )
+        for status in expected_statuses:
+            self.assertIn(status, self.brownfield)
+        self.assertIn("Ausência de evidência não significa `Implementado`", self.brownfield)
+
+    def test_brownfield_inspection_is_read_only_without_authorization(self):
+        for command in ("`rg`", "`find`", "`git status`"):
+            self.assertIn(command, self.brownfield)
+        self.assertIn("leitura de arquivos de configuração", self.brownfield)
+        self.assertIn(
+            "Não execute scripts, testes, builds, servidores, migrações ou a aplicação",
+            self.brownfield,
+        )
+        self.assertIn("sem autorização explícita", self.brownfield)
+
+    def test_brownfield_implementation_policy_does_not_create_requirements(self):
+        self.assertIn("Compare o código somente com requisitos da spec", self.brownfield)
+        self.assertIn(
+            "Código existente não confirma valor nem decisão de negócio e não cria regra",
+            self.brownfield,
+        )
+        self.assertIn(
+            "não geram itens duplicados por padrão", self.brownfield
+        )
+        self.assertIn(
+            "documentar comportamento existente", self.brownfield
+        )
+
+    def test_implementation_evidence_stays_out_of_acceptance_criteria(self):
+        self.assertIn("##### Implementation Evidence", self.backlog_contract)
+        self.assertIn("## Validation Summary", self.backlog_contract)
+        self.assertIn(
+            "Evidência de implementação nunca pertence a `Acceptance Criteria`",
+            self.backlog_contract,
+        )
+        self.assertIn(
+            "não infira Who, What, Why ou valor", self.three_w
+        )
+        self.assertIn(
+            "não transforma código em confirmação", self.gherkin
+        )
+        self.assertIn(
+            "Implementation Evidence", self.three_c
+        )
+
+    def test_contract_and_readme_document_both_modes(self):
+        self.assertIn("- Modo: Greenfield | Brownfield", self.backlog_contract)
+        self.assertIn("- Raiz analisada:", self.backlog_contract)
+        self.assertIn("- Código-fonte relevante:", self.backlog_contract)
+        self.assertIn("### Fluxo Greenfield", self.readme)
+        self.assertIn("### Fluxo Brownfield", self.readme)
+        self.assertIn("Parcialmente implementado", self.readme)
+        self.assertIn("Impossível validar", self.readme)
 
 
 if __name__ == "__main__":
