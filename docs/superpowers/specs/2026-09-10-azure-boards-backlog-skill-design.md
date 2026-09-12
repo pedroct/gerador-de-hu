@@ -195,6 +195,16 @@ Também serão atualizados:
 4. REFACTOR: repetir o cenário original e uma variação com histórias prontas e não prontas no mesmo backlog.
 5. Executar `quick_validate.py` nas quatro skills e os testes do validador.
 
+## Atualização (2026-09-12) — sugestão de `interviewing-request-gaps` para Histórias `Não pronta`
+
+A entrega do backlog nunca é bloqueada por Histórias incompletas, mas deixou de ser silenciosa sobre
+elas. Após a validação estrutural, a skill lista as Histórias que permanecem `Não pronta` e sugere ao
+usuário registrar as lacunas de Card, Conversation e Confirmation pendentes na seção
+`## Lacunas e perguntas abertas` da spec de origem, rodar `interviewing-request-gaps` (quando instalada)
+e regenerar o backlog em seguida; repetir a cada rodada até todas as Histórias ficarem `Prontas` ou até
+o usuário adiar explicitamente uma lacuna. A sugestão nunca é uma chamada direta entre skills — a skill
+de backlog continua chamando somente 3C — e não atrasa nem condiciona a entrega do backlog já gerado.
+
 ## Critérios de conclusão
 
 - As quatro skills têm dependências acíclicas e papéis não sobrepostos.

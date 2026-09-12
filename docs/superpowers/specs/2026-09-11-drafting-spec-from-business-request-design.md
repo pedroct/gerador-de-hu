@@ -176,6 +176,17 @@ Como a skill não introduz script determinístico próprio (não há um `validat
 quarta skill), a qualidade da investigação e da redação fica sujeita a self-review da spec gerada e à
 revisão humana do arquivo, não a um gate automatizado.
 
+## Atualização (2026-09-12) — sugestão explícita de `interviewing-request-gaps` ao final do fluxo
+
+Além da referência condicional já registrada em `interviewing-request-gaps-design.md` (usar essa skill,
+se instalada, para fechar lacunas antes de salvar), o passo final do Fluxo agora também informa
+explicitamente ao usuário — quando a spec salva ainda tiver itens em `## Lacunas e perguntas abertas` —
+que o próximo passo manual é rodar `interviewing-request-gaps` (quando instalada), antes de a spec
+seguir para `generating-azure-boards-backlog-from-spec`. É o mesmo padrão de sugestão de próximo passo
+usado por `superpowers:brainstorming` ao final de um design aprovado, e não uma invocação automática:
+esta skill continua parando após salvar o arquivo, sem encadear nenhuma outra skill além da exceção já
+prevista no passo anterior.
+
 ## Critérios de conclusão
 
 - A nova skill existe, com `SKILL.md`, `agents/openai.yaml` e a referência de investigação.
