@@ -30,8 +30,9 @@ mesmo quando o pedido parecer pequeno demais ou incompleto.
 4. **Redija a spec** no template abaixo, preenchendo cada seção só com o que foi confirmado pelo
    pedido ou evidenciado pelo código.
 5. **Feche lacunas por entrevista, se disponível:** se a skill `interviewing-request-gaps` estiver instalada, use-a para fechar o máximo possível das lacunas antes de salvar o arquivo; caso não esteja, salve com as lacunas documentadas normalmente.
-6. **Salve o documento em arquivo e pare. Não invoque nenhuma outra skill.** Informe ao usuário o
-   caminho salvo e um resumo das lacunas e perguntas encontradas.
+6. **Salve o documento em arquivo e pare. Não invoque nenhuma outra skill.** Essa proibição cobre o
+   restante do pipeline (3W, 3C, Gherkin, geração de backlog); a única exceção é o Passo 5. Informe ao
+   usuário o caminho salvo e um resumo das lacunas e perguntas encontradas.
 
 ## Ausência de repositório relevante
 

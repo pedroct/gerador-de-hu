@@ -17,6 +17,30 @@ class InterviewingSkillIsolationTests(unittest.TestCase):
         cls.backlog = (
             ROOT / "generating-azure-boards-backlog-from-spec" / "SKILL.md"
         ).read_text()
+        # refining-user-stories-with-3w has no references/ directory; the other three do.
+        cls.existing_skill_references = [
+            (
+                ROOT / "refining-user-stories-with-3c" / "references" / "azure-boards-fields.md"
+            ).read_text(),
+            (
+                ROOT
+                / "refining-user-stories-with-gherkin"
+                / "references"
+                / "gherkin-practices.md"
+            ).read_text(),
+            (
+                ROOT
+                / "generating-azure-boards-backlog-from-spec"
+                / "references"
+                / "backlog-markdown-contract.md"
+            ).read_text(),
+            (
+                ROOT
+                / "generating-azure-boards-backlog-from-spec"
+                / "references"
+                / "brownfield-validation.md"
+            ).read_text(),
+        ]
 
     def assert_has_no_named_skill_invocation(self, text, other_skill_names):
         invocation_words = (
@@ -46,10 +70,12 @@ class InterviewingSkillIsolationTests(unittest.TestCase):
     def test_other_skills_do_not_reference_interviewing_skill(self):
         for text in (self.three_w, self.three_c, self.gherkin, self.backlog):
             self.assertNotIn("interviewing-request-gaps", text)
+        for text in self.existing_skill_references:
+            self.assertNotIn("interviewing-request-gaps", text)
 
     def test_interviewing_skill_computes_frontier_each_round(self):
-        self.assertIn("fronteira", self.interviewing.lower())
-        self.assertIn("rodada", self.interviewing.lower())
+        self.assertIn("Pergunte a fronteira inteira em uma única rodada", self.interviewing)
+        self.assertIn("Recalcule a fronteira", self.interviewing)
 
     def test_interviewing_skill_asks_frontier_with_recommended_answer_format(self):
         self.assertIn("❓ **P1**", self.interviewing)
