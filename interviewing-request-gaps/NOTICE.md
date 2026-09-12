@@ -1,10 +1,10 @@
 # NOTICE
 
-`interviewing-request-gaps` adapts the round/frontier interview mechanism published by the `grilling` skill in the
-repository [`mattpocock/skills`](https://github.com/mattpocock/skills/tree/main/skills/productivity/grilling),
-licensed under the MIT license reproduced below. The Portuguese content in this directory was rewritten and
-adapted to a narrower scope — closing gaps in an already-written spec, without automatically seeking facts
-or drawing open plans — and is not a literal translation of the original text.
+`interviewing-request-gaps` adapta o mecanismo de rodada/fronteira publicado pela skill `grilling`, no
+repositório [`mattpocock/skills`](https://github.com/mattpocock/skills/tree/main/skills/productivity/grilling),
+licenciado sob a licença MIT reproduzida abaixo. O conteúdo em português deste diretório foi reescrito e
+adaptado a um escopo mais estreito — fechar lacunas de uma spec já escrita, sem buscar fatos
+automaticamente nem desenhar planos em aberto — e não é uma tradução literal do texto original.
 
 ```
 MIT License
