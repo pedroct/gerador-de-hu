@@ -148,6 +148,15 @@ class DraftingSkillIsolationTests(unittest.TestCase):
             self.drafting,
         )
 
+    def test_drafting_skill_references_interviewing_skill_conditionally(self):
+        self.assertIn(
+            "se a skill `interviewing-request-gaps` estiver instalada, use-a para fechar o "
+            "máximo possível das lacunas antes de salvar o arquivo; caso não esteja, salve com "
+            "as lacunas documentadas normalmente.",
+            self.drafting,
+        )
+        self.assertNotIn("REQUIRED SUB-SKILL", self.drafting)
+
 
 if __name__ == "__main__":
     unittest.main()
