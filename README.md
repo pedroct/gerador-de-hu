@@ -206,10 +206,12 @@ Origem na spec: seção 2.
 `1.1.0`
 ##### Description
 ###### Card
-Como analista, quero reabrir uma diligência em até 24 horas, para corrigir informações.
+Como analista,
+quero reabrir uma diligência em até 24 horas,
+para corrigir informações.
 ###### Conversation
 A regra de prazo e o retorno para Em análise foram confirmados.
-##### Implementation Evidence
+##### Implementation Evidence *(metadado de revisão — não é copiado para o Azure Boards; o campo Description termina no fim da Conversation acima)*
 Não se aplica — modo Greenfield; nenhum código-fonte relevante disponível.
 ##### Acceptance Criteria
 ```gherkin

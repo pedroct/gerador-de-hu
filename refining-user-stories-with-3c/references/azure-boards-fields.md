@@ -18,7 +18,10 @@ Use esta forma como padrão adaptável:
 
 ```markdown
 ### Card
-**História:** Como ..., quero ..., para ...
+**História:**
+Como ...,
+quero ...,
+para ...
 **Estado 3W:** Completo | Incompleto
 
 ### Conversation

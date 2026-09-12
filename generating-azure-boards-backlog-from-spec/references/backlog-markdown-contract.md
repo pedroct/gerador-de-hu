@@ -84,7 +84,7 @@ Origem na spec: [seção/âncora/localização disponível]
 ###### Conversation
 [conteúdo da Conversation retornado pela 3C]
 
-##### Implementation Evidence
+##### Implementation Evidence *(metadado de revisão — não é copiado para o Azure Boards; o campo `Description` termina no fim da Conversation acima)*
 [Em Greenfield: `Não se aplica — modo Greenfield; nenhum código-fonte relevante disponível.`]
 [Em Brownfield: linhas da matriz relacionadas ao item, ou síntese rotulada com status, referências `caminho:linha`, impacto e confiança]
 
@@ -119,6 +119,7 @@ Repita os blocos nos mesmos níveis de cabeçalho: Epic em `##`, Feature em `###
 
 ### Implementation Evidence
 
+- O heading carrega sempre a anotação `*(metadado de revisão — não é copiado para o Azure Boards; o campo Description termina no fim da Conversation acima)*`, como no template — ela marca visualmente, para quem for copiar o conteúdo para o Azure Boards, onde `Description` termina.
 - É metadado de validação do documento, separado dos campos copiáveis do Azure Boards.
 - Em Greenfield, declare que não se aplica porque não há código-fonte relevante disponível.
 - Em Brownfield, associe ao item somente linhas da matriz que tenham origem na spec. Registre status, referências `caminho:linha`, impacto e confiança; quando não houver referência, preserve `Nenhuma evidência encontrada` ou o motivo que tornou a validação impossível.

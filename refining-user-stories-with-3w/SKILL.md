@@ -23,7 +23,15 @@ Use 3W para descobrir intenção, não apenas preencher `Como / quero / para`. U
 Salvo formato solicitado pelo usuário, entregue:
 
 1. **Mapa 3W** — tabela com `W`, status, formulação, evidência e lacunas.
-2. **História proposta** — use `Como [Who], quero [What], para [Why]` somente se os três Ws estiverem confirmados. Caso contrário, entregue **Rascunho incompleto** e escreva `[a definir]` em cada cláusula fraca ou pendente.
+2. **História proposta** — escreva `Como`, `quero` e `para` em três linhas separadas (quebra de linha explícita entre elas, não um único parágrafo), somente se os três Ws estiverem confirmados:
+
+   ```text
+   Como [Who],
+   quero [What],
+   para [Why].
+   ```
+
+   Caso contrário, entregue **Rascunho incompleto**, no mesmo formato de três linhas, e escreva `[a definir]` em cada cláusula fraca ou pendente.
 3. **Perguntas priorizadas** — decisão necessária e impacto da resposta. Se houver atores, capacidades ou valores possivelmente independentes, registre aqui a hipótese de divisão a confirmar.
 4. **Estado 3W** — `Completo` ou `Incompleto`, com justificativa objetiva.
 
@@ -51,7 +59,13 @@ Entrada: “Como usuário, quero notificações para ficar informado.”
 - **What — Fraco:** descobrir qual mudança exige atenção; eventos e canais continuam pendentes.
 - **Why — Fraco:** esclarecer qual decisão, ação ou risco depende da informação.
 
-Rascunho incompleto: `Como [perfil e contexto a definir], quero [mudança sobre a qual precisa ser avisado], para [decisão, ação ou risco a definir].`
+Rascunho incompleto:
+
+```text
+Como [perfil e contexto a definir],
+quero [mudança sobre a qual precisa ser avisado],
+para [decisão, ação ou risco a definir].
+```
 
 As lacunas impedem uma história completa. “Push”, “e-mail” ou “engajamento” também não viram requisitos sem confirmação.
 
