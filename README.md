@@ -34,14 +34,27 @@ Spec (com lacunas)
      └─ Spec (lacunas fechadas ou adiadas por decisão explícita)
 ```
 
+Depois da geração, Histórias que ficaram `Não pronta` não bloqueiam a entrega do backlog, mas a skill
+sugere a mesma entrevista de lacunas — agora sobre as pendências de Card, Conversation e Confirmation
+dessas Histórias — como próximo passo manual, repetido a cada rodada até todas ficarem `Prontas` ou até
+o usuário adiar explicitamente uma lacuna:
+
+```text
+Backlog (com Histórias "Não pronta")
+ └─ sugestão: registrar as lacunas em "## Lacunas e perguntas abertas" da spec
+     └─ interviewing-request-gaps (opcional, se instalada)
+         └─ Spec atualizada
+             └─ generating-azure-boards-backlog-from-spec (nova rodada)
+```
+
 - **Drafting a partir de pedido de negócio:** investiga o código-fonte a partir de um pedido informal (e-mail, ticket) e produz a spec inicial, separando o que foi afirmado, evidenciado e lacunas.
-- **Entrevista de lacunas:** fecha, por entrevista em rodadas, a seção de lacunas de uma spec já escrita, sem investigar código nem desenhar plano algum; referenciada condicionalmente por Drafting, nunca obrigatória.
+- **Entrevista de lacunas:** fecha, por entrevista em rodadas, a seção de lacunas de uma spec já escrita, sem investigar código nem desenhar plano algum; referenciada condicionalmente por Drafting e, após a geração do backlog, como sugestão para fechar Histórias `Não pronta` — nunca obrigatória.
 - **3W — Who, What, Why:** identifica ator, capacidade/resultado e valor, separando fatos de lacunas.
 - **3C — Card, Conversation, Confirmation:** organiza o cartão, registra decisões e coordena a confirmação. É a única skill que define a prontidão geral.
 - **Gherkin:** converte apenas regras confirmadas em exemplos verificáveis e classifica a Confirmation como `Ausente`, `Parcial` ou `Completa`.
-- **Backlog a partir de spec:** agrupa requisitos rastreáveis em Épicos, Features e Histórias, preserva lacunas e gera o documento final.
+- **Backlog a partir de spec:** agrupa requisitos rastreáveis em Épicos, Features e Histórias e sempre gera o documento Markdown revisável, marcando lacunas e Histórias incompletas como `Não pronta` em vez de bloquear a geração ou inventar fechamento só para completar o documento; para essas Histórias, sugere a entrevista de lacunas como próxima rodada.
 
-As dependências são acíclicas: 3W e Gherkin são folhas; a skill de backlog chama somente 3C; `drafting-a-spec-from-business-request` é uma predecessora isolada, que nunca chama nem é chamada pelas outras quatro skills. `interviewing-request-gaps` também é folha e nunca é chamada incondicionalmente — só é referenciada, de forma condicional, pelo Fluxo de `drafting-a-spec-from-business-request`.
+As dependências são acíclicas: 3W e Gherkin são folhas; a skill de backlog chama somente 3C; `drafting-a-spec-from-business-request` é uma predecessora isolada, que nunca chama nem é chamada pelas outras quatro skills. `interviewing-request-gaps` também é folha e nunca é chamada incondicionalmente nem invocada diretamente por outra skill — é só referenciada, de forma condicional, pelo fluxo de `drafting-a-spec-from-business-request` e, após a geração do backlog, pela sugestão de fechar Histórias `Não pronta` em `generating-azure-boards-backlog-from-spec`; em ambos os casos, quem decide rodá-la é o usuário.
 
 ## Instalação
 

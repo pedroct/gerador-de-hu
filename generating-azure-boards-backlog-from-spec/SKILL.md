@@ -26,6 +26,7 @@ Determine e registre o modo antes de decompor ou refinar:
 7. Numere `E.0.0`, `E.F.0`, `E.F.S`; preserve chaves existentes em atualizações. Declare cada relação no bloco `Parent`; posição e numeração não substituem o pai explícito.
 8. Renderize modo, raiz ou ausência de código, `Validation Summary`, evidência por item e política de cobertura conforme [references/backlog-markdown-contract.md](references/backlog-markdown-contract.md).
 9. Execute `uv run python scripts/validate_backlog.py CAMINHO`; com backlog existente, acrescente `--update`. Corrija violações estruturais e revise semanticamente rastreabilidade, agrupamento, cobertura Brownfield e ausência de regras fabricadas.
+10. Entregue o backlog mesmo com Histórias `Não pronta`. Para cada uma, liste as lacunas de Card, Conversation e Confirmation que a bloqueiam e sugira ao usuário registrá-las em `## Lacunas e perguntas abertas` da spec de origem e rodar `interviewing-request-gaps` (quando instalada); depois de cada rodada de respostas, regenere o backlog e repita a sugestão até todas as Histórias ficarem `Prontas` ou até o usuário adiar explicitamente uma lacuna.
 
 ## Boundaries
 - Gere Markdown; não crie work items.
@@ -34,3 +35,4 @@ Determine e registre o modo antes de decompor ou refinar:
 - Requisito sem pai justificável entra em `Itens não cobertos`.
 - Evidência de implementação pertence a `Implementation Evidence`, `Validation Summary` e, quando útil, a uma síntese rotulada em Description/Conversation; nunca a `Acceptance Criteria`.
 - Inspeção Brownfield não autoriza executar scripts, testes, builds, servidores, migrações ou a aplicação do projeto.
+- A sugestão de `interviewing-request-gaps` para Histórias `Não pronta` é indicação ao usuário, nunca uma chamada direta a essa skill; não atrase nem condicione a entrega do backlog atual a essa rodada.

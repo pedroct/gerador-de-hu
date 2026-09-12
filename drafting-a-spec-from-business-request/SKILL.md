@@ -32,7 +32,10 @@ mesmo quando o pedido parecer pequeno demais ou incompleto.
 5. **Feche lacunas por entrevista, se disponível:** se a skill `interviewing-request-gaps` estiver instalada, use-a para fechar o máximo possível das lacunas antes de salvar o arquivo; caso não esteja, salve com as lacunas documentadas normalmente.
 6. **Salve o documento em arquivo e pare. Não invoque nenhuma outra skill.** Essa proibição cobre o
    restante do pipeline (3W, 3C, Gherkin, geração de backlog); a única exceção é o Passo 5. Informe ao
-   usuário o caminho salvo e um resumo das lacunas e perguntas encontradas.
+   usuário o caminho salvo e um resumo das lacunas e perguntas encontradas. Se a spec salva ainda tiver
+   itens em `## Lacunas e perguntas abertas`, sugira explicitamente rodar `interviewing-request-gaps`
+   (quando instalada) como próximo passo manual, antes de a spec seguir para
+   `generating-azure-boards-backlog-from-spec`.
 
 ## Ausência de repositório relevante
 
