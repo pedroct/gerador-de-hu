@@ -8,13 +8,15 @@ from pathlib import Path
 
 ITEM_RE = re.compile(
     r"^(?P<marks>#{1,6}) (?P<key>[1-9]\d*\.\d+\.\d+) "
-    r"\[(?P<kind>Epic|Feature|User Story)\] (?P<title>\S.*)$"
+    r"\[(?P<kind>Epic|Feature|User Story|Bug)\] (?P<title>\S.*)$"
 )
-WORK_ITEM_HINT_RE = re.compile(r"^#+ .*(?:\[Epic\]|\[Feature\]|\[User Story\])")
+WORK_ITEM_HINT_RE = re.compile(r"^#+ .*(?:\[Epic\]|\[Feature\]|\[User Story\]|\[Bug\])")
 SECTION_NAMES = {"Parent", "Description", "Acceptance Criteria", "Refinement Status"}
 ACCEPTANCE_CRITERIA = "Acceptance Criteria"
 REFINEMENT_STATUS = "Refinement Status"
 USER_STORY = "User Story"
+BUG = "Bug"
+LEAF_KINDS = (USER_STORY, BUG)
 
 
 @dataclass
@@ -103,7 +105,12 @@ def _parent_value(item: BacklogItem) -> str:
 
 def _validate_hierarchy(item: BacklogItem, keys: set[str]) -> list[str]:
     errors: list[str] = []
-    expected = {"Epic": (2, "épicos"), "Feature": (3, "features"), USER_STORY: (4, "histórias")}
+    expected = {
+        "Epic": (2, "épicos"),
+        "Feature": (3, "features"),
+        USER_STORY: (4, "histórias"),
+        BUG: (4, "bugs"),
+    }
     marks, _ = expected[item.kind]
     if item.level != marks:
         errors.append(f"{item.key} tem nível de título incorreto para {item.kind}")
@@ -114,7 +121,7 @@ def _validate_hierarchy(item: BacklogItem, keys: set[str]) -> list[str]:
             errors.append(f"{item.key} não é uma chave Epic válida")
         return errors
 
-    if f == 0 or (item.kind == "Feature" and s != 0) or (item.kind == USER_STORY and s == 0):
+    if f == 0 or (item.kind == "Feature" and s != 0) or (item.kind in LEAF_KINDS and s == 0):
         errors.append(f"{item.key} não é uma chave {item.kind} válida")
     expected_parent = f"{e}.0.0" if item.kind == "Feature" else f"{e}.{f}.0"
     actual = _parent_value(item)
@@ -127,7 +134,7 @@ def _validate_hierarchy(item: BacklogItem, keys: set[str]) -> list[str]:
     return errors
 
 
-def _validate_user_story(item: BacklogItem) -> list[str]:
+def _validate_leaf_item(item: BacklogItem) -> list[str]:
     status = item.section(REFINEMENT_STATUS)
     errors = [
         f"{item.key} não possui o campo de refinamento {field_name}"
@@ -151,8 +158,8 @@ def _validate_user_story(item: BacklogItem) -> list[str]:
 
 def _validate_item(item: BacklogItem, keys: set[str]) -> list[str]:
     errors = _validate_hierarchy(item, keys)
-    if item.kind == USER_STORY:
-        errors.extend(_validate_user_story(item))
+    if item.kind in LEAF_KINDS:
+        errors.extend(_validate_leaf_item(item))
     if not item.section("Description"):
         errors.append(f"{item.key} possui Description vazia")
     origin_text = item.section("Description") + "\n" + item.section(REFINEMENT_STATUS)
@@ -167,7 +174,7 @@ def _group_key(item: BacklogItem) -> tuple[tuple[str, str], int]:
         return ("épicos", "raiz"), e
     if item.kind == "Feature":
         return ("features", f"{e}.0.0"), f
-    return ("histórias", f"{e}.{f}.0"), s
+    return ("itens", f"{e}.{f}.0"), s
 
 
 def _validate_groups(groups: dict[tuple[str, str], list[int]], update_mode: bool) -> list[str]:

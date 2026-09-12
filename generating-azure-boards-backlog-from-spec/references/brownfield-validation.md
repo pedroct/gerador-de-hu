@@ -53,6 +53,15 @@ A matriz é cobertura analítica, não uma fonte de novos requisitos e não um g
 
 Não transforme componentes, decisões técnicas ou comportamentos incidentais descobertos no código em Épico, Feature, História, Who, What, Why, valor ou regra de aceitação.
 
+### Tipo do item gerado: User Story ou Bug
+
+A decisão entre User Story e Bug segue a [Política de tipo](backlog-markdown-contract.md#política-de-tipo-user-story-vs-bug) de `backlog-markdown-contract.md`. Aplicada à matriz Brownfield:
+
+- Status `Divergente` é o sinal mais direto para `Bug`: o comportamento observado contraria uma regra ou garantia já estabelecida no fluxo.
+- `Parcialmente implementado` ou `Não encontrado` também podem originar `Bug` quando a spec de origem classifica aquele resultado específico como `Defeito`.
+- Nos demais casos — spec classificada como `Melhoria` ou `Outro`, ou item que representa capacidade nova — o item é `User Story`.
+- A decisão é por item, não herdada da classificação única da spec: uma mesma spec pode originar tanto Bugs quanto Histórias, dependendo do status de cada linha da matriz.
+
 ## Handoff ao refinamento e ao documento
 
 Forneça a evidência Brownfield à 3C como contexto rotulado de estado atual. A 3W pode consultá-la sem derivar ator, necessidade ou valor. A Gherkin continua usando apenas o comportamento desejado confirmado na Conversation; implementação atual não confirma a regra.
