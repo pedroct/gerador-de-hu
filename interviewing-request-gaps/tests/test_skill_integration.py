@@ -68,10 +68,20 @@ class InterviewingSkillIsolationTests(unittest.TestCase):
         self.assert_has_no_named_skill_invocation(self.interviewing, other_skill_names)
 
     def test_other_skills_do_not_reference_interviewing_skill(self):
-        for text in (self.three_w, self.three_c, self.gherkin, self.backlog):
+        for text in (self.three_w, self.three_c, self.gherkin):
             self.assertNotIn("interviewing-request-gaps", text)
         for text in self.existing_skill_references:
             self.assertNotIn("interviewing-request-gaps", text)
+
+    def test_backlog_skill_only_suggests_interviewing_skill_conditionally(self):
+        # generating-azure-boards-backlog-from-spec referencia interviewing-request-gaps
+        # por nome (README.md documenta essa exceção), mas só como sugestão condicional
+        # ao usuário — nunca como REQUIRED SUB-SKILL nem como invocação direta.
+        self.assertNotIn("REQUIRED SUB-SKILL:** use interviewing-request-gaps", self.backlog)
+        self.assert_has_no_named_skill_invocation(self.backlog, ("interviewing-request-gaps",))
+        self.assertIn(
+            "indicação ao usuário, nunca uma chamada direta a essa skill", self.backlog
+        )
 
     def test_interviewing_skill_computes_frontier_each_round(self):
         self.assertIn("Pergunte a fronteira inteira em uma única rodada", self.interviewing)
