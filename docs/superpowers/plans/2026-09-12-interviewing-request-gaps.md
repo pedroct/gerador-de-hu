@@ -190,7 +190,7 @@ Sobrescrever completamente `interviewing-request-gaps/SKILL.md` com:
 ```markdown
 ---
 name: interviewing-request-gaps
-description: Use when a spec has an open "Lacunas e perguntas abertas" (gaps/open questions) section — typically one produced by drafting-a-spec-from-business-request — and those gaps need to be closed by interviewing the user round by round, asking only what is currently decidable and recording explicit deferrals as decisions instead of leaving silent gaps.
+description: Use when a spec has an open "Lacunas e perguntas abertas" (gaps/open questions) section and those gaps need to be closed by interviewing the user round by round, asking only what is currently decidable and recording explicit deferrals as decisions instead of leaving silent gaps.
 license: See NOTICE.md — adapts the round/frontier interview mechanism from mattpocock/skills (grilling), MIT licensed.
 ---
 
