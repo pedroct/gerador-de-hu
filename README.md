@@ -4,7 +4,7 @@ Skills para transformar especificações em histórias de usuário refinadas e e
 
 ## O que o projeto faz
 
-O fluxo combina cinco capacidades complementares:
+O fluxo combina seis capacidades complementares:
 
 ```text
 Spec
@@ -21,16 +21,27 @@ produz essa spec como um passo manual anterior:
 ```text
 Pedido informal (e-mail, ticket) + código-fonte
  └─ drafting-a-spec-from-business-request
-     └─ Spec
+     └─ Spec (com lacunas documentadas)
+```
+
+Se a spec resultante ainda tiver itens em `## Lacunas e perguntas abertas`, a skill
+`interviewing-request-gaps` — quando instalada — fecha o máximo possível deles por entrevista em
+rodadas, antes de a spec seguir manualmente para o backlog:
+
+```text
+Spec (com lacunas)
+ └─ interviewing-request-gaps (opcional, se instalada)
+     └─ Spec (lacunas fechadas ou adiadas por decisão explícita)
 ```
 
 - **Drafting a partir de pedido de negócio:** investiga o código-fonte a partir de um pedido informal (e-mail, ticket) e produz a spec inicial, separando o que foi afirmado, evidenciado e lacunas.
+- **Entrevista de lacunas:** fecha, por entrevista em rodadas, a seção de lacunas de uma spec já escrita, sem investigar código nem desenhar plano algum; referenciada condicionalmente por Drafting, nunca obrigatória.
 - **3W — Who, What, Why:** identifica ator, capacidade/resultado e valor, separando fatos de lacunas.
 - **3C — Card, Conversation, Confirmation:** organiza o cartão, registra decisões e coordena a confirmação. É a única skill que define a prontidão geral.
 - **Gherkin:** converte apenas regras confirmadas em exemplos verificáveis e classifica a Confirmation como `Ausente`, `Parcial` ou `Completa`.
 - **Backlog a partir de spec:** agrupa requisitos rastreáveis em Épicos, Features e Histórias, preserva lacunas e gera o documento final.
 
-As dependências são acíclicas: 3W e Gherkin são folhas; a skill de backlog chama somente 3C; `drafting-a-spec-from-business-request` é uma predecessora isolada, que nunca chama nem é chamada pelas outras quatro skills.
+As dependências são acíclicas: 3W e Gherkin são folhas; a skill de backlog chama somente 3C; `drafting-a-spec-from-business-request` é uma predecessora isolada, que nunca chama nem é chamada pelas outras quatro skills. `interviewing-request-gaps` também é folha e nunca é chamada incondicionalmente — só é referenciada, de forma condicional, pelo Fluxo de `drafting-a-spec-from-business-request`.
 
 ## Instalação
 
@@ -120,6 +131,7 @@ Os status comparam apenas o projeto com um requisito rastreável da spec. Códig
 | Skill | Use quando | Saída principal |
 |---|---|---|
 | [`drafting-a-spec-from-business-request`](drafting-a-spec-from-business-request/SKILL.md) | Só há um pedido informal de negócio (e-mail, ticket) e nenhuma spec escrita | Documento de spec em Markdown, com repositórios considerados, evidência de código e lacunas |
+| [`interviewing-request-gaps`](interviewing-request-gaps/SKILL.md) | Uma spec já escrita tem itens abertos em `## Lacunas e perguntas abertas` | A mesma spec, com lacunas fechadas por decisão do usuário ou registradas como adiamento explícito |
 | [`refining-user-stories-with-3w`](refining-user-stories-with-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
 | [`refining-user-stories-with-3c`](refining-user-stories-with-3c/SKILL.md) | A história precisa de conversa e confirmação | Card, Conversation, Confirmation e prontidão 3C |
 | [`refining-user-stories-with-gherkin`](refining-user-stories-with-gherkin/SKILL.md) | Regras confirmadas precisam de exemplos BDD | Regras, Gherkin e estado local da Confirmation |
@@ -199,19 +211,21 @@ Cenário: Reabertura dentro do prazo
 
 ## Validação e desenvolvimento
 
-Execute a suíte completa da quarta e da quinta skill:
+Execute a suíte completa das três skills com teste próprio:
 
 ```bash
 uv run python -m unittest discover -s generating-azure-boards-backlog-from-spec/tests -v
 uv run python -m unittest discover -s drafting-a-spec-from-business-request/tests -v
+uv run python -m unittest discover -s interviewing-request-gaps/tests -v
 ```
 
-Valide os cinco pacotes com o utilitário oficial:
+Valide os seis pacotes com o utilitário oficial:
 
 ```bash
 for skill_dir in \
   drafting-a-spec-from-business-request \
   generating-azure-boards-backlog-from-spec \
+  interviewing-request-gaps \
   refining-user-stories-with-3c \
   refining-user-stories-with-3w \
   refining-user-stories-with-gherkin; do
