@@ -27,6 +27,7 @@ Determine e registre o modo antes de decompor ou refinar:
 8. Renderize modo, raiz ou ausência de código, `Validation Summary`, evidência por item e política de cobertura conforme [references/backlog-markdown-contract.md](references/backlog-markdown-contract.md).
 9. Execute `uv run python scripts/validate_backlog.py CAMINHO`; com backlog existente, acrescente `--update`. Corrija violações estruturais e revise semanticamente rastreabilidade, agrupamento, cobertura Brownfield e ausência de regras fabricadas.
 10. Entregue o backlog mesmo com Histórias ou Bugs `Não pronta`. Para cada um, liste as lacunas de Card, Conversation e Confirmation que a bloqueiam e sugira ao usuário registrá-las em `## Lacunas e perguntas abertas` da spec de origem e rodar `interviewing-request-gaps` (quando instalada); depois de cada rodada de respostas, regenere o backlog e repita a sugestão até todos os itens de folha ficarem `Prontos` ou até o usuário adiar explicitamente uma lacuna.
+11. Se houver copy voltada ao usuário nos requisitos ou nos itens de folha, indique ao usuário a skill `reviewing-copy-in-requirements` como revisão manual opcional. Essa indicação não bloqueia a geração, não cria trabalho novo e não é uma chamada direta à skill.
 
 ## Boundaries
 - Gere Markdown; não crie work items.
@@ -36,4 +37,5 @@ Determine e registre o modo antes de decompor ou refinar:
 - Evidência de implementação pertence a `Implementation Evidence`, `Validation Summary` e, quando útil, a uma síntese rotulada em Description/Conversation; nunca a `Acceptance Criteria`.
 - Inspeção Brownfield não autoriza executar scripts, testes, builds, servidores, migrações ou a aplicação do projeto.
 - A sugestão de `interviewing-request-gaps` para Histórias ou Bugs `Não pronta` é indicação ao usuário, nunca uma chamada direta a essa skill; não atrase nem condicione a entrega do backlog atual a essa rodada.
+- A sugestão de `reviewing-copy-in-requirements` é opcional e manual; não a trate como subskill obrigatória nem condicione a entrega do backlog à revisão de copy.
 - A escolha entre User Story e Bug é por item, com justificativa registrada; não decida por conveniência nem herde cegamente a classificação única da spec quando ela cobrir mais de um resultado.

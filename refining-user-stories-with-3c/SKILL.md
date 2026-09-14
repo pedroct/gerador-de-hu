@@ -17,6 +17,10 @@ Trate a história como três aspectos complementares: o **Card** identifica e an
 4. **Confirmation — confirmação.** **REQUIRED SUB-SKILL:** refining-user-stories-with-gherkin. Encaminhe à Gherkin a história ou Card, os fatos e as decisões registradas na Conversation, incluindo as regras decididas. Evidência de implementação pode acompanhar o handoff apenas como estado atual rotulado; nunca como regra confirmada. Confirmação exige critérios utilizáveis como base de testes de aceitação; repetir o cartão ou listar intenções não basta.
 5. **Avalie os gates.** Classifique `Card` como `Estruturado` ou `Incompleto`; `Conversation` como `Pendente`, `Em andamento` ou `Suficiente para o escopo`; `Confirmation` como `Ausente`, `Parcial` ou `Completa`. A história está `Pronta` apenas com Card estruturado, conversa suficiente e confirmação completa, sem decisão bloqueadora.
 
+Quando o Card, a Conversation ou as mensagens dos critérios contiverem copy voltada ao usuário,
+indique `reviewing-copy-in-requirements` como revisão manual opcional. A revisão de copy pode revelar
+decisões pendentes, mas não substitui nenhum gate 3C e não deve ser invocada automaticamente.
+
 A 3C é a única dona da prontidão geral. Estados locais da 3W e Gherkin são insumos; não os trate como vereditos concorrentes: a única prontidão geral é a consolidada pela 3C.
 
 ## Azure Boards

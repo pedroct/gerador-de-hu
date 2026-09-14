@@ -18,6 +18,10 @@ Use 3W para descobrir intenção, não apenas preencher `Como / quero / para`. U
 5. **Aplique o gate 3W.** Classifique cada W como `Confirmado`, `Fraco` ou `Pendente`. `Who` genérico quando perfis podem divergir, `What` que apenas nomeia a solução e `Why` circular não passam no gate. Não os reutilize como se estivessem resolvidos.
 6. **Declare o estado 3W.** Use `Completo` somente quando os três Ws passam no gate sem fatos inventados; caso contrário, use `Incompleto` e apresente as perguntas de maior impacto. Estado 3W não equivale, sozinho, à prontidão para desenvolvimento.
 
+Se a história ou o requisito contiver texto que será exibido ao usuário, indique ao usuário a skill
+`reviewing-copy-in-requirements` como revisão opcional de copy. Não a trate como requisito do 3W nem
+como chamada automática.
+
 ## Contrato da entrega
 
 Salvo formato solicitado pelo usuário, entregue:

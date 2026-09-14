@@ -49,6 +49,7 @@ testpaths = [
   "generating-azure-boards-backlog-from-spec/tests",
   "drafting-a-spec-from-business-request/tests",
   "interviewing-request-gaps/tests",
+  "reviewing-copy-in-requirements/tests",
 ]
 addopts = "-ra --import-mode=importlib"
 

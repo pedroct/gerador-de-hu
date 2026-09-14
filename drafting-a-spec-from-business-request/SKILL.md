@@ -35,7 +35,9 @@ mesmo quando o pedido parecer pequeno demais ou incompleto.
    usuário o caminho salvo e um resumo das lacunas e perguntas encontradas. Se a spec salva ainda tiver
    itens em `## Lacunas e perguntas abertas`, sugira explicitamente rodar `interviewing-request-gaps`
    (quando instalada) como próximo passo manual, antes de a spec seguir para
-   `generating-azure-boards-backlog-from-spec`.
+   `generating-azure-boards-backlog-from-spec`. Se houver copy voltada ao usuário na spec, indique
+   também, como próximo passo manual opcional, a skill `reviewing-copy-in-requirements` (quando
+   instalada), sem chamá-la diretamente.
 
 ## Ausência de repositório relevante
 

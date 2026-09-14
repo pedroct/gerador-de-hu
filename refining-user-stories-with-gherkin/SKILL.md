@@ -24,6 +24,11 @@ Esta é uma skill-folha. Retorne regras confirmadas, exemplos e estado da Confir
 3. **Escreva ou revise Gherkin.** Antes disso, leia [references/gherkin-practices.md](references/gherkin-practices.md). Use a linguagem do domínio, não detalhes de tela, API, banco de dados, classes ou automação, salvo quando a interface técnica for parte explícita do comportamento contratado.
 4. **Avalie a Confirmation.** Rastreie cada exemplo até uma regra, liste decisões pendentes e classifique o estado como `Ausente`, `Parcial` ou `Completa`.
 
+Se os exemplos ou o requisito associado incluírem mensagens, rótulos ou CTAs exibidos ao usuário,
+indique `reviewing-copy-in-requirements` como revisão manual opcional. Copy não deve ser criada para
+preencher uma lacuna de regra, e essa indicação não é uma chamada automática nem altera o estado da
+Confirmation.
+
 No Azure Boards, regras confirmadas e exemplos pertencem a `Acceptance Criteria`; hipóteses, perguntas e histórico permanecem em `Description`. Se nenhuma regra puder formar exemplo legítimo, mantenha `Acceptance Criteria` vazio.
 
 Não inclua evidência de implementação nos artefatos desta skill. O chamador a mantém em `Implementation Evidence` ou em síntese rotulada na Description/Conversation, nunca no Gherkin nem em `Acceptance Criteria`.

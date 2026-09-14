@@ -4,7 +4,7 @@ Skills para transformar especificações em histórias de usuário refinadas e e
 
 ## O que o projeto faz
 
-O fluxo combina seis capacidades complementares:
+O fluxo combina sete capacidades complementares:
 
 ```text
 Spec
@@ -45,6 +45,15 @@ Backlog (com Histórias "Não pronta")
      └─ interviewing-request-gaps (opcional, se instalada)
          └─ Spec atualizada
              └─ generating-azure-boards-backlog-from-spec (nova rodada)
+```
+
+Antes ou durante a especificação, `reviewing-copy-in-requirements` pode revisar os textos voltados ao
+usuário e apontar dúvidas de clareza, benefício, ação, tom e consistência:
+
+```text
+Requisito ou spec
+ └─ reviewing-copy-in-requirements (opcional, se instalada)
+     └─ Diagnóstico da copy + sugestões + decisões pendentes
 ```
 
 - **Drafting a partir de pedido de negócio:** investiga o código-fonte a partir de um pedido informal (e-mail, ticket) e produz a spec inicial, separando o que foi afirmado, evidenciado e lacunas.
@@ -145,6 +154,7 @@ Os status comparam apenas o projeto com um requisito rastreável da spec. Códig
 |---|---|---|
 | [`drafting-a-spec-from-business-request`](drafting-a-spec-from-business-request/SKILL.md) | Só há um pedido informal de negócio (e-mail, ticket) e nenhuma spec escrita | Documento de spec em Markdown, com repositórios considerados, evidência de código e lacunas |
 | [`interviewing-request-gaps`](interviewing-request-gaps/SKILL.md) | Uma spec já escrita tem itens abertos em `## Lacunas e perguntas abertas` | A mesma spec, com lacunas fechadas por decisão do usuário ou registradas como adiamento explícito |
+| [`reviewing-copy-in-requirements`](reviewing-copy-in-requirements/SKILL.md) | Requisitos ou specs contêm copy voltada ao usuário | Diagnóstico de copy, sugestões de texto e decisões pendentes |
 | [`refining-user-stories-with-3w`](refining-user-stories-with-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
 | [`refining-user-stories-with-3c`](refining-user-stories-with-3c/SKILL.md) | A história precisa de conversa e confirmação | Card, Conversation, Confirmation e prontidão 3C |
 | [`refining-user-stories-with-gherkin`](refining-user-stories-with-gherkin/SKILL.md) | Regras confirmadas precisam de exemplos BDD | Regras, Gherkin e estado local da Confirmation |
@@ -234,7 +244,7 @@ uv run python -m unittest discover -s drafting-a-spec-from-business-request/test
 uv run python -m unittest discover -s interviewing-request-gaps/tests -v
 ```
 
-Valide os seis pacotes com o utilitário oficial:
+Valide os sete pacotes com o utilitário oficial:
 
 ```bash
 for skill_dir in \
