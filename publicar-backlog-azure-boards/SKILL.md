@@ -27,7 +27,8 @@ não afirma que a publicação acontece automaticamente.
    cada criação para permitir retomada com nova autorização.
 
 Confirmação ausente, vaga, incorreta ou vinculada a outro hash resulta em **zero chamadas de criação**.
-Não use `--yes`, confirmação implícita, manifesto como autorização, exclusão, rollback ou
+Após uma falha parcial, preserve o manifesto, corrija a causa e exija nova autorização para a
+retomada. Não use `--yes`, confirmação implícita, manifesto como autorização, exclusão, rollback ou
 atualização automática.
 
 ## Comandos
@@ -43,7 +44,7 @@ uv run python scripts/publicar_backlog.py publicar backlog.md
 `--simulacao` executa somente a preparação, a validação local e o planejamento; não faz chamadas
 HTTP, não solicita autorização e não realiza chamadas de criação. `--validar-apenas` também não
 solicita autorização: ele verifica o destino e valida as operações remotamente com
-`validateOnly=true`.
+`validateOnly=true`, sem criar work items.
 
 ## Configuração por execução
 
@@ -72,8 +73,9 @@ versione, não o coloque no backlog, no manifesto, no plano, em exemplos preench
 ## MCP
 
 O MCP do Azure DevOps é **opcional** e pode apoiar inspeção interativa de tipos, campos e caminhos.
-A publicação usa a REST API do pacote para manter ordem, hash, autorização por lote, manifesto e
-tratamento determinístico de falhas. A presença de MCP não é necessária para executar a skill.
+A publicação usa obrigatoriamente a REST API do pacote para manter ordem, hash, autorização por
+lote, manifesto e tratamento determinístico de falhas. A presença de MCP não é necessária para
+executar a skill nem substitui a REST API.
 
 ## Limites
 
