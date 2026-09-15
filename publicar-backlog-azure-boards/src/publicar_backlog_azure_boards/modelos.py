@@ -26,6 +26,25 @@ class ItemBacklog:
 
 
 @dataclass(frozen=True)
+class ConfiguracaoPublicacao:
+    """Representa o destino já validado para uma publicação."""
+
+    organizacao: str
+    projeto: str
+    area_path: str
+    iteration_path: str
+
+
+@dataclass(frozen=True)
+class RegistroManifesto:
+    """Associa uma chave documental a um work item já publicado."""
+
+    id: int
+    tipo: TipoItem
+    url: str
+
+
+@dataclass(frozen=True)
 class OperacaoCriacao:
     """Representa uma criação planejada, sem executar qualquer escrita."""
 
