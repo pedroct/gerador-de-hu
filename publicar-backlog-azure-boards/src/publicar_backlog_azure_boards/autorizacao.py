@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from hmac import compare_digest
 from typing import TextIO
@@ -38,15 +38,25 @@ class Autorizacao:
 
     plano_hash: str
     modalidade: ModalidadeAutorizacao
+    _confirmada: bool = field(default=False, init=False, repr=False)
 
     def valida_para(self, plano_hash: str) -> bool:
         """Invalida a autorização se o plano foi alterado após a confirmação."""
-        return compare_digest(self.plano_hash, plano_hash)
+        return self._confirmada and compare_digest(self.plano_hash, plano_hash)
 
 
 def validar_confirmacao(confirmacao: str, esperada: str) -> bool:
     """Aceita somente a frase integral apresentada para a pessoa executora."""
     return compare_digest(confirmacao.encode(), esperada.encode())
+
+
+def coletar_confirmacao(entrada: TextIO, saida: TextIO) -> str | None:
+    """Coleta a frase e remove somente a quebra de linha inserida pelo terminal."""
+    saida.write("Digite a frase de confirmação: ")
+    confirmacao = entrada.readline()
+    if not confirmacao:
+        return None
+    return confirmacao.rstrip("\r\n")
 
 
 def escolher_modalidade(entrada: TextIO, saida: TextIO) -> ModalidadeAutorizacao:
@@ -106,10 +116,23 @@ def criar_frase_confirmacao(
 def criar_autorizacao(
     plano_hash: str,
     modalidade: ModalidadeAutorizacao = ModalidadeAutorizacao.INTEIRA,
+    confirmacao: str | None = None,
+    quantidade: int | None = None,
+    configuracao: ConfiguracaoPublicacao | None = None,
+    numero_lote: int | None = None,
 ) -> Autorizacao:
-    """Registra a modalidade aprovada para o hash já confirmado pelo fluxo interativo."""
+    """Cria uma autorização operacional apenas após validar a frase derivada do plano."""
     if not plano_hash:
         raise ValueError("O hash do plano é obrigatório para autorizar a publicação.")
     if modalidade is ModalidadeAutorizacao.CANCELADA:
         raise ValueError("Uma publicação cancelada não pode gerar autorização.")
-    return Autorizacao(plano_hash=plano_hash, modalidade=modalidade)
+    autorizacao = Autorizacao(plano_hash=plano_hash, modalidade=modalidade)
+    if confirmacao is None:
+        return autorizacao
+    if quantidade is None or configuracao is None:
+        raise ValueError("A quantidade e o destino são obrigatórios para validar a confirmação.")
+
+    esperada = criar_frase_confirmacao(plano_hash, quantidade, configuracao, numero_lote)
+    if validar_confirmacao(confirmacao, esperada):
+        object.__setattr__(autorizacao, "_confirmada", True)
+    return autorizacao

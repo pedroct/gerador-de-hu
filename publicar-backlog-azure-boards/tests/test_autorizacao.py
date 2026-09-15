@@ -4,6 +4,7 @@ import pytest
 
 from publicar_backlog_azure_boards.autorizacao import (
     ModalidadeAutorizacao,
+    coletar_confirmacao,
     criar_autorizacao,
     criar_frase_confirmacao,
     criar_lotes,
@@ -45,10 +46,56 @@ def test_frase_de_lote_identifica_numero_e_quantidade() -> None:
     assert frase == "AUTORIZAR LOTE 2 4 ITENS Projeto Projeto Projeto\\Sprint 18 B91C"
 
 
-def test_plano_alterado_invalida_autorizacao() -> None:
+def test_ausencia_de_confirmacao_nao_cria_autorizacao_operacional() -> None:
     autorizacao = criar_autorizacao(plano_hash="novo")
 
+    assert autorizacao.valida_para("novo") is False
+
+
+def test_confirmacao_exata_cria_autorizacao_operacional() -> None:
+    plano_hash = "novo"
+    confirmacao = criar_frase_confirmacao(plano_hash, 3, CONFIGURACAO)
+
+    autorizacao = criar_autorizacao(
+        plano_hash=plano_hash,
+        confirmacao=confirmacao,
+        quantidade=3,
+        configuracao=CONFIGURACAO,
+    )
+
+    assert autorizacao.valida_para(plano_hash) is True
+
+
+def test_confirmacao_incorreta_nao_cria_autorizacao_operacional() -> None:
+    autorizacao = criar_autorizacao(
+        plano_hash="novo",
+        confirmacao="AUTORIZAR PUBLICAÇÃO 3 ITENS X 0000",
+        quantidade=3,
+        configuracao=CONFIGURACAO,
+    )
+
+    assert autorizacao.valida_para("novo") is False
+
+
+def test_plano_alterado_invalida_autorizacao() -> None:
+    plano_hash = "novo"
+    confirmacao = criar_frase_confirmacao(plano_hash, 3, CONFIGURACAO)
+    autorizacao = criar_autorizacao(
+        plano_hash=plano_hash,
+        confirmacao=confirmacao,
+        quantidade=3,
+        configuracao=CONFIGURACAO,
+    )
+
     assert autorizacao.valida_para("antigo") is False
+
+
+def test_coleta_confirmacao_remove_apenas_quebra_de_linha() -> None:
+    esperada = criar_frase_confirmacao("novo", 3, CONFIGURACAO)
+
+    confirmacao = coletar_confirmacao(StringIO(f"{esperada}\r\n"), StringIO())
+
+    assert confirmacao == esperada
 
 
 def test_escolha_de_modalidade_inteira() -> None:
