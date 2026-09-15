@@ -4,15 +4,15 @@
 
 O fluxo atual possui três skills:
 
-- `refining-user-stories-with-3w`: estrutura Who, What e Why;
-- `refining-user-stories-with-3c`: orquestra Card, Conversation e Confirmation e mapeia os campos do Azure Boards;
-- `refining-user-stories-with-gherkin`: transforma regras confirmadas em exemplos verificáveis.
+- `refinar-historias-3w`: estrutura Who, What e Why;
+- `refinar-historias-3c`: orquestra Card, Conversation e Confirmation e mapeia os campos do Azure Boards;
+- `refinar-historias-gherkin`: transforma regras confirmadas em exemplos verificáveis.
 
 O próximo passo é analisar uma especificação inteira, decompor seu conteúdo na hierarquia do processo Agile do Azure Boards e gerar um documento Markdown revisável antes da inserção dos work items.
 
 ## Objetivos
 
-1. Criar a skill `generating-azure-boards-backlog-from-spec`.
+1. Criar a skill `gerar-backlog-azure-boards`.
 2. Gerar um Markdown hierárquico no formato Épico → Feature → História de Usuário.
 3. Aplicar 3W, 3C e Gherkin em cada história sem duplicar suas regras.
 4. Produzir `Description` e `Acceptance Criteria` prontos para transferência ao Azure Boards.
@@ -52,7 +52,7 @@ Regras:
 2. Identificar Épicos como iniciativas ou objetivos amplos que agrupam múltiplas capacidades.
 3. Identificar Features como capacidades significativas que entregam valor e agrupam histórias relacionadas.
 4. Identificar histórias como resultados coesos para um ator, passíveis de refinamento independente.
-5. Aplicar `refining-user-stories-with-3c` a cada história candidata.
+5. Aplicar `refinar-historias-3c` a cada história candidata.
 6. Não criar um item apenas para preencher um nível. Requisito sem evidência suficiente permanece na seção de lacunas.
 7. Registrar requisitos da spec não cobertos por nenhum item e itens sem origem rastreável.
 
@@ -61,11 +61,11 @@ Regras:
 O fluxo canônico será acíclico:
 
 ```text
-generating-azure-boards-backlog-from-spec
-  -> refining-user-stories-with-3c
-       -> refining-user-stories-with-3w
+gerar-backlog-azure-boards
+  -> refinar-historias-3c
+       -> refinar-historias-3w
        -> Conversation
-       -> refining-user-stories-with-gherkin
+       -> refinar-historias-gherkin
 ```
 
 Contratos de retorno:
@@ -174,7 +174,7 @@ O script não decidirá se a decomposição, o valor de negócio ou os cenários
 ## Arquivos previstos
 
 ```text
-generating-azure-boards-backlog-from-spec/
+gerar-backlog-azure-boards/
 ├── SKILL.md
 ├── agents/openai.yaml
 ├── references/backlog-markdown-contract.md
@@ -183,9 +183,9 @@ generating-azure-boards-backlog-from-spec/
 
 Também serão atualizados:
 
-- `refining-user-stories-with-3w/SKILL.md` para remover chamadas a outras skills e retornar apenas o artefato 3W local;
-- `refining-user-stories-with-gherkin/SKILL.md` para remover a chamada à 3W e retornar apenas o estado local da Confirmation;
-- `refining-user-stories-with-3c/SKILL.md` para ser a única dona da prontidão geral e oferecer saída consumível pela quarta skill.
+- `refinar-historias-3w/SKILL.md` para remover chamadas a outras skills e retornar apenas o artefato 3W local;
+- `refinar-historias-gherkin/SKILL.md` para remover a chamada à 3W e retornar apenas o estado local da Confirmation;
+- `refinar-historias-3c/SKILL.md` para ser a única dona da prontidão geral e oferecer saída consumível pela quarta skill.
 
 ## Estratégia de testes
 
@@ -195,12 +195,12 @@ Também serão atualizados:
 4. REFACTOR: repetir o cenário original e uma variação com histórias prontas e não prontas no mesmo backlog.
 5. Executar `quick_validate.py` nas quatro skills e os testes do validador.
 
-## Atualização (2026-09-12) — sugestão de `interviewing-request-gaps` para Histórias `Não pronta`
+## Atualização (2026-09-12) — sugestão de `entrevistar-lacunas-requisito` para Histórias `Não pronta`
 
 A entrega do backlog nunca é bloqueada por Histórias incompletas, mas deixou de ser silenciosa sobre
 elas. Após a validação estrutural, a skill lista as Histórias que permanecem `Não pronta` e sugere ao
 usuário registrar as lacunas de Card, Conversation e Confirmation pendentes na seção
-`## Lacunas e perguntas abertas` da spec de origem, rodar `interviewing-request-gaps` (quando instalada)
+`## Lacunas e perguntas abertas` da spec de origem, rodar `entrevistar-lacunas-requisito` (quando instalada)
 e regenerar o backlog em seguida; repetir a cada rodada até todas as Histórias ficarem `Prontas` ou até
 o usuário adiar explicitamente uma lacuna. A sugestão nunca é uma chamada direta entre skills — a skill
 de backlog continua chamando somente 3C — e não atrasa nem condiciona a entrega do backlog já gerado.

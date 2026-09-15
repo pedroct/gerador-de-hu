@@ -1,10 +1,10 @@
-# Plano de Implementação: drafting-a-spec-from-business-request
+# Plano de Implementação: redigir-spec-pedido-negocio
 
 > **Para trabalhadores agênticos:** REQUIRED SUB-SKILL: use superpowers:subagent-driven-development (recomendado) ou superpowers:executing-plans para implementar este plano tarefa por tarefa. As etapas usam a sintaxe de checkbox (`- [ ]`) para rastreamento.
 
-**Objetivo:** Adicionar uma quinta skill independente — `drafting-a-spec-from-business-request` — que transforma um pedido informal de negócio (e-mail, ticket, chat) somado a uma investigação somente leitura do código-fonte local em um documento de spec compatível com a entrada que `generating-azure-boards-backlog-from-spec` já aceita hoje, sem tocar em nenhuma das quatro skills existentes.
+**Objetivo:** Adicionar uma quinta skill independente — `redigir-spec-pedido-negocio` — que transforma um pedido informal de negócio (e-mail, ticket, chat) somado a uma investigação somente leitura do código-fonte local em um documento de spec compatível com a entrada que `gerar-backlog-azure-boards` já aceita hoje, sem tocar em nenhuma das quatro skills existentes.
 
-**Arquitetura:** Um único diretório de skill novo (`SKILL.md`, `agents/openai.yaml`, `references/business-request-investigation.md`, `tests/test_skill_integration.py`) que é uma predecessora pura no grafo de skills — nunca chama, nem é chamada por, nenhuma das quatro skills existentes. Seu próprio teste estático garante esse isolamento, do mesmo jeito que `generating-azure-boards-backlog-from-spec/tests/test_skill_integration.py` já garante o grafo acíclico entre as outras quatro. `pyproject.toml` e `README.md` são atualizados (arquivos de projeto, não arquivos de skill) para que a nova skill fique descobrível e seus testes rodem sob as convenções já existentes de `pytest`/`quick_validate.py`.
+**Arquitetura:** Um único diretório de skill novo (`SKILL.md`, `agents/openai.yaml`, `references/business-request-investigation.md`, `tests/test_skill_integration.py`) que é uma predecessora pura no grafo de skills — nunca chama, nem é chamada por, nenhuma das quatro skills existentes. Seu próprio teste estático garante esse isolamento, do mesmo jeito que `gerar-backlog-azure-boards/tests/test_skill_integration.py` já garante o grafo acíclico entre as outras quatro. `pyproject.toml` e `README.md` são atualizados (arquivos de projeto, não arquivos de skill) para que a nova skill fique descobrível e seus testes rodem sob as convenções já existentes de `pytest`/`quick_validate.py`.
 
 **Stack técnica:** Autoria de skill somente por prompt (Markdown + YAML), Python 3.12 `unittest`/`pytest` para o teste estático de isolamento, `uv run` para execução, o `skill-creator` já presente na máquina (`~/.codex/skills/.system/skill-creator/scripts/init_skill.py` e `quick_validate.py`) para scaffolding e validação estrutural — a mesma ferramenta já usada para inicializar as outras quatro skills deste repositório.
 
@@ -12,7 +12,7 @@
 
 ## Restrições Globais
 
-- Nenhuma das quatro skills existentes (`refining-user-stories-with-3w`, `refining-user-stories-with-3c`, `refining-user-stories-with-gherkin`, `generating-azure-boards-backlog-from-spec`) pode ser criada, removida ou modificada.
+- Nenhuma das quatro skills existentes (`refinar-historias-3w`, `refinar-historias-3c`, `refinar-historias-gherkin`, `gerar-backlog-azure-boards`) pode ser criada, removida ou modificada.
 - Todo pedido de negócio é tratado como uma única unidade de escopo; a nova skill nunca o divide em múltiplos itens.
 - A nova skill não recebe parâmetro de caminho de projeto; ela descobre repositórios irmãos a partir de onde está instalada.
 - A investigação de código é somente leitura; scripts, testes, builds, servidores, migrações ou a própria aplicação nunca são executados sem autorização explícita.
@@ -21,17 +21,17 @@
 
 ---
 
-### Task 1: Criar e escrever o conteúdo da skill `drafting-a-spec-from-business-request`
+### Task 1: Criar e escrever o conteúdo da skill `redigir-spec-pedido-negocio`
 
 **Arquivos:**
-- Criar: `drafting-a-spec-from-business-request/SKILL.md`
-- Criar: `drafting-a-spec-from-business-request/agents/openai.yaml`
-- Criar: `drafting-a-spec-from-business-request/references/business-request-investigation.md`
-- Teste: `drafting-a-spec-from-business-request/tests/test_skill_integration.py`
+- Criar: `redigir-spec-pedido-negocio/SKILL.md`
+- Criar: `redigir-spec-pedido-negocio/agents/openai.yaml`
+- Criar: `redigir-spec-pedido-negocio/references/business-request-investigation.md`
+- Teste: `redigir-spec-pedido-negocio/tests/test_skill_integration.py`
 
 **Interfaces:**
 - Consome: nada de outras tarefas (é a primeira tarefa).
-- Produz: o diretório da skill em si, no caminho fixo `drafting-a-spec-from-business-request/`, que a Tarefa 2 referencia por caminho (para `testpaths` do `pyproject.toml`) e a Tarefa 3 referencia por caminho (para os links do `README.md`). Não há interface de código — é uma skill somente de prompt; as tarefas seguintes dependem apenas dos caminhos de arquivo listados acima, não de nenhuma assinatura de função.
+- Produz: o diretório da skill em si, no caminho fixo `redigir-spec-pedido-negocio/`, que a Tarefa 2 referencia por caminho (para `testpaths` do `pyproject.toml`) e a Tarefa 3 referencia por caminho (para os links do `README.md`). Não há interface de código — é uma skill somente de prompt; as tarefas seguintes dependem apenas dos caminhos de arquivo listados acima, não de nenhuma assinatura de função.
 
 - [ ] **Passo 1: Gerar o scaffold do diretório da skill com o skill-creator já usado no repositório**
 
@@ -40,19 +40,19 @@ Rode a partir da raiz do repositório (`/Volumes/DOCK/Projetos/pessoal/gerador-h
 ```bash
 uv run --with pyyaml python \
   /Users/pedroct/.codex/skills/.system/skill-creator/scripts/init_skill.py \
-  drafting-a-spec-from-business-request \
+  redigir-spec-pedido-negocio \
   --path /Volumes/DOCK/Projetos/pessoal/gerador-hu \
   --resources references \
   --interface display_name='Redigir spec a partir de pedido de negócio' \
   --interface short_description='Investiga código e redige spec a partir de pedido informal' \
-  --interface default_prompt='Use $drafting-a-spec-from-business-request para transformar este pedido de negócio em uma spec antes de gerar o backlog.'
+  --interface default_prompt='Use $redigir-spec-pedido-negocio para transformar este pedido de negócio em uma spec antes de gerar o backlog.'
 ```
 
-Saída esperada: `[OK] Skill 'drafting-a-spec-from-business-request' initialized successfully...`. Isso cria `SKILL.md` (com placeholders `[TODO: ...]` — esperado, substituídos no Passo 4), `agents/openai.yaml` (conteúdo final, sem edição posterior necessária) e um diretório `references/` vazio.
+Saída esperada: `[OK] Skill 'redigir-spec-pedido-negocio' initialized successfully...`. Isso cria `SKILL.md` (com placeholders `[TODO: ...]` — esperado, substituídos no Passo 4), `agents/openai.yaml` (conteúdo final, sem edição posterior necessária) e um diretório `references/` vazio.
 
 - [ ] **Passo 2: Escrever o teste que falha**
 
-Criar `drafting-a-spec-from-business-request/tests/test_skill_integration.py`:
+Criar `redigir-spec-pedido-negocio/tests/test_skill_integration.py`:
 
 ```python
 import unittest
@@ -65,21 +65,21 @@ class DraftingSkillIsolationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.drafting = (
-            ROOT / "drafting-a-spec-from-business-request" / "SKILL.md"
+            ROOT / "redigir-spec-pedido-negocio" / "SKILL.md"
         ).read_text()
         cls.investigation = (
             ROOT
-            / "drafting-a-spec-from-business-request"
+            / "redigir-spec-pedido-negocio"
             / "references"
             / "business-request-investigation.md"
         ).read_text()
-        cls.three_w = (ROOT / "refining-user-stories-with-3w" / "SKILL.md").read_text()
-        cls.three_c = (ROOT / "refining-user-stories-with-3c" / "SKILL.md").read_text()
+        cls.three_w = (ROOT / "refinar-historias-3w" / "SKILL.md").read_text()
+        cls.three_c = (ROOT / "refinar-historias-3c" / "SKILL.md").read_text()
         cls.gherkin = (
-            ROOT / "refining-user-stories-with-gherkin" / "SKILL.md"
+            ROOT / "refinar-historias-gherkin" / "SKILL.md"
         ).read_text()
         cls.backlog = (
-            ROOT / "generating-azure-boards-backlog-from-spec" / "SKILL.md"
+            ROOT / "gerar-backlog-azure-boards" / "SKILL.md"
         ).read_text()
 
     def assert_has_no_named_skill_invocation(self, text, other_skill_names):
@@ -101,16 +101,16 @@ class DraftingSkillIsolationTests(unittest.TestCase):
         self.assert_has_no_named_skill_invocation(
             self.drafting,
             (
-                "refining-user-stories-with-3w",
-                "refining-user-stories-with-3c",
-                "refining-user-stories-with-gherkin",
-                "generating-azure-boards-backlog-from-spec",
+                "refinar-historias-3w",
+                "refinar-historias-3c",
+                "refinar-historias-gherkin",
+                "gerar-backlog-azure-boards",
             ),
         )
 
     def test_existing_skills_do_not_reference_drafting_skill(self):
         for text in (self.three_w, self.three_c, self.gherkin, self.backlog):
-            self.assertNotIn("drafting-a-spec-from-business-request", text)
+            self.assertNotIn("redigir-spec-pedido-negocio", text)
 
     def test_drafting_skill_treats_request_as_single_scope(self):
         self.assertIn(
@@ -167,16 +167,16 @@ if __name__ == "__main__":
 
 - [ ] **Passo 3: Rodar o teste para confirmar que ele falha**
 
-Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Rode: `uv run pytest redigir-spec-pedido-negocio/tests/test_skill_integration.py -v`
 Esperado: FALHA — o `SKILL.md` placeholder do Passo 1 não contém nenhuma das strings verificadas, e `references/business-request-investigation.md` ainda não existe (`FileNotFoundError` em `setUpClass`).
 
 - [ ] **Passo 4: Escrever o conteúdo real do SKILL.md**
 
-Sobrescrever completamente `drafting-a-spec-from-business-request/SKILL.md` com:
+Sobrescrever completamente `redigir-spec-pedido-negocio/SKILL.md` com:
 
 ```markdown
 ---
-name: drafting-a-spec-from-business-request
+name: redigir-spec-pedido-negocio
 description: Use when a business request such as an email, ticket, or chat message describes a problem or demand informally, without a written spec, and the local application source code is available to ground it before backlog generation.
 ---
 
@@ -186,7 +186,7 @@ description: Use when a business request such as an email, ticket, or chat messa
 
 Transformar um pedido informal de negócio (e-mail, ticket, mensagem) em uma spec em Markdown, apoiada
 em investigação somente leitura do código-fonte já presente onde esta skill está instalada. A spec
-resultante é a entrada que `generating-azure-boards-backlog-from-spec` já aceita hoje; esta skill não
+resultante é a entrada que `gerar-backlog-azure-boards` já aceita hoje; esta skill não
 decompõe em Épico, Feature ou História e não gera Acceptance Criteria.
 
 ## Escopo
@@ -258,7 +258,7 @@ Tudo que não pôde ser confirmado nem pelo pedido nem pelo código.
 - Nunca invente ator, regra, critério de aceite ou decisão de negócio a partir do código; código
   existente não cria requisito nem confirma decisão de negócio.
 - Não produza Épico, Feature, História, Description nem Acceptance Criteria; isso continua sendo
-  responsabilidade de `generating-azure-boards-backlog-from-spec` e da 3C.
+  responsabilidade de `gerar-backlog-azure-boards` e da 3C.
 - Não encadeie automaticamente a geração do backlog; a spec fica pronta para uso manual do usuário.
 ```
 
@@ -267,7 +267,7 @@ crases para a seção `## Template da spec` (como mostrado); não duplique a cer
 
 - [ ] **Passo 5: Escrever a referência de investigação**
 
-Criar `drafting-a-spec-from-business-request/references/business-request-investigation.md`:
+Criar `redigir-spec-pedido-negocio/references/business-request-investigation.md`:
 
 ```markdown
 # Investigação de código a partir de um pedido de negócio
@@ -325,30 +325,30 @@ evidência sustenta a observação; não substitui a distinção entre afirmado,
 ## Handoff
 
 Entregue a spec com as três categorias claramente identificadas. Quem for rodar
-`generating-azure-boards-backlog-from-spec` sobre esse arquivo trata "Evidenciado pelo código" como
+`gerar-backlog-azure-boards` sobre esse arquivo trata "Evidenciado pelo código" como
 contexto Brownfield de estado atual, nunca como confirmação de valor ou decisão de negócio.
 ```
 
 - [ ] **Passo 6: Rodar o teste para confirmar que ele passa**
 
-Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Rode: `uv run pytest redigir-spec-pedido-negocio/tests/test_skill_integration.py -v`
 Esperado: PASSA — 9 testes, 0 falhas.
 
 - [ ] **Passo 7: Validar a estrutura da skill**
 
-Rode: `uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py drafting-a-spec-from-business-request`
+Rode: `uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py redigir-spec-pedido-negocio`
 Esperado: `Skill is valid!`
 
 - [ ] **Passo 8: Commit**
 
 ```bash
-git add drafting-a-spec-from-business-request/
+git add redigir-spec-pedido-negocio/
 git commit -m "$(cat <<'EOF'
-feat: add drafting-a-spec-from-business-request skill
+feat: add redigir-spec-pedido-negocio skill
 
 Turns an informal business request (email, ticket) plus read-only
 source inspection into a spec compatible with
-generating-azure-boards-backlog-from-spec, without altering any of
+gerar-backlog-azure-boards, without altering any of
 the four existing skills.
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
@@ -364,15 +364,15 @@ EOF
 - Modificar: `pyproject.toml:47-51` (`[tool.pytest.ini_options]` `testpaths`)
 
 **Interfaces:**
-- Consome: `drafting-a-spec-from-business-request/tests/test_skill_integration.py` da Tarefa 1 (só pelo caminho).
+- Consome: `redigir-spec-pedido-negocio/tests/test_skill_integration.py` da Tarefa 1 (só pelo caminho).
 - Produz: uma execução de `pytest` a partir da raiz do repositório que descobre tanto os testes da skill existente quanto os da nova skill, para o passo de verificação da Tarefa 3.
 
 - [ ] **Passo 1: Escrever a checagem que falha**
 
 Rode: `uv run pytest -v` a partir da raiz do repositório.
 Esperado (antes da edição): só os 2 arquivos de teste existentes em
-`generating-azure-boards-backlog-from-spec/tests/` rodam;
-`drafting-a-spec-from-business-request/tests/test_skill_integration.py` NÃO é coletado (está fora do
+`gerar-backlog-azure-boards/tests/` rodam;
+`redigir-spec-pedido-negocio/tests/test_skill_integration.py` NÃO é coletado (está fora do
 `testpaths` configurado), mesmo passando quando rodado diretamente. Isso confirma a lacuna de conexão.
 
 - [ ] **Passo 2: Adicionar o novo diretório de testes ao testpaths**
@@ -382,7 +382,7 @@ Em `pyproject.toml`, encontre:
 ```toml
 [tool.pytest.ini_options]
 testpaths = [
-  "generating-azure-boards-backlog-from-spec/tests",
+  "gerar-backlog-azure-boards/tests",
 ]
 addopts = "-ra"
 ```
@@ -392,8 +392,8 @@ Substitua por:
 ```toml
 [tool.pytest.ini_options]
 testpaths = [
-  "generating-azure-boards-backlog-from-spec/tests",
-  "drafting-a-spec-from-business-request/tests",
+  "gerar-backlog-azure-boards/tests",
+  "redigir-spec-pedido-negocio/tests",
 ]
 addopts = "-ra"
 ```
@@ -410,11 +410,11 @@ Rode:
 
 ```bash
 for skill_dir in \
-  drafting-a-spec-from-business-request \
-  generating-azure-boards-backlog-from-spec \
-  refining-user-stories-with-3c \
-  refining-user-stories-with-3w \
-  refining-user-stories-with-gherkin; do
+  redigir-spec-pedido-negocio \
+  gerar-backlog-azure-boards \
+  refinar-historias-3c \
+  refinar-historias-3w \
+  refinar-historias-gherkin; do
   uv run --with pyyaml python \
     /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
     "$skill_dir"
@@ -428,7 +428,7 @@ Esperado: `Skill is valid!` impresso cinco vezes.
 ```bash
 git add pyproject.toml
 git commit -m "$(cat <<'EOF'
-test: discover drafting-a-spec-from-business-request tests in pytest
+test: discover redigir-spec-pedido-negocio tests in pytest
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 EOF
@@ -443,7 +443,7 @@ EOF
 - Modificar: `README.md` (três edições separadas e não adjacentes — ver abaixo)
 
 **Interfaces:**
-- Consome: o nome e o caminho da skill da Tarefa 1 (`drafting-a-spec-from-business-request/SKILL.md`), o padrão do loop de validação já presente no arquivo.
+- Consome: o nome e o caminho da skill da Tarefa 1 (`redigir-spec-pedido-negocio/SKILL.md`), o padrão do loop de validação já presente no arquivo.
 - Produz: nada consumido por tarefas posteriores — esta é a última tarefa de conteúdo.
 
 - [ ] **Passo 1: Adicionar o ponto de entrada de pedido informal logo após o diagrama de pipeline existente**
@@ -453,10 +453,10 @@ Encontre este bloco exato (atualmente linhas 9–23 do `README.md`):
 ```markdown
 ```text
 Spec
- └─ generating-azure-boards-backlog-from-spec
-     └─ refining-user-stories-with-3c
-         ├─ refining-user-stories-with-3w
-         └─ refining-user-stories-with-gherkin
+ └─ gerar-backlog-azure-boards
+     └─ refinar-historias-3c
+         ├─ refinar-historias-3w
+         └─ refinar-historias-gherkin
 ```
 
 - **3W — Who, What, Why:** identifica ator, capacidade/resultado e valor, separando fatos de lacunas.
@@ -467,12 +467,12 @@ da lista `- **3W...`:
 
 ```markdown
 Quando não existe spec escrita — só um pedido informal de negócio, como um e-mail ou ticket — a skill
-`drafting-a-spec-from-business-request` investiga o código-fonte já disponível onde está instalada e
+`redigir-spec-pedido-negocio` investiga o código-fonte já disponível onde está instalada e
 produz essa spec como um passo manual anterior:
 
 ```text
 Pedido informal (e-mail, ticket) + código-fonte
- └─ drafting-a-spec-from-business-request
+ └─ redigir-spec-pedido-negocio
      └─ Spec
 ```
 ```
@@ -484,7 +484,7 @@ Encontre:
 ```markdown
 | Skill | Use quando | Saída principal |
 |---|---|---|
-| [`refining-user-stories-with-3w`](refining-user-stories-with-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
+| [`refinar-historias-3w`](refinar-historias-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
 ```
 
 Substitua por:
@@ -492,8 +492,8 @@ Substitua por:
 ```markdown
 | Skill | Use quando | Saída principal |
 |---|---|---|
-| [`drafting-a-spec-from-business-request`](drafting-a-spec-from-business-request/SKILL.md) | Só há um pedido informal de negócio (e-mail, ticket) e nenhuma spec escrita | Documento de spec em Markdown, com repositórios considerados, evidência de código e lacunas |
-| [`refining-user-stories-with-3w`](refining-user-stories-with-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
+| [`redigir-spec-pedido-negocio`](redigir-spec-pedido-negocio/SKILL.md) | Só há um pedido informal de negócio (e-mail, ticket) e nenhuma spec escrita | Documento de spec em Markdown, com repositórios considerados, evidência de código e lacunas |
+| [`refinar-historias-3w`](refinar-historias-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
 ```
 
 - [ ] **Passo 3: Adicionar a nova skill ao loop de validação e à lista de comandos do pytest**
@@ -504,17 +504,17 @@ Encontre:
 Execute a suíte completa da quarta skill:
 
 ```bash
-uv run python -m unittest discover -s generating-azure-boards-backlog-from-spec/tests -v
+uv run python -m unittest discover -s gerar-backlog-azure-boards/tests -v
 ```
 
 Valide os quatro pacotes com o utilitário oficial:
 
 ```bash
 for skill_dir in \
-  generating-azure-boards-backlog-from-spec \
-  refining-user-stories-with-3c \
-  refining-user-stories-with-3w \
-  refining-user-stories-with-gherkin; do
+  gerar-backlog-azure-boards \
+  refinar-historias-3c \
+  refinar-historias-3w \
+  refinar-historias-gherkin; do
   uv run --with pyyaml python \
     /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
     "$skill_dir"
@@ -528,19 +528,19 @@ Substitua por:
 Execute a suíte completa da quarta e da quinta skill:
 
 ```bash
-uv run python -m unittest discover -s generating-azure-boards-backlog-from-spec/tests -v
-uv run python -m unittest discover -s drafting-a-spec-from-business-request/tests -v
+uv run python -m unittest discover -s gerar-backlog-azure-boards/tests -v
+uv run python -m unittest discover -s redigir-spec-pedido-negocio/tests -v
 ```
 
 Valide os cinco pacotes com o utilitário oficial:
 
 ```bash
 for skill_dir in \
-  drafting-a-spec-from-business-request \
-  generating-azure-boards-backlog-from-spec \
-  refining-user-stories-with-3c \
-  refining-user-stories-with-3w \
-  refining-user-stories-with-gherkin; do
+  redigir-spec-pedido-negocio \
+  gerar-backlog-azure-boards \
+  refinar-historias-3c \
+  refinar-historias-3w \
+  refinar-historias-gherkin; do
   uv run --with pyyaml python \
     /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
     "$skill_dir"
@@ -551,10 +551,10 @@ done
 - [ ] **Passo 4: Verificar que o diff só toca README.md, pyproject.toml e o novo diretório da skill**
 
 Rode: `git status`
-Esperado: `README.md` modificado; o novo diretório `drafting-a-spec-from-business-request/` (já
+Esperado: `README.md` modificado; o novo diretório `redigir-spec-pedido-negocio/` (já
 commitado na Tarefa 1); `pyproject.toml` (já commitado na Tarefa 2). Nenhum arquivo em
-`refining-user-stories-with-3w/`, `refining-user-stories-with-3c/`, `refining-user-stories-with-gherkin/`
-ou `generating-azure-boards-backlog-from-spec/` aparece como modificado — isso confirma a Restrição
+`refinar-historias-3w/`, `refinar-historias-3c/`, `refinar-historias-gherkin/`
+ou `gerar-backlog-azure-boards/` aparece como modificado — isso confirma a Restrição
 Global de que nenhuma skill existente foi alterada.
 
 - [ ] **Passo 5: Commit**
@@ -562,7 +562,7 @@ Global de que nenhuma skill existente foi alterada.
 ```bash
 git add README.md
 git commit -m "$(cat <<'EOF'
-docs: document drafting-a-spec-from-business-request in README
+docs: document redigir-spec-pedido-negocio in README
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 EOF
@@ -581,7 +581,7 @@ duplicado do pré-Toaf) antes de considerar a funcionalidade concluída.
 - [ ] **Passo 1: Instalar (ou usar um dry run) a skill onde ela de fato vai rodar**
 
 A skill é pensada para viver dentro do próprio diretório da aplicação-alvo. Para esta checagem, copie
-`drafting-a-spec-from-business-request/` para um local como `.claude/skills/` (ou equivalente) em
+`redigir-spec-pedido-negocio/` para um local como `.claude/skills/` (ou equivalente) em
 `/Users/pedroct/Projetos/sefaz/diligencia/` (a raiz do workspace que contém `diligencia-api`,
 `diligencia-front`, `diligencia-mobile` como irmãos), ou siga as instruções da skill manualmente contra
 esse caminho se ainda não houver mecanismo de instalação configurado. Confirme o `git status` do
@@ -640,8 +640,8 @@ forma razoável (prefixando com o nome do repositório), mas o usuário pediu qu
 explícita na skill em vez de depender de inferência a cada execução.
 
 **Arquivos:**
-- Modificar: `drafting-a-spec-from-business-request/references/business-request-investigation.md`
-- Modificar: `drafting-a-spec-from-business-request/tests/test_skill_integration.py`
+- Modificar: `redigir-spec-pedido-negocio/references/business-request-investigation.md`
+- Modificar: `redigir-spec-pedido-negocio/tests/test_skill_integration.py`
 
 **Interfaces:**
 - Consome: os arquivos criados na Task 1 (mesmos caminhos).
@@ -649,7 +649,7 @@ explícita na skill em vez de depender de inferência a cada execução.
 
 - [ ] **Passo 1: Escrever o teste que falha**
 
-Em `drafting-a-spec-from-business-request/tests/test_skill_integration.py`, encontre:
+Em `redigir-spec-pedido-negocio/tests/test_skill_integration.py`, encontre:
 
 ```python
     def test_investigation_reference_registers_divergence_without_choosing_a_side(self):
@@ -686,14 +686,14 @@ if __name__ == "__main__":
 
 - [ ] **Passo 2: Rodar o teste para confirmar que ele falha**
 
-Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Rode: `uv run pytest redigir-spec-pedido-negocio/tests/test_skill_integration.py -v`
 Esperado: FALHA no novo teste
 `test_investigation_reference_prefixes_evidence_with_repo_name_when_multiple_repos` — a referência
 ainda não contém essa orientação. Os outros 9 testes continuam passando.
 
 - [ ] **Passo 3: Adicionar a orientação de multi-repositório na referência**
 
-Em `drafting-a-spec-from-business-request/references/business-request-investigation.md`, encontre:
+Em `redigir-spec-pedido-negocio/references/business-request-investigation.md`, encontre:
 
 ```markdown
 - **Evidenciado pelo código**: cite cada evidência como caminho relativo à raiz e linha inicial, por
@@ -716,18 +716,18 @@ Substitua por:
 
 - [ ] **Passo 4: Rodar o teste para confirmar que ele passa**
 
-Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Rode: `uv run pytest redigir-spec-pedido-negocio/tests/test_skill_integration.py -v`
 Esperado: PASSA — 10 testes, 0 falhas.
 
 - [ ] **Passo 5: Validar a estrutura da skill**
 
-Rode: `uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py drafting-a-spec-from-business-request`
+Rode: `uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py redigir-spec-pedido-negocio`
 Esperado: `Skill is valid!`
 
 - [ ] **Passo 6: Commit**
 
 ```bash
-git add drafting-a-spec-from-business-request/references/business-request-investigation.md drafting-a-spec-from-business-request/tests/test_skill_integration.py
+git add redigir-spec-pedido-negocio/references/business-request-investigation.md redigir-spec-pedido-negocio/tests/test_skill_integration.py
 git commit -m "$(cat <<'EOF'
 docs: esclarece formato de evidência multi-repositório na skill
 
@@ -750,12 +750,12 @@ Adicionada depois de o usuário perguntar, já com a branch pronta para finaliza
 distinguir defeito de melhoria durante a investigação — importante porque, mais adiante (fora desta
 skill), essa distinção decide se o item vira um work item tipo `Bug` no Azure Boards. Escopo combinado
 com o usuário: só a classificação na spec entra nesta branch; ensinar
-`generating-azure-boards-backlog-from-spec` a gerar `Bug` a partir dela é uma mudança maior, numa das
+`gerar-backlog-azure-boards` a gerar `Bug` a partir dela é uma mudança maior, numa das
 quatro skills existentes, tratada depois, fora desta branch.
 
 **Arquivos:**
-- Modificar: `drafting-a-spec-from-business-request/SKILL.md`
-- Modificar: `drafting-a-spec-from-business-request/tests/test_skill_integration.py`
+- Modificar: `redigir-spec-pedido-negocio/SKILL.md`
+- Modificar: `redigir-spec-pedido-negocio/tests/test_skill_integration.py`
 
 **Interfaces:**
 - Consome: os arquivos criados na Task 1 (mesmos caminhos).
@@ -763,7 +763,7 @@ quatro skills existentes, tratada depois, fora desta branch.
 
 - [ ] **Passo 1: Escrever o teste que falha**
 
-Em `drafting-a-spec-from-business-request/tests/test_skill_integration.py`, encontre:
+Em `redigir-spec-pedido-negocio/tests/test_skill_integration.py`, encontre:
 
 ```python
     def test_investigation_reference_prefixes_evidence_with_repo_name_when_multiple_repos(self):
@@ -808,7 +808,7 @@ if __name__ == "__main__":
 
 - [ ] **Passo 2: Rodar o teste para confirmar que ele falha**
 
-Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Rode: `uv run pytest redigir-spec-pedido-negocio/tests/test_skill_integration.py -v`
 Esperado: FALHA nos dois novos testes
 (`test_skill_classifies_request_as_defect_improvement_or_other` e
 `test_skill_does_not_select_a_work_item_type`) — o SKILL.md ainda não tem a seção de classificação. Os
@@ -816,7 +816,7 @@ outros 10 testes continuam passando.
 
 - [ ] **Passo 3: Adicionar a seção de classificação ao corpo do SKILL.md**
 
-Em `drafting-a-spec-from-business-request/SKILL.md`, encontre:
+Em `redigir-spec-pedido-negocio/SKILL.md`, encontre:
 
 ```markdown
 Se nenhum repositório candidato tiver relação com o pedido, registre essa ausência e produza a spec
@@ -897,12 +897,12 @@ Substitua por:
 
 - [ ] **Passo 6: Rodar o teste para confirmar que ele passa**
 
-Rode: `uv run pytest drafting-a-spec-from-business-request/tests/test_skill_integration.py -v`
+Rode: `uv run pytest redigir-spec-pedido-negocio/tests/test_skill_integration.py -v`
 Esperado: PASSA — 12 testes, 0 falhas.
 
 - [ ] **Passo 7: Validar a estrutura da skill**
 
-Rode: `uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py drafting-a-spec-from-business-request`
+Rode: `uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py redigir-spec-pedido-negocio`
 Esperado: `Skill is valid!`
 
 - [ ] **Passo 8: Rodar a suíte completa do repositório**
@@ -913,7 +913,7 @@ Esperado: PASSA — sem regressão nos testes das outras skills.
 - [ ] **Passo 9: Commit**
 
 ```bash
-git add drafting-a-spec-from-business-request/SKILL.md drafting-a-spec-from-business-request/tests/test_skill_integration.py
+git add redigir-spec-pedido-negocio/SKILL.md redigir-spec-pedido-negocio/tests/test_skill_integration.py
 git commit -m "$(cat <<'EOF'
 feat: classifica pedido como defeito, melhoria ou outro na spec
 

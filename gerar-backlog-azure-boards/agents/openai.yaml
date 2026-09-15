@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gerar backlog para Azure Boards"
+  short_description: "Converte specs em backlog hierárquico revisável"
+  default_prompt: "Use $gerar-backlog-azure-boards para analisar esta spec e gerar um backlog Markdown para Azure Boards."

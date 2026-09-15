@@ -8,29 +8,29 @@ O fluxo combina sete capacidades complementares:
 
 ```text
 Spec
- └─ generating-azure-boards-backlog-from-spec
-     └─ refining-user-stories-with-3c
-         ├─ refining-user-stories-with-3w
-         └─ refining-user-stories-with-gherkin
+ └─ gerar-backlog-azure-boards
+     └─ refinar-historias-3c
+         ├─ refinar-historias-3w
+         └─ refinar-historias-gherkin
 ```
 
 Quando não existe spec escrita — só um pedido informal de negócio, como um e-mail ou ticket — a skill
-`drafting-a-spec-from-business-request` investiga o código-fonte já disponível onde está instalada e
+`redigir-spec-pedido-negocio` investiga o código-fonte já disponível onde está instalada e
 produz essa spec como um passo manual anterior:
 
 ```text
 Pedido informal (e-mail, ticket) + código-fonte
- └─ drafting-a-spec-from-business-request
+ └─ redigir-spec-pedido-negocio
      └─ Spec (com lacunas documentadas)
 ```
 
 Se a spec resultante ainda tiver itens em `## Lacunas e perguntas abertas`, a skill
-`interviewing-request-gaps` — quando instalada — fecha o máximo possível deles por entrevista em
+`entrevistar-lacunas-requisito` — quando instalada — fecha o máximo possível deles por entrevista em
 rodadas, antes de a spec seguir manualmente para o backlog:
 
 ```text
 Spec (com lacunas)
- └─ interviewing-request-gaps (opcional, se instalada)
+ └─ entrevistar-lacunas-requisito (opcional, se instalada)
      └─ Spec (lacunas fechadas ou adiadas por decisão explícita)
 ```
 
@@ -42,18 +42,28 @@ o usuário adiar explicitamente uma lacuna:
 ```text
 Backlog (com Histórias "Não pronta")
  └─ sugestão: registrar as lacunas em "## Lacunas e perguntas abertas" da spec
-     └─ interviewing-request-gaps (opcional, se instalada)
+     └─ entrevistar-lacunas-requisito (opcional, se instalada)
          └─ Spec atualizada
-             └─ generating-azure-boards-backlog-from-spec (nova rodada)
+             └─ gerar-backlog-azure-boards (nova rodada)
 ```
 
-Antes ou durante a especificação, `reviewing-copy-in-requirements` pode revisar os textos voltados ao
+Antes ou durante a especificação, `revisar-textos-requisitos` pode revisar os textos voltados ao
 usuário e apontar dúvidas de clareza, benefício, ação, tom e consistência:
 
 ```text
 Requisito ou spec
- └─ reviewing-copy-in-requirements (opcional, se instalada)
+ └─ revisar-textos-requisitos (opcional, se instalada)
      └─ Diagnóstico da copy + sugestões + decisões pendentes
+```
+
+Durante o entendimento ou refinamento, débitos técnicos podem ser registrados separadamente antes
+de seguirem para o backlog:
+
+```text
+Débito técnico identificado
+ └─ especificar-debitos-tecnicos
+     └─ Spec de débitos priorizada
+         └─ gerar-backlog-azure-boards (etapa manual)
 ```
 
 - **Drafting a partir de pedido de negócio:** investiga o código-fonte a partir de um pedido informal (e-mail, ticket) e produz a spec inicial, separando o que foi afirmado, evidenciado e lacunas.
@@ -62,8 +72,9 @@ Requisito ou spec
 - **3C — Card, Conversation, Confirmation:** organiza o cartão, registra decisões e coordena a confirmação. É a única skill que define a prontidão geral.
 - **Gherkin:** converte apenas regras confirmadas em exemplos verificáveis e classifica a Confirmation como `Ausente`, `Parcial` ou `Completa`.
 - **Backlog a partir de spec:** agrupa requisitos rastreáveis em Épicos, Features e Histórias e sempre gera o documento Markdown revisável, marcando lacunas e Histórias incompletas como `Não pronta` em vez de bloquear a geração ou inventar fechamento só para completar o documento; para essas Histórias, sugere a entrevista de lacunas como próxima rodada.
+- **Spec de débitos técnicos:** registra débitos encontrados no entendimento ou refinamento, classifica-os, prioriza-os e recomenda `User Story` ou `Bug` por item, sem criar work items no Azure Boards.
 
-As dependências são acíclicas: 3W e Gherkin são folhas; a skill de backlog chama somente 3C; `drafting-a-spec-from-business-request` é uma predecessora isolada, que nunca chama nem é chamada pelas outras quatro skills. `interviewing-request-gaps` também é folha e nunca é chamada incondicionalmente nem invocada diretamente por outra skill — é só referenciada, de forma condicional, pelo fluxo de `drafting-a-spec-from-business-request` e, após a geração do backlog, pela sugestão de fechar Histórias `Não pronta` em `generating-azure-boards-backlog-from-spec`; em ambos os casos, quem decide rodá-la é o usuário.
+As dependências são acíclicas: 3W, Gherkin e a skill de débitos técnicos são folhas; a skill de backlog chama somente 3C; `redigir-spec-pedido-negocio` é uma predecessora isolada, que nunca chama nem é chamada pelas outras skills. `entrevistar-lacunas-requisito` também é folha e nunca é chamada incondicionalmente nem invocada diretamente por outra skill — é só referenciada, de forma condicional, pelo fluxo de `redigir-spec-pedido-negocio` e, após a geração do backlog, pela sugestão de fechar Histórias `Não pronta` em `gerar-backlog-azure-boards`; em ambos os casos, quem decide rodá-la é o usuário. A skill de débitos técnicos pode ser chamada opcionalmente por 3C ou Drafting quando um débito for identificado e devolve sua spec separada para a geração manual do backlog.
 
 ## Instalação
 
@@ -80,7 +91,7 @@ npx skills add pedroct/gerador-de-hu --all -a claude-code
 npx skills add pedroct/gerador-de-hu --all -a codex
 
 # instalar só uma skill específica
-npx skills add pedroct/gerador-de-hu --skill drafting-a-spec-from-business-request -a claude-code
+npx skills add pedroct/gerador-de-hu --skill redigir-spec-pedido-negocio -a claude-code
 ```
 
 A instalação pode ser por projeto (padrão) ou global:
@@ -99,14 +110,14 @@ Cada skill inclui `agents/openai.yaml` (metadado de exibição específico para 
 
 ### Como usar depois de instalado
 
-Abra o agente (Claude Code, Codex etc.) a partir do diretório onde a skill foi instalada — se o projeto tiver múltiplos repositórios irmãos (como api, front e mobile de uma mesma aplicação), abra a partir da raiz que os agrupa, não de dentro de um deles, para que `drafting-a-spec-from-business-request` consiga descobrir os repositórios relevantes.
+Abra o agente (Claude Code, Codex etc.) a partir do diretório onde a skill foi instalada — se o projeto tiver múltiplos repositórios irmãos (como api, front e mobile de uma mesma aplicação), abra a partir da raiz que os agrupa, não de dentro de um deles, para que `redigir-spec-pedido-negocio` consiga descobrir os repositórios relevantes.
 
 A partir daí, duas formas funcionam:
 
 1. **Chamando a skill explicitamente**, seguida do texto do pedido:
 
    ```
-   /drafting-a-spec-from-business-request
+   /redigir-spec-pedido-negocio
 
    <cole aqui o texto do pedido enviado pela área de negócios>
    ```
@@ -117,7 +128,7 @@ A partir daí, duas formas funcionam:
 
 ### Fluxo Greenfield
 
-1. Forneça uma spec à skill `generating-azure-boards-backlog-from-spec`.
+1. Forneça uma spec à skill `gerar-backlog-azure-boards`.
 2. Quando não houver código-fonte relevante disponível, a skill registra `Modo: Greenfield` e decompõe somente os requisitos rastreáveis da spec. Nenhuma inspeção de implementação é exigida.
 3. Peça um backlog Markdown para Azure Boards e revise lacunas de 3W, Conversation e Confirmation.
 
@@ -130,7 +141,7 @@ A partir daí, duas formas funcionam:
 Nos dois fluxos, valide a estrutura do arquivo gerado:
 
 ```bash
-cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
+cd /Users/pedroct/skills/gerar-backlog-azure-boards
 uv run python scripts/validate_backlog.py caminho/para/backlog.md
 ```
 
@@ -152,13 +163,14 @@ Os status comparam apenas o projeto com um requisito rastreável da spec. Códig
 
 | Skill | Use quando | Saída principal |
 |---|---|---|
-| [`drafting-a-spec-from-business-request`](drafting-a-spec-from-business-request/SKILL.md) | Só há um pedido informal de negócio (e-mail, ticket) e nenhuma spec escrita | Documento de spec em Markdown, com repositórios considerados, evidência de código e lacunas |
-| [`interviewing-request-gaps`](interviewing-request-gaps/SKILL.md) | Uma spec já escrita tem itens abertos em `## Lacunas e perguntas abertas` | A mesma spec, com lacunas fechadas por decisão do usuário ou registradas como adiamento explícito |
-| [`reviewing-copy-in-requirements`](reviewing-copy-in-requirements/SKILL.md) | Requisitos ou specs contêm copy voltada ao usuário | Diagnóstico de copy, sugestões de texto e decisões pendentes |
-| [`refining-user-stories-with-3w`](refining-user-stories-with-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
-| [`refining-user-stories-with-3c`](refining-user-stories-with-3c/SKILL.md) | A história precisa de conversa e confirmação | Card, Conversation, Confirmation e prontidão 3C |
-| [`refining-user-stories-with-gherkin`](refining-user-stories-with-gherkin/SKILL.md) | Regras confirmadas precisam de exemplos BDD | Regras, Gherkin e estado local da Confirmation |
-| [`generating-azure-boards-backlog-from-spec`](generating-azure-boards-backlog-from-spec/SKILL.md) | Uma spec precisa virar backlog hierárquico | Documento Markdown de backlog e itens não cobertos |
+| [`redigir-spec-pedido-negocio`](redigir-spec-pedido-negocio/SKILL.md) | Só há um pedido informal de negócio (e-mail, ticket) e nenhuma spec escrita | Documento de spec em Markdown, com repositórios considerados, evidência de código e lacunas |
+| [`entrevistar-lacunas-requisito`](entrevistar-lacunas-requisito/SKILL.md) | Uma spec já escrita tem itens abertos em `## Lacunas e perguntas abertas` | A mesma spec, com lacunas fechadas por decisão do usuário ou registradas como adiamento explícito |
+| [`revisar-textos-requisitos`](revisar-textos-requisitos/SKILL.md) | Requisitos ou specs contêm copy voltada ao usuário | Diagnóstico de copy, sugestões de texto e decisões pendentes |
+| [`refinar-historias-3w`](refinar-historias-3w/SKILL.md) | Ator, objetivo ou benefício estão vagos | Mapa 3W, história/rascunho, perguntas e estado 3W |
+| [`refinar-historias-3c`](refinar-historias-3c/SKILL.md) | A história precisa de conversa e confirmação | Card, Conversation, Confirmation e prontidão 3C |
+| [`refinar-historias-gherkin`](refinar-historias-gherkin/SKILL.md) | Regras confirmadas precisam de exemplos BDD | Regras, Gherkin e estado local da Confirmation |
+| [`gerar-backlog-azure-boards`](gerar-backlog-azure-boards/SKILL.md) | Uma spec precisa virar backlog hierárquico | Documento Markdown de backlog e itens não cobertos |
+| [`especificar-debitos-tecnicos`](especificar-debitos-tecnicos/SKILL.md) | Débitos técnicos foram identificados durante entendimento ou refinamento | Spec priorizada, rastreável e pronta para geração de backlog |
 
 ## Formato do backlog
 
@@ -179,8 +191,6 @@ Cada Feature declara `Parent` apontando para um Épico existente; cada História
 | `Description` da História | `System.Description` | Card 3W e síntese da Conversation, incluindo decisões, propostas não confirmadas e lacunas |
 | `Acceptance Criteria` | `Microsoft.VSTS.Common.AcceptanceCriteria` | Somente blocos Gherkin da Confirmation quando o estado for `Completa` |
 | `Implementation Evidence` | Metadado de revisão | Estado atual Brownfield com status e referências `caminho:linha`; nunca é copiado para Acceptance Criteria |
-| `Validation Summary` | Metadado de cobertura | Matriz requisito × evidência Brownfield, ou indicação de que não se aplica em Greenfield |
-| `Refinement Status` | Metadado de revisão | Estado de Card, Conversation, Confirmation, prontidão e origem na spec; não é copiado automaticamente |
 
 Com Confirmation `Ausente` ou `Parcial`, `Acceptance Criteria` permanece efetivamente vazio. Regras pendentes, hipóteses e justificativas continuam em `Description`/Conversation. A geração não cria nem altera work items.
 
@@ -197,10 +207,6 @@ Com Confirmation `Ausente` ou `Parcial`, `Acceptance Criteria` permanece efetiva
 - Código-fonte relevante: Ausente
 - Incerteza de detecção: Nenhuma
 - Itens não cobertos: Nenhum
-
-## Validation Summary
-
-Não se aplica — modo Greenfield; nenhum código-fonte relevante disponível.
 
 ## 1.0.0 [Epic] Reabrir diligências
 
@@ -221,6 +227,8 @@ quero reabrir uma diligência em até 24 horas,
 para corrigir informações.
 ###### Conversation
 A regra de prazo e o retorno para Em análise foram confirmados.
+
+Origem na spec: seção 2.1.
 ##### Implementation Evidence *(metadado de revisão — não é copiado para o Azure Boards; o campo Description termina no fim da Conversation acima)*
 Não se aplica — modo Greenfield; nenhum código-fonte relevante disponível.
 ##### Acceptance Criteria
@@ -236,24 +244,26 @@ Cenário: Reabertura dentro do prazo
 
 ## Validação e desenvolvimento
 
-Execute a suíte completa das três skills com teste próprio:
+Execute a suíte completa das skills com teste próprio:
 
 ```bash
-uv run python -m unittest discover -s generating-azure-boards-backlog-from-spec/tests -v
-uv run python -m unittest discover -s drafting-a-spec-from-business-request/tests -v
-uv run python -m unittest discover -s interviewing-request-gaps/tests -v
+uv run python -m unittest discover -s gerar-backlog-azure-boards/tests -v
+uv run python -m unittest discover -s redigir-spec-pedido-negocio/tests -v
+uv run python -m unittest discover -s entrevistar-lacunas-requisito/tests -v
+uv run python -m unittest discover -s especificar-debitos-tecnicos/tests -v
 ```
 
-Valide os sete pacotes com o utilitário oficial:
+Valide os oito pacotes com o utilitário oficial:
 
 ```bash
 for skill_dir in \
-  drafting-a-spec-from-business-request \
-  generating-azure-boards-backlog-from-spec \
-  interviewing-request-gaps \
-  refining-user-stories-with-3c \
-  refining-user-stories-with-3w \
-  refining-user-stories-with-gherkin; do
+  redigir-spec-pedido-negocio \
+  gerar-backlog-azure-boards \
+  entrevistar-lacunas-requisito \
+  refinar-historias-3c \
+  refinar-historias-3w \
+  refinar-historias-gherkin \
+  especificar-debitos-tecnicos; do
   uv run --with pyyaml python \
     /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
     "$skill_dir"

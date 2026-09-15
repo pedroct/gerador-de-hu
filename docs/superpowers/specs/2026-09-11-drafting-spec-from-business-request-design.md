@@ -2,8 +2,8 @@
 
 ## Contexto
 
-As quatro skills existentes (`refining-user-stories-with-3w`, `refining-user-stories-with-3c`,
-`refining-user-stories-with-gherkin`, `generating-azure-boards-backlog-from-spec`) partem de uma
+As quatro skills existentes (`refinar-historias-3w`, `refinar-historias-3c`,
+`refinar-historias-gherkin`, `gerar-backlog-azure-boards`) partem de uma
 **spec já escrita**. Na prática, a área de negócio frequentemente envia pedidos muito mais informais
 — um e-mail ou ticket curto, sem tamanho conhecido de antemão, descrevendo um problema observado sem
 detalhar atores, comportamento atual ou critérios de aceite.
@@ -17,28 +17,28 @@ Exemplo real que motivou este desenho (aplicação Diligência, SEFAZ-CE):
 
 Esse texto não é uma spec: não nomeia o ator com precisão, não referencia telas/endpoints, e o
 comportamento "atual" só pode ser confirmado lendo o código. As skills existentes já sabem *comparar*
-uma spec com uma implementação (modo Brownfield de `generating-azure-boards-backlog-from-spec`), mas
+uma spec com uma implementação (modo Brownfield de `gerar-backlog-azure-boards`), mas
 nenhuma delas sabe *descobrir* o requisito quando ele ainda não foi articulado.
 
 Este design cobre uma quinta skill que preenche essa lacuna, sem alterar nenhuma das quatro existentes.
 
 ## Objetivos
 
-1. Criar a skill `drafting-a-spec-from-business-request`.
+1. Criar a skill `redigir-spec-pedido-negocio`.
 2. Aceitar um pedido de negócio informal, de tamanho desconhecido (e-mail, ticket, trecho de chat),
    como entrada única — nunca fatiada em múltiplos itens.
 3. Investigar, em modo somente leitura, o código-fonte presente no(s) repositório(s) irmão(s) de onde a
    skill está instalada, para descobrir vocabulário, atores, comportamento atual e pontos de entrada
    relevantes ao pedido.
 4. Produzir um documento de spec em Markdown, salvo em arquivo, compatível com a entrada que
-   `generating-azure-boards-backlog-from-spec` já aceita hoje.
+   `gerar-backlog-azure-boards` já aceita hoje.
 5. Preservar a distinção entre o que o pedido afirma, o que o código evidencia e o que continua sendo
    lacuna — sem fabricar ator, regra ou critério de aceite em nenhum dos dois lados.
 
 ## Fora de escopo
 
-- Alterar `refining-user-stories-with-3w`, `refining-user-stories-with-3c`,
-  `refining-user-stories-with-gherkin` ou `generating-azure-boards-backlog-from-spec`.
+- Alterar `refinar-historias-3w`, `refinar-historias-3c`,
+  `refinar-historias-gherkin` ou `gerar-backlog-azure-boards`.
 - Decompor um pedido com múltiplos itens em specs separadas; todo pedido é tratado como escopo único.
 - Encadear automaticamente a geração do backlog após redigir a spec.
 - Executar a aplicação, testes, build, migrações ou qualquer script como parte da investigação.
@@ -76,7 +76,7 @@ onde a skill roda, generalizando o conceito de "raiz analisada" já usado em
 5. **Redigir a spec** no template fixo descrito abaixo.
 6. **Salvar em arquivo** (`docs/specs/AAAA-MM-DD-<titulo-curto>.md` na aplicação-alvo, ajustável à
    convenção local do projeto onde a skill for instalada) **e parar.** Não invocar
-   `generating-azure-boards-backlog-from-spec` nem nenhuma outra skill. Informar ao usuário o caminho do
+   `gerar-backlog-azure-boards` nem nenhuma outra skill. Informar ao usuário o caminho do
    arquivo e um resumo das lacunas/perguntas encontradas, para que ele avalie o tamanho real do pedido
    antes de decidir os próximos passos.
 
@@ -119,20 +119,20 @@ Tudo que não pôde ser confirmado nem pelo pedido nem pelo código.
 ```
 
 Esse template não inclui Épico/Feature/História, `Description` nem `Acceptance Criteria`: essas
-estruturas continuam sendo responsabilidade exclusiva de `generating-azure-boards-backlog-from-spec` e
+estruturas continuam sendo responsabilidade exclusiva de `gerar-backlog-azure-boards` e
 da 3C, quando o usuário decidir rodar esse fluxo sobre o arquivo gerado.
 
 ## Arquitetura de skills
 
 ```text
-drafting-a-spec-from-business-request   (nova, independente)
+redigir-spec-pedido-negocio   (nova, independente)
         |
         | (arquivo de spec, uso manual pelo usuário)
         v
-generating-azure-boards-backlog-from-spec   (inalterada)
-  -> refining-user-stories-with-3c            (inalterada)
-       -> refining-user-stories-with-3w       (inalterada)
-       -> refining-user-stories-with-gherkin  (inalterada)
+gerar-backlog-azure-boards   (inalterada)
+  -> refinar-historias-3c            (inalterada)
+       -> refinar-historias-3w       (inalterada)
+       -> refinar-historias-gherkin  (inalterada)
 ```
 
 A nova skill não é chamada por nenhuma das quatro existentes, e não chama nenhuma delas. A ligação entre
@@ -142,7 +142,7 @@ automática.
 ## Arquivos previstos
 
 ```text
-drafting-a-spec-from-business-request/
+redigir-spec-pedido-negocio/
 ├── SKILL.md
 ├── agents/openai.yaml
 └── references/business-request-investigation.md
@@ -163,7 +163,7 @@ Nenhum arquivo das quatro skills existentes é criado, removido ou modificado.
 ## Estratégia de testes
 
 1. Teste estático (seguindo o padrão de `test_skill_integration.py`): garantir que
-   `drafting-a-spec-from-business-request/SKILL.md` não invoca nenhuma das quatro skills existentes por
+   `redigir-spec-pedido-negocio/SKILL.md` não invoca nenhuma das quatro skills existentes por
    nome, e que nenhuma das quatro skills existentes referencia a nova skill — mantendo o grafo acíclico
    e a nova skill como predecessora isolada.
 2. `quick_validate.py` executado sobre o novo diretório de skill, no mesmo laço já usado para as outras
@@ -176,13 +176,13 @@ Como a skill não introduz script determinístico próprio (não há um `validat
 quarta skill), a qualidade da investigação e da redação fica sujeita a self-review da spec gerada e à
 revisão humana do arquivo, não a um gate automatizado.
 
-## Atualização (2026-09-12) — sugestão explícita de `interviewing-request-gaps` ao final do fluxo
+## Atualização (2026-09-12) — sugestão explícita de `entrevistar-lacunas-requisito` ao final do fluxo
 
-Além da referência condicional já registrada em `interviewing-request-gaps-design.md` (usar essa skill,
+Além da referência condicional já registrada em `entrevistar-lacunas-requisito-design.md` (usar essa skill,
 se instalada, para fechar lacunas antes de salvar), o passo final do Fluxo agora também informa
 explicitamente ao usuário — quando a spec salva ainda tiver itens em `## Lacunas e perguntas abertas` —
-que o próximo passo manual é rodar `interviewing-request-gaps` (quando instalada), antes de a spec
-seguir para `generating-azure-boards-backlog-from-spec`. É o mesmo padrão de sugestão de próximo passo
+que o próximo passo manual é rodar `entrevistar-lacunas-requisito` (quando instalada), antes de a spec
+seguir para `gerar-backlog-azure-boards`. É o mesmo padrão de sugestão de próximo passo
 usado por `superpowers:brainstorming` ao final de um design aprovado, e não uma invocação automática:
 esta skill continua parando após salvar o arquivo, sem encadear nenhuma outra skill além da exceção já
 prevista no passo anterior.
@@ -196,4 +196,4 @@ prevista no passo anterior.
 - O template de spec gerado distingue claramente pedido, evidência de código e lacunas, e não inclui
   Épico/Feature/História nem Acceptance Criteria.
 - Aplicado ao exemplo do pre-toaf duplicado, o documento produzido é utilizável como entrada de
-  `generating-azure-boards-backlog-from-spec` sem exigir reescrita manual da estrutura.
+  `gerar-backlog-azure-boards` sem exigir reescrita manual da estrutura.

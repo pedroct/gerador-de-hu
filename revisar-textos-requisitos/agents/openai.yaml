@@ -1,0 +1,4 @@
+interface:
+  display_name: "Revisar copy em requisitos"
+  short_description: "Aponta dúvidas e melhora copy de requisitos"
+  default_prompt: "Use $revisar-textos-requisitos para revisar a copy deste requisito e apontar decisões pendentes."

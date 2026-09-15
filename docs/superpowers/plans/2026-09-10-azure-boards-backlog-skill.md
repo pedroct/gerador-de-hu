@@ -4,7 +4,7 @@
 
 **Goal:** Criar uma skill que converta uma spec em um backlog Markdown hierárquico para Azure Boards, reutilizando 3C, 3W e Gherkin sem ciclos.
 
-**Architecture:** A nova skill é a orquestradora do documento e chama apenas `refining-user-stories-with-3c` para cada história. A 3C chama as skills-folha 3W e Gherkin. Um validador Python sem dependências externas verifica a estrutura e a numeração do Markdown; a qualidade semântica continua sendo responsabilidade das skills.
+**Architecture:** A nova skill é a orquestradora do documento e chama apenas `refinar-historias-3c` para cada história. A 3C chama as skills-folha 3W e Gherkin. Um validador Python sem dependências externas verifica a estrutura e a numeração do Markdown; a qualidade semântica continua sendo responsabilidade das skills.
 
 **Tech Stack:** Codex Agent Skills em Markdown/YAML, Python 3.14 da Homebrew executado via `uv run`, `unittest` da biblioteca padrão.
 
@@ -27,9 +27,9 @@
 
 **Files:**
 - Read: `docs/superpowers/specs/2026-09-10-azure-boards-backlog-skill-design.md`
-- Read: `refining-user-stories-with-3c/SKILL.md`
-- Read: `refining-user-stories-with-3w/SKILL.md`
-- Read: `refining-user-stories-with-gherkin/SKILL.md`
+- Read: `refinar-historias-3c/SKILL.md`
+- Read: `refinar-historias-3w/SKILL.md`
+- Read: `refinar-historias-gherkin/SKILL.md`
 - Create: nenhum; o agente de teste retorna o artefato somente em sua mensagem final
 
 **Interfaces:**
@@ -82,9 +82,9 @@ Usar somente falhas observadas para ajustar o conteúdo inicialmente planejado d
 ### Task 2: Criar o validador estrutural com TDD
 
 **Files:**
-- Create: `generating-azure-boards-backlog-from-spec/tests/test_validate_backlog.py`
-- Create: `generating-azure-boards-backlog-from-spec/tests/fixtures/valid-backlog.md`
-- Create: `generating-azure-boards-backlog-from-spec/scripts/validate_backlog.py`
+- Create: `gerar-backlog-azure-boards/tests/test_validate_backlog.py`
+- Create: `gerar-backlog-azure-boards/tests/fixtures/valid-backlog.md`
+- Create: `gerar-backlog-azure-boards/scripts/validate_backlog.py`
 
 **Interfaces:**
 - Produces: `parse_backlog(text: str) -> list[BacklogItem]`
@@ -96,8 +96,8 @@ Usar somente falhas observadas para ajustar o conteúdo inicialmente planejado d
 Run:
 
 ```bash
-/opt/homebrew/bin/python3 /Users/pedroct/.codex/skills/.system/skill-creator/scripts/init_skill.py generating-azure-boards-backlog-from-spec --path /Users/pedroct/skills --resources scripts,references --interface 'display_name=Gerar backlog para Azure Boards' --interface 'short_description=Converte specs em backlog hierárquico revisável' --interface 'default_prompt=Use $generating-azure-boards-backlog-from-spec para analisar esta spec e gerar um backlog Markdown para Azure Boards.'
-mkdir -p /Users/pedroct/skills/generating-azure-boards-backlog-from-spec/tests
+/opt/homebrew/bin/python3 /Users/pedroct/.codex/skills/.system/skill-creator/scripts/init_skill.py gerar-backlog-azure-boards --path /Users/pedroct/skills --resources scripts,references --interface 'display_name=Gerar backlog para Azure Boards' --interface 'short_description=Converte specs em backlog hierárquico revisável' --interface 'default_prompt=Use $gerar-backlog-azure-boards para analisar esta spec e gerar um backlog Markdown para Azure Boards.'
+mkdir -p /Users/pedroct/skills/gerar-backlog-azure-boards/tests
 ```
 
 Expected: scaffold criado e diretório `tests/` existente.
@@ -211,7 +211,7 @@ if __name__ == "__main__":
 Run:
 
 ```bash
-cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
+cd /Users/pedroct/skills/gerar-backlog-azure-boards
 uv run python -m unittest tests/test_validate_backlog.py -v
 ```
 
@@ -389,7 +389,7 @@ if __name__ == "__main__":
 Run:
 
 ```bash
-cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
+cd /Users/pedroct/skills/gerar-backlog-azure-boards
 uv run python -m unittest tests/test_validate_backlog.py -v
 ```
 
@@ -436,7 +436,7 @@ Funcionalidade: Reabrir diligência
 Executar:
 
 ```bash
-cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
+cd /Users/pedroct/skills/gerar-backlog-azure-boards
 uv run python scripts/validate_backlog.py tests/fixtures/valid-backlog.md
 ```
 
@@ -447,13 +447,13 @@ Expected: `Backlog structure is valid` e exit code 0.
 ### Task 3: Criar a quarta skill e seu contrato Markdown
 
 **Files:**
-- Modify: `generating-azure-boards-backlog-from-spec/SKILL.md`
-- Modify: `generating-azure-boards-backlog-from-spec/agents/openai.yaml`
-- Create: `generating-azure-boards-backlog-from-spec/references/backlog-markdown-contract.md`
+- Modify: `gerar-backlog-azure-boards/SKILL.md`
+- Modify: `gerar-backlog-azure-boards/agents/openai.yaml`
+- Create: `gerar-backlog-azure-boards/references/backlog-markdown-contract.md`
 
 **Interfaces:**
 - Consumes: conteúdo de uma spec e, opcionalmente, backlog Markdown existente.
-- Consumes: resultado completo de `refining-user-stories-with-3c` por história.
+- Consumes: resultado completo de `refinar-historias-3c` por história.
 - Produces: um arquivo Markdown conforme `references/backlog-markdown-contract.md`.
 
 - [ ] **Step 1: Escrever `SKILL.md` mínimo orientado pelas falhas RED**
@@ -462,7 +462,7 @@ O corpo deve conter estas decisões concretas:
 
 ```markdown
 ---
-name: generating-azure-boards-backlog-from-spec
+name: gerar-backlog-azure-boards
 description: Use when a product or software specification must be decomposed into an Azure Boards Epic, Feature, and User Story hierarchy or rendered as a reviewable backlog Markdown document.
 ---
 
@@ -474,7 +474,7 @@ Transforme somente requisitos rastreáveis em Épicos, Features e Histórias. A 
 ## Workflow
 1. Leia a spec inteira e crie um inventário de objetivos, atores, capacidades, regras, restrições, exemplos, conflitos e lacunas com suas origens.
 2. Agrupe objetivos amplos em Épicos; capacidades significativas em Features; resultados coesos para um ator em Histórias. Não crie itens para preencher níveis.
-3. Para cada história, **REQUIRED SUB-SKILL:** use refining-user-stories-with-3c. Consuma seu resultado sem recalcular 3W, Conversation, Confirmation ou prontidão.
+3. Para cada história, **REQUIRED SUB-SKILL:** use refinar-historias-3c. Consuma seu resultado sem recalcular 3W, Conversation, Confirmation ou prontidão.
 4. Numere `E.0.0`, `E.F.0`, `E.F.S`; preserve chaves existentes em atualizações.
 5. Renderize conforme [references/backlog-markdown-contract.md](references/backlog-markdown-contract.md).
 6. Execute `uv run python scripts/validate_backlog.py CAMINHO`; com backlog existente, acrescente `--update`. Corrija violações estruturais e revise semanticamente rastreabilidade, agrupamento e ausência de regras fabricadas.
@@ -516,7 +516,7 @@ https://learn.microsoft.com/en-us/azure/devops/boards/queries/titles-ids-descrip
 interface:
   display_name: "Gerar backlog para Azure Boards"
   short_description: "Converte specs em backlog hierárquico revisável"
-  default_prompt: "Use $generating-azure-boards-backlog-from-spec para analisar esta spec e gerar um backlog Markdown para Azure Boards."
+  default_prompt: "Use $gerar-backlog-azure-boards para analisar esta spec e gerar um backlog Markdown para Azure Boards."
 ```
 
 - [ ] **Step 4: Validar a skill**
@@ -524,7 +524,7 @@ interface:
 Run:
 
 ```bash
-uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
+uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/pedroct/skills/gerar-backlog-azure-boards
 ```
 
 Expected: `Skill is valid!`.
@@ -534,10 +534,10 @@ Expected: `Skill is valid!`.
 ### Task 4: Tornar a integração estritamente acíclica
 
 **Files:**
-- Create: `generating-azure-boards-backlog-from-spec/tests/test_skill_integration.py`
-- Modify: `refining-user-stories-with-3w/SKILL.md`
-- Modify: `refining-user-stories-with-gherkin/SKILL.md`
-- Modify: `refining-user-stories-with-3c/SKILL.md`
+- Create: `gerar-backlog-azure-boards/tests/test_skill_integration.py`
+- Modify: `refinar-historias-3w/SKILL.md`
+- Modify: `refinar-historias-gherkin/SKILL.md`
+- Modify: `refinar-historias-3c/SKILL.md`
 
 **Interfaces:**
 - 3W produces: Card local e estado 3W; nenhuma chamada de sub-skill.
@@ -559,24 +559,24 @@ ROOT = Path(__file__).resolve().parents[2]
 class SkillIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.three_w = (ROOT / "refining-user-stories-with-3w" / "SKILL.md").read_text()
-        cls.gherkin = (ROOT / "refining-user-stories-with-gherkin" / "SKILL.md").read_text()
-        cls.three_c = (ROOT / "refining-user-stories-with-3c" / "SKILL.md").read_text()
-        cls.backlog = (ROOT / "generating-azure-boards-backlog-from-spec" / "SKILL.md").read_text()
+        cls.three_w = (ROOT / "refinar-historias-3w" / "SKILL.md").read_text()
+        cls.gherkin = (ROOT / "refinar-historias-gherkin" / "SKILL.md").read_text()
+        cls.three_c = (ROOT / "refinar-historias-3c" / "SKILL.md").read_text()
+        cls.backlog = (ROOT / "gerar-backlog-azure-boards" / "SKILL.md").read_text()
 
     def test_leaf_skills_do_not_require_subskills(self):
         self.assertNotIn("REQUIRED SUB-SKILL", self.three_w)
         self.assertNotIn("REQUIRED SUB-SKILL", self.gherkin)
 
     def test_three_c_is_the_refinement_orchestrator(self):
-        self.assertIn("REQUIRED SUB-SKILL:** use refining-user-stories-with-3w", self.three_c)
-        self.assertIn("REQUIRED SUB-SKILL:** refining-user-stories-with-gherkin", self.three_c)
+        self.assertIn("REQUIRED SUB-SKILL:** use refinar-historias-3w", self.three_c)
+        self.assertIn("REQUIRED SUB-SKILL:** refinar-historias-gherkin", self.three_c)
         self.assertIn("única prontidão geral", self.three_c)
 
     def test_backlog_calls_only_three_c(self):
-        self.assertIn("REQUIRED SUB-SKILL:** use refining-user-stories-with-3c", self.backlog)
-        self.assertNotIn("REQUIRED SUB-SKILL:** use refining-user-stories-with-3w", self.backlog)
-        self.assertNotIn("REQUIRED SUB-SKILL:** use refining-user-stories-with-gherkin", self.backlog)
+        self.assertIn("REQUIRED SUB-SKILL:** use refinar-historias-3c", self.backlog)
+        self.assertNotIn("REQUIRED SUB-SKILL:** use refinar-historias-3w", self.backlog)
+        self.assertNotIn("REQUIRED SUB-SKILL:** use refinar-historias-gherkin", self.backlog)
 
 
 if __name__ == "__main__":
@@ -588,7 +588,7 @@ if __name__ == "__main__":
 Run:
 
 ```bash
-cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
+cd /Users/pedroct/skills/gerar-backlog-azure-boards
 uv run python -m unittest tests/test_skill_integration.py -v
 ```
 
@@ -631,7 +631,7 @@ A 3C é a única dona da prontidão geral. Estados locais da 3W e Gherkin são i
 Run:
 
 ```bash
-cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
+cd /Users/pedroct/skills/gerar-backlog-azure-boards
 uv run python -m unittest tests/test_skill_integration.py -v
 ```
 
@@ -642,9 +642,9 @@ Expected: 8 tests, `OK`.
 ### Task 5: Verificar o comportamento da quarta skill
 
 **Files:**
-- Read: `generating-azure-boards-backlog-from-spec/SKILL.md`
-- Read: `generating-azure-boards-backlog-from-spec/references/backlog-markdown-contract.md`
-- Test: `generating-azure-boards-backlog-from-spec/scripts/validate_backlog.py`
+- Read: `gerar-backlog-azure-boards/SKILL.md`
+- Read: `gerar-backlog-azure-boards/references/backlog-markdown-contract.md`
+- Test: `gerar-backlog-azure-boards/scripts/validate_backlog.py`
 - Create: nenhum artefato persistente; agentes retornam resultados em mensagens finais
 
 **Interfaces:**
@@ -695,10 +695,10 @@ Se surgir uma falha nova, alterar somente a instrução que fecha a brecha e rep
 ### Task 6: Verificação final das quatro skills
 
 **Files:**
-- Verify: `generating-azure-boards-backlog-from-spec/**`
-- Verify: `refining-user-stories-with-3c/SKILL.md`
-- Verify: `refining-user-stories-with-3w/SKILL.md`
-- Verify: `refining-user-stories-with-gherkin/SKILL.md`
+- Verify: `gerar-backlog-azure-boards/**`
+- Verify: `refinar-historias-3c/SKILL.md`
+- Verify: `refinar-historias-3w/SKILL.md`
+- Verify: `refinar-historias-gherkin/SKILL.md`
 
 **Interfaces:**
 - Produces: evidência final estrutural, automatizada e comportamental.
@@ -708,7 +708,7 @@ Se surgir uma falha nova, alterar somente a instrução que fecha a brecha e rep
 Run:
 
 ```bash
-cd /Users/pedroct/skills/generating-azure-boards-backlog-from-spec
+cd /Users/pedroct/skills/gerar-backlog-azure-boards
 uv run python -m unittest discover -s tests -v
 ```
 
@@ -720,10 +720,10 @@ Run:
 
 ```bash
 for skill_dir in \
-  /Users/pedroct/skills/generating-azure-boards-backlog-from-spec \
-  /Users/pedroct/skills/refining-user-stories-with-3c \
-  /Users/pedroct/skills/refining-user-stories-with-3w \
-  /Users/pedroct/skills/refining-user-stories-with-gherkin; do
+  /Users/pedroct/skills/gerar-backlog-azure-boards \
+  /Users/pedroct/skills/refinar-historias-3c \
+  /Users/pedroct/skills/refinar-historias-3w \
+  /Users/pedroct/skills/refinar-historias-gherkin; do
   uv run --with pyyaml python \
     /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
     "$skill_dir"
@@ -738,13 +738,13 @@ Run:
 
 ```bash
 ! rg -n '\[TODO|TODO:|TBD' \
-  /Users/pedroct/skills/generating-azure-boards-backlog-from-spec \
-  /Users/pedroct/skills/refining-user-stories-with-3c \
-  /Users/pedroct/skills/refining-user-stories-with-3w \
-  /Users/pedroct/skills/refining-user-stories-with-gherkin
+  /Users/pedroct/skills/gerar-backlog-azure-boards \
+  /Users/pedroct/skills/refinar-historias-3c \
+  /Users/pedroct/skills/refinar-historias-3w \
+  /Users/pedroct/skills/refinar-historias-gherkin
 
-test -f /Users/pedroct/skills/generating-azure-boards-backlog-from-spec/references/backlog-markdown-contract.md
-test -f /Users/pedroct/skills/generating-azure-boards-backlog-from-spec/scripts/validate_backlog.py
+test -f /Users/pedroct/skills/gerar-backlog-azure-boards/references/backlog-markdown-contract.md
+test -f /Users/pedroct/skills/gerar-backlog-azure-boards/scripts/validate_backlog.py
 ```
 
 Expected: exit 0 e nenhuma ocorrência de scaffold inacabado.
@@ -754,7 +754,7 @@ Expected: exit 0 e nenhuma ocorrência de scaffold inacabado.
 Usar a fixture válida criada na Task 2 e executar:
 
 ```bash
-uv run python /Users/pedroct/skills/generating-azure-boards-backlog-from-spec/scripts/validate_backlog.py /Users/pedroct/skills/generating-azure-boards-backlog-from-spec/tests/fixtures/valid-backlog.md
+uv run python /Users/pedroct/skills/gerar-backlog-azure-boards/scripts/validate_backlog.py /Users/pedroct/skills/gerar-backlog-azure-boards/tests/fixtures/valid-backlog.md
 ```
 
 Expected: `Backlog structure is valid`.

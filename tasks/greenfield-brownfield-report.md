@@ -43,7 +43,7 @@ Os 22 testes anteriores passaram durante o RED.
 
 Com as mudanças implementadas:
 
-- `uv run python -m unittest discover -s generating-azure-boards-backlog-from-spec/tests -v`: **28 testes passaram**;
+- `uv run python -m unittest discover -s gerar-backlog-azure-boards/tests -v`: **28 testes passaram**;
 - `quick_validate.py` em cada uma das quatro skills: **4 validações passaram**;
 - `git diff --check`: **passou sem saída**.
 

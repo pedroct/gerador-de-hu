@@ -1,0 +1,4 @@
+interface:
+  display_name: "Refinar histórias com 3W"
+  short_description: "Esclarece Who, What e Why em histórias"
+  default_prompt: "Use $refinar-historias-3w para refinar esta demanda antes de escrever seus critérios de aceitação."

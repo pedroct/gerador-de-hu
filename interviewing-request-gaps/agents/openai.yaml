@@ -1,4 +1,0 @@
-interface:
-  display_name: "Entrevistar lacunas de uma spec"
-  short_description: "Fecha lacunas de spec por entrevista em rodadas"
-  default_prompt: "Use $interviewing-request-gaps para fechar as lacunas desta spec por entrevista."

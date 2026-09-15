@@ -1,0 +1,4 @@
+interface:
+  display_name: "Especificar débitos técnicos"
+  short_description: "Registra débitos técnicos para o backlog"
+  default_prompt: "Use $especificar-debitos-tecnicos para transformar estes débitos técnicos em uma spec rastreável para Azure Boards."

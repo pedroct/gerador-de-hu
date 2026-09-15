@@ -41,22 +41,23 @@ strict = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 files = [
-  "generating-azure-boards-backlog-from-spec/scripts",
+  "gerar-backlog-azure-boards/scripts",
 ]
 
 [tool.pytest.ini_options]
 testpaths = [
-  "generating-azure-boards-backlog-from-spec/tests",
-  "drafting-a-spec-from-business-request/tests",
-  "interviewing-request-gaps/tests",
-  "reviewing-copy-in-requirements/tests",
+  "gerar-backlog-azure-boards/tests",
+  "redigir-spec-pedido-negocio/tests",
+  "entrevistar-lacunas-requisito/tests",
+  "revisar-textos-requisitos/tests",
+  "especificar-debitos-tecnicos/tests",
 ]
 addopts = "-ra --import-mode=importlib"
 
 [tool.coverage.run]
 branch = true
 source = [
-  "generating-azure-boards-backlog-from-spec/scripts",
+  "gerar-backlog-azure-boards/scripts",
 ]
 
 [tool.coverage.report]
