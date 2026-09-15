@@ -20,6 +20,14 @@ def test_manifesto_inexistente_comeca_vazio(tmp_path) -> None:
     assert manifesto.itens == {}
 
 
+def test_manifesto_vazio_tem_round_trip(tmp_path) -> None:
+    caminho = tmp_path / "mapa.json"
+
+    gravar_manifesto(caminho, Manifesto())
+
+    assert ler_manifesto(caminho) == Manifesto()
+
+
 def test_manifesto_e_gravado_e_lido_com_seus_metadados(tmp_path) -> None:
     caminho = tmp_path / "mapa.json"
     manifesto = Manifesto(

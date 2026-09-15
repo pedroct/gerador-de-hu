@@ -71,7 +71,7 @@ def gravar_manifesto(caminho: Path, manifesto: Manifesto) -> None:
 def _serializar(manifesto: Manifesto) -> dict[str, Any]:
     configuracao = manifesto.configuracao
     if configuracao is None:
-        destino: dict[str, str] = {}
+        destino: dict[str, str] | None = None
     else:
         destino = {
             "organizacao": configuracao.organizacao,
@@ -106,11 +106,18 @@ def _converter(dados: object) -> Manifesto:
     itens = dados.get("itens")
     if (
         not isinstance(hash_plano, str)
-        or not isinstance(destino, dict)
+        or not isinstance(destino, (dict, type(None)))
         or not isinstance(itens, dict)
     ):
         raise ValueError("O manifesto não contém seus campos obrigatórios.")
-    configuracao = _configuracao(destino)
+    if destino is None:
+        if hash_plano or itens:
+            raise ValueError("Um manifesto com dados exige um destino completo.")
+        configuracao = None
+    elif isinstance(destino, dict):
+        configuracao = _configuracao(destino)
+    else:
+        raise ValueError("O destino do manifesto é inválido.")
     registros: dict[str, RegistroManifesto] = {}
     titulos: dict[str, str] = {}
     for chave, dados_item in itens.items():

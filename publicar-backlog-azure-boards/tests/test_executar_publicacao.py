@@ -1,6 +1,11 @@
 import pytest
 
-from publicar_backlog_azure_boards.autorizacao import Autorizacao, ModalidadeAutorizacao
+from publicar_backlog_azure_boards.autorizacao import (
+    Autorizacao,
+    ModalidadeAutorizacao,
+    criar_autorizacao,
+    criar_frase_confirmacao,
+)
 from publicar_backlog_azure_boards.executar_publicacao import FalhaPublicacao, executar_plano
 from publicar_backlog_azure_boards.manifesto import ler_manifesto
 from publicar_backlog_azure_boards.modelos import (
@@ -28,6 +33,19 @@ def autorizacao() -> Autorizacao:
     autorizacao = Autorizacao("hash", ModalidadeAutorizacao.INTEIRA)
     object.__setattr__(autorizacao, "_confirmada", True)
     return autorizacao
+
+
+def autorizacao_do_primeiro_lote() -> Autorizacao:
+    confirmacao = criar_frase_confirmacao("hash", 1, CONFIGURACAO, numero_lote=1)
+    return criar_autorizacao(
+        plano_hash="hash",
+        modalidade=ModalidadeAutorizacao.LOTES,
+        confirmacao=confirmacao,
+        quantidade=1,
+        configuracao=CONFIGURACAO,
+        numero_lote=1,
+        chaves_autorizadas={"1.0.0"},
+    )
 
 
 class ClienteFalso:
@@ -78,3 +96,14 @@ def test_autorizacao_invalida_nao_cria_item(tmp_path) -> None:
         )
 
     assert cliente.chaves_criadas == []
+
+
+def test_autorizacao_por_lote_cria_somente_o_conjunto_autorizado(tmp_path) -> None:
+    cliente = ClienteFalso()
+
+    resultado = executar_plano(
+        plano(), autorizacao_do_primeiro_lote(), cliente, tmp_path / "mapa.json"
+    )
+
+    assert resultado.itens == ("1.0.0",)
+    assert cliente.chaves_criadas == ["1.0.0"]

@@ -33,9 +33,17 @@ def executar_plano(
     cliente: ClienteAzureDevOps,
     caminho_manifesto: Path,
 ) -> ResultadoPublicacao:
-    """Publica sequencialmente apenas o plano cujo hash foi autorizado."""
+    """Publica sequencialmente apenas o conjunto exato autorizado do plano."""
     if not autorizacao.valida_para(plano.hash_plano):
         raise PermissionError("A autorização não é válida para o hash deste plano.")
+    chaves_plano = tuple(operacao.chave for operacao in plano.operacoes)
+    if not autorizacao.valida_conjunto(chaves_plano):
+        raise PermissionError("A autorização não cobre exatamente o conjunto deste plano.")
+    chaves_autorizadas = (
+        autorizacao.chaves_autorizadas
+        if autorizacao.chaves_autorizadas is not None
+        else frozenset(chaves_plano)
+    )
 
     manifesto = ler_manifesto(caminho_manifesto)
     _validar_manifesto(manifesto, plano, cliente)
@@ -43,6 +51,8 @@ def executar_plano(
     titulos = dict(manifesto.titulos)
     criados: list[str] = []
     for operacao in plano.operacoes:
+        if operacao.chave not in chaves_autorizadas:
+            continue
         existente = registros.get(operacao.chave)
         if existente is not None:
             continue

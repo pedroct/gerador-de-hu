@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from hmac import compare_digest
@@ -34,15 +35,43 @@ class Lote:
 
 @dataclass(frozen=True)
 class Autorizacao:
-    """Associa uma decisão explícita ao hash exato do plano apresentado."""
+    """Associa uma decisão explícita ao hash e ao conjunto do plano apresentado."""
 
     plano_hash: str
     modalidade: ModalidadeAutorizacao
+    chaves_autorizadas: frozenset[str] | None = None
+    numero_lote: int | None = None
+    faixa: tuple[int, int] | None = None
     _confirmada: bool = field(default=False, init=False, repr=False)
 
-    def valida_para(self, plano_hash: str) -> bool:
-        """Invalida a autorização se o plano foi alterado após a confirmação."""
-        return self._confirmada and compare_digest(self.plano_hash, plano_hash)
+    def valida_para(self, plano_hash: str, chaves_plano: Iterable[str] | None = None) -> bool:
+        """Valida hash e, quando informado, o conjunto de operações do plano."""
+        if not self._confirmada or not compare_digest(self.plano_hash, plano_hash):
+            return False
+        if self.modalidade is ModalidadeAutorizacao.LOTES and self.chaves_autorizadas is None:
+            return False
+        return chaves_plano is None or self.valida_conjunto(chaves_plano)
+
+    def valida_conjunto(self, chaves_plano: Iterable[str]) -> bool:
+        """Confirma que a autorização cobre exatamente as operações permitidas."""
+        chaves = tuple(chaves_plano)
+        conjunto_plano = frozenset(chaves)
+        autorizadas = self.chaves_autorizadas
+        if not self._confirmada:
+            return False
+        if autorizadas is None:
+            return self.modalidade is ModalidadeAutorizacao.INTEIRA
+        if not autorizadas.issubset(conjunto_plano):
+            return False
+        if self.modalidade is ModalidadeAutorizacao.INTEIRA and autorizadas != conjunto_plano:
+            return False
+        if self.faixa is not None:
+            inicio, fim = self.faixa
+            if inicio < 0 or inicio >= fim or fim > len(chaves):
+                return False
+            if autorizadas != frozenset(chaves[inicio:fim]):
+                return False
+        return True
 
 
 def validar_confirmacao(confirmacao: str, esperada: str) -> bool:
@@ -120,18 +149,42 @@ def criar_autorizacao(
     quantidade: int | None = None,
     configuracao: ConfiguracaoPublicacao | None = None,
     numero_lote: int | None = None,
+    chaves_autorizadas: Iterable[str] | None = None,
+    lote: Lote | None = None,
 ) -> Autorizacao:
     """Cria uma autorização operacional apenas após validar a frase derivada do plano."""
     if not plano_hash:
         raise ValueError("O hash do plano é obrigatório para autorizar a publicação.")
     if modalidade is ModalidadeAutorizacao.CANCELADA:
         raise ValueError("Uma publicação cancelada não pode gerar autorização.")
-    autorizacao = Autorizacao(plano_hash=plano_hash, modalidade=modalidade)
+    if lote is not None:
+        if modalidade is not ModalidadeAutorizacao.LOTES:
+            raise ValueError("Uma faixa só pode ser usada na modalidade por lotes.")
+        if numero_lote is not None and numero_lote != lote.numero:
+            raise ValueError("O número do lote diverge da faixa informada.")
+        numero_lote = lote.numero
+        faixa = (lote.inicio, lote.fim)
+    else:
+        faixa = None
+    chaves = None if chaves_autorizadas is None else frozenset(chaves_autorizadas)
+    if chaves is not None and not all(isinstance(chave, str) and chave for chave in chaves):
+        raise ValueError("O conjunto autorizado contém uma chave inválida.")
+    autorizacao = Autorizacao(
+        plano_hash=plano_hash,
+        modalidade=modalidade,
+        chaves_autorizadas=chaves,
+        numero_lote=numero_lote,
+        faixa=faixa,
+    )
     if confirmacao is None:
         return autorizacao
     if quantidade is None or configuracao is None:
         raise ValueError("A quantidade e o destino são obrigatórios para validar a confirmação.")
 
+    if modalidade is ModalidadeAutorizacao.LOTES and (
+        numero_lote is None or chaves is None or quantidade != len(chaves)
+    ):
+        return autorizacao
     esperada = criar_frase_confirmacao(plano_hash, quantidade, configuracao, numero_lote)
     if validar_confirmacao(confirmacao, esperada):
         object.__setattr__(autorizacao, "_confirmada", True)
