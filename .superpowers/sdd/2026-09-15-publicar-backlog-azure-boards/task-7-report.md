@@ -54,3 +54,31 @@ de outras skills, fora desta tarefa.
 - O token permanece fora dos exemplos preenchidos e da saída do plano.
 - A CLI não contém regras de negócio do backlog; ela apenas coordena os componentes existentes.
 - Não foram usados subagentes nem revisores, conforme solicitado.
+
+## Adendo — correção da simulação
+
+Foi identificado que a implementação original chamava `_verificar_preliminar()` também em
+`publicar --simulacao`. Como `validar_operacao()` usa o endpoint REST de criação com
+`validateOnly=true`, isso ainda produzia POST, embora nenhum work item fosse persistido.
+
+A simulação agora termina depois da interpretação, validação local, montagem e apresentação do
+plano. Portanto, não instancia chamadas HTTP nem executa verificação remota; a saída informa
+explicitamente que a simulação foi local. O comando `--validar-apenas` preserva a verificação
+remota, e o fluxo de publicação continua verificando o destino e as operações antes de solicitar
+autorização.
+
+`test_skill_integration.py` passou a registrar todos os métodos HTTP do cliente falso e reprova
+qualquer POST, não apenas chamadas de criação. A regressão foi reproduzida com o teste falhando e
+corrigida com o teste passando.
+
+Verificação após a correção:
+
+- `uv run pytest tests/test_skill_integration.py -v`: 3 testes passaram.
+- `uv run pytest -q`: 66 testes passaram.
+- `uv run pytest publicar-backlog-azure-boards/tests/test_skill_integration.py -v`: 3 testes
+  passaram a partir da raiz do worktree.
+- `cd publicar-backlog-azure-boards && uv run bandit -r src`: nenhum problema identificado.
+- `cd publicar-backlog-azure-boards && uv run ruff check scripts src tests/test_skill_integration.py`:
+  passou.
+- `cd publicar-backlog-azure-boards && uv run mypy src`: passou.
+- `git diff --check`: passou.

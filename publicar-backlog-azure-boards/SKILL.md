@@ -40,9 +40,10 @@ uv run python scripts/publicar_backlog.py publicar backlog.md --validar-apenas
 uv run python scripts/publicar_backlog.py publicar backlog.md
 ```
 
-`--simulacao` executa a preparação e a verificação preliminar, mas não solicita autorização nem
-realiza chamadas de criação. `--validar-apenas` também não solicita autorização: ele verifica o
-destino e valida as operações remotamente com `validateOnly=true`.
+`--simulacao` executa somente a preparação, a validação local e o planejamento; não faz chamadas
+HTTP, não solicita autorização e não realiza chamadas de criação. `--validar-apenas` também não
+solicita autorização: ele verifica o destino e valida as operações remotamente com
+`validateOnly=true`.
 
 ## Configuração por execução
 

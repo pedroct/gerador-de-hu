@@ -335,5 +335,6 @@ explícita; a ferramenta não escolhe silenciosamente. Nunca versionar token: ma
 arquivos de exemplo e forneça-o apenas por variável de ambiente ou mecanismo seguro do sistema
 operacional.
 
-O MCP do Azure DevOps é opcional e pode ajudar na inspeção. A publicação principal usa a REST API,
-com verificação preliminar, confirmação textual, ordem determinística e manifesto.
+O MCP do Azure DevOps é opcional e pode ajudar na inspeção. A simulação é totalmente local e não
+faz chamadas HTTP; a publicação principal usa a REST API, com verificação preliminar, confirmação
+textual, ordem determinística e manifesto.

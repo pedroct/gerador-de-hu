@@ -26,12 +26,15 @@ class ClienteFalso:
     def __init__(self) -> None:
         self.configuracao = CONFIGURACAO
         self.chaves_criadas: list[str] = []
+        self.chamadas_http: list[str] = []
 
     def verificar_destino(self, configuracao: ConfiguracaoPublicacao) -> None:
         assert configuracao == CONFIGURACAO
+        self.chamadas_http.append("GET")
 
     def validar_operacao(self, operacao: OperacaoCriacao) -> None:
         del operacao
+        self.chamadas_http.append("POST validateOnly")
 
     def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroManifesto:
         del id_pai
@@ -47,6 +50,9 @@ def test_simulacao_nao_chama_criacao(capsys) -> None:
 
     assert codigo == 0
     assert cliente.chaves_criadas == []
+    assert not any(
+        metodo == "POST" or metodo.startswith("POST ") for metodo in cliente.chamadas_http
+    )
     assert "Simulação" in capsys.readouterr().out
 
 

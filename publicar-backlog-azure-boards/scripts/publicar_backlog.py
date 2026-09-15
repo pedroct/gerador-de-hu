@@ -147,13 +147,13 @@ def principal(
             configuracao.publicacao,
             configuracao.token.get_secret_value(),
         )
-        _verificar_preliminar(cliente_real, configuracao.publicacao, plano)
         if argumentos_parseados.simulacao:
             _escrever(
                 saida_real,
-                "Simulação concluída: nenhuma chamada de criação foi realizada.\n",
+                "Simulação local concluída: nenhuma chamada HTTP foi realizada.\n",
             )
             return 0
+        _verificar_preliminar(cliente_real, configuracao.publicacao, plano)
         if argumentos_parseados.validar_apenas:
             _escrever(saida_real, "Validação preliminar concluída sem chamadas de criação.\n")
             return 0
