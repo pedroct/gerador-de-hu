@@ -279,3 +279,61 @@ Ao criar ou alterar uma skill, mantenha o `SKILL.md`, `agents/openai.yaml`, refe
 - [IDs, títulos e descrições dos campos](https://learn.microsoft.com/en-us/azure/devops/boards/queries/titles-ids-descriptions)
 - [Referência oficial do Gherkin](https://cucumber.io/docs/gherkin/reference)
 - [Card, Conversation, Confirmation](https://ronjeffries.com/xprog/articles/expcardconversationconfirmation/)
+
+## Fluxo de publicação autorizada
+
+O backlog segue o fluxo manual **geração → revisão → autorização → publicação**. A geração continua
+produzindo Markdown para revisão; a skill `publicar-backlog-azure-boards` valida esse documento,
+apresenta um plano e só chama a REST API depois de uma frase de confirmação exata. A skill não
+publica automaticamente e o manifesto de retomada não equivale a uma autorização.
+
+```text
+gerar-backlog-azure-boards
+  → backlog Markdown
+  → revisão humana
+  → publicar-backlog-azure-boards validar/planejar
+  → AUTORIZAR PUBLICAÇÃO ...
+  → Azure Boards
+```
+
+### CLI
+
+```bash
+cd publicar-backlog-azure-boards
+uv run python scripts/publicar_backlog.py validar ../backlog.md
+uv run python scripts/publicar_backlog.py planejar ../backlog.md \
+  --projeto Projeto --area-path Projeto --iteration-path 'Projeto\\Sprint 18'
+uv run python scripts/publicar_backlog.py publicar ../backlog.md --simulacao
+uv run python scripts/publicar_backlog.py publicar ../backlog.md --validar-apenas
+uv run python scripts/publicar_backlog.py publicar ../backlog.md
+```
+
+Na publicação, a ferramenta mostra organização, projeto, Area Path, Iteration Path, quantidades,
+ordem, relações, manifesto e hash. Depois pergunta entre backlog inteiro, lotes ou cancelamento e
+solicita a frase integral, como `AUTORIZAR PUBLICAÇÃO 3 ITENS Projeto Projeto Projeto\\Sprint 18
+7F3A`. Não existe opção `--yes`; confirmação ausente ou incorreta resulta em zero chamadas de
+criação.
+
+### Variáveis de ambiente
+
+```dotenv
+AZURE_DEVOPS_ORGANIZACAO=minha-organizacao
+AZURE_DEVOPS_PROJETO=Projeto
+AZURE_DEVOPS_AREA_PATH=Projeto
+AZURE_DEVOPS_ITERATION_PATH=Projeto\\Sprint 2026\\Sprint 18
+AZURE_DEVOPS_TOKEN=
+```
+
+O `Iteration Path` é definido por execução e não pertence ao backlog Markdown. Se houver:
+
+```dotenv
+AZURE_DEVOPS_AREA_PATHS=Sustentacao,Projeto
+```
+
+sem `AZURE_DEVOPS_AREA_PATH` ou `--area-path`, a seleção entre `Sustentacao` e `Projeto` deve ser
+explícita; a ferramenta não escolhe silenciosamente. Nunca versionar token: mantenha-o vazio nos
+arquivos de exemplo e forneça-o apenas por variável de ambiente ou mecanismo seguro do sistema
+operacional.
+
+O MCP do Azure DevOps é opcional e pode ajudar na inspeção. A publicação principal usa a REST API,
+com verificação preliminar, confirmação textual, ordem determinística e manifesto.
