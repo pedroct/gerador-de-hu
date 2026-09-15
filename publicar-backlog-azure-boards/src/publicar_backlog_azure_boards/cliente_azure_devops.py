@@ -7,14 +7,27 @@ import time
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlencode, urlparse
 
 import httpx
 
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
     OperacaoCriacao,
+    TipoItem,
 )
+
+_TIPOS_OBRIGATORIOS = tuple(tipo.value for tipo in TipoItem)
+_CAMPOS_OBRIGATORIOS = frozenset(
+    {
+        "System.Title",
+        "System.Description",
+        "Microsoft.VSTS.Common.AcceptanceCriteria",
+        "System.AreaPath",
+        "System.IterationPath",
+    }
+)
+_RELACAO_HIERARQUICA = "System.LinkTypes.Hierarchy-Reverse"
 
 
 class ErroAzureDevOps(RuntimeError):
@@ -66,8 +79,10 @@ class ClienteAzureDevOps:
 
     VERSOES_API = {
         "criacao": "7.2-preview.3",
-        "wiql": "7.2-preview.2",
+        "tipos": "7.2-preview.2",
+        "campos": "7.2-preview.2",
         "relacoes": "7.2-preview.2",
+        "classificacao": "7.2-preview.2",
     }
     _ERROS_RETENTAVEIS = frozenset({408, 429, 500, 502, 503, 504})
 
@@ -103,19 +118,43 @@ class ClienteAzureDevOps:
         if configuracao != self.configuracao:
             raise ErroDestinoInvalido("A configuração consultada difere do cliente configurado.")
 
-        tipos_payload = self._obter("/_apis/wit/workitemtypes?api-version=7.2-preview.2")
-        tipos = tuple(_nomes(tipos_payload))
-        campos: set[str] = set()
-        for tipo in tipos:
-            payload = self._obter(
-                f"/_apis/wit/workitemtypes/{quote(tipo, safe='')}/fields?api-version=7.2-preview.2"
+        tipos_payload = self._obter(self._url_api("/_apis/wit/workitemtypes", "tipos"))
+        tipos = tuple(_nomes(tipos_payload, recurso="tipos de work item"))
+        tipos_ausentes = set(_TIPOS_OBRIGATORIOS).difference(tipos)
+        if tipos_ausentes:
+            raise ErroDestinoInvalido(
+                "O projeto não disponibiliza os tipos obrigatórios: "
+                + ", ".join(sorted(tipos_ausentes))
+                + "."
             )
-            campos.update(_nomes(payload, campo="referenceName"))
+
+        campos: set[str] = set()
+        for tipo in _TIPOS_OBRIGATORIOS:
+            payload = self._obter(
+                self._url_api(f"/_apis/wit/workitemtypes/{quote(tipo, safe='')}/fields", "campos")
+            )
+            campos_do_tipo = set(
+                _nomes(payload, campo="referenceName", recurso=f"campos de {tipo}")
+            )
+            campos_ausentes = _CAMPOS_OBRIGATORIOS.difference(campos_do_tipo)
+            if campos_ausentes:
+                raise ErroDestinoInvalido(
+                    f"{tipo} não disponibiliza os campos obrigatórios: "
+                    + ", ".join(sorted(campos_ausentes))
+                    + "."
+                )
+            campos.update(campos_do_tipo)
 
         relacoes_payload = self._obter(
-            "/_apis/wit/workitemrelationtypes?api-version=" + self.VERSOES_API["relacoes"]
+            self._url_api("/_apis/wit/workitemrelationtypes", "relacoes")
         )
-        relacoes = tuple(_nomes(relacoes_payload, campo="referenceName"))
+        relacoes = tuple(
+            _nomes(relacoes_payload, campo="referenceName", recurso="relações de work item")
+        )
+        if _RELACAO_HIERARQUICA not in relacoes:
+            raise ErroDestinoInvalido(
+                "A relação hierárquica de pai não está disponível no projeto."
+            )
         self._validar_caminho("areas", configuracao.area_path)
         self._validar_caminho("iterations", configuracao.iteration_path)
         return VerificacaoDestino(
@@ -133,13 +172,12 @@ class ClienteAzureDevOps:
     def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroCriado:
         """Cria um item e inclui a relação hierárquica apenas com pai identificado."""
         payload = self._enviar_criacao(operacao, validar=False, id_pai=id_pai)
-        try:
-            item_id = int(payload["id"])
-            url = str(payload["url"])
-        except (KeyError, TypeError, ValueError) as erro:
-            raise ErroAzureDevOps(
-                "A resposta de criação não contém uma identidade válida."
-            ) from erro
+        item_id = payload.get("id")
+        url = payload.get("url")
+        if isinstance(item_id, bool) or not isinstance(item_id, int) or item_id <= 0:
+            raise ErroAzureDevOps("A resposta de criação não contém uma identidade válida.")
+        if not isinstance(url, str) or not _url_azure_valida(url):
+            raise ErroAzureDevOps("A resposta de criação não contém uma identidade válida.")
         return RegistroCriado(id=item_id, tipo=operacao.tipo.value, url=url)
 
     def _enviar_criacao(
@@ -171,21 +209,42 @@ class ClienteAzureDevOps:
                     },
                 }
             )
-        consulta = "?validateOnly=true&api-version=" if validar else "?api-version="
-        url = f"/_apis/wit/workitems/{quote(operacao.tipo.value, safe='')}" + consulta
-        versao = self.VERSOES_API["criacao"]
-        return self._enviar(
-            "POST", url + versao, json=patch, tipo_conteudo="application/json-patch+json"
+        parametros = (("validateOnly", "true"),) if validar else ()
+        url = self._url_api(
+            f"/_apis/wit/workitems/{quote(operacao.tipo.value, safe='')}",
+            "criacao",
+            parametros=parametros,
         )
+        return self._enviar("POST", url, json=patch, tipo_conteudo="application/json-patch+json")
 
     def _validar_caminho(self, grupo: str, caminho: str) -> None:
         payload = self._obter(
-            f"/_apis/wit/classificationnodes/{grupo}/{quote(caminho, safe='')}"
-            "?api-version=7.2-preview.2"
+            self._url_api(
+                f"/_apis/wit/classificationnodes/{grupo}/{quote(caminho, safe='')}",
+                "classificacao",
+            )
         )
-        nome = payload.get("name") if isinstance(payload, Mapping) else None
-        if nome is not None and str(nome) != caminho.rsplit("\\", maxsplit=1)[-1]:
+        nome = payload.get("name")
+        caminho_retornado = payload.get("path")
+        caminho_esperado = "\\" + caminho.lstrip("\\")
+        if (
+            not isinstance(nome, str)
+            or not nome
+            or nome != caminho.rsplit("\\", maxsplit=1)[-1]
+            or not isinstance(caminho_retornado, str)
+            or caminho_retornado != caminho_esperado
+        ):
             raise ErroDestinoInvalido(f"{grupo} não corresponde ao destino configurado.")
+
+    def _url_api(
+        self,
+        caminho: str,
+        operacao: str,
+        *,
+        parametros: tuple[tuple[str, str], ...] = (),
+    ) -> str:
+        consulta = urlencode((*parametros, ("api-version", self.VERSOES_API[operacao])))
+        return f"{caminho}?{consulta}"
 
     def _obter(self, url: str) -> dict[str, Any]:
         return self._enviar("GET", url)
@@ -200,7 +259,8 @@ class ClienteAzureDevOps:
     ) -> dict[str, Any]:
         headers = {"Content-Type": tipo_conteudo} if tipo_conteudo else None
         ultima: Exception | None = None
-        for tentativa in range(self._max_tentativas):
+        tentativas = self._max_tentativas if metodo == "GET" else 1
+        for tentativa in range(tentativas):
             try:
                 resposta = self._cliente.request(metodo, url, json=json, headers=headers)
             except (httpx.TimeoutException, httpx.NetworkError) as erro:
@@ -214,18 +274,32 @@ class ClienteAzureDevOps:
                     if not isinstance(corpo, dict):
                         raise ErroAzureDevOps("A resposta do Azure DevOps não é um objeto JSON.")
                     return corpo
-            if tentativa + 1 < self._max_tentativas:
+            if tentativa + 1 < tentativas:
                 time.sleep(self._espera_inicial * (2**tentativa))
         raise ErroFalhaTransitoria(
             "O Azure DevOps não respondeu após as tentativas permitidas."
         ) from ultima
 
 
-def _nomes(payload: Mapping[str, Any], campo: str = "name") -> list[str]:
-    valores = payload.get("value", [])
-    if not isinstance(valores, list):
-        return []
-    return [str(item[campo]) for item in valores if isinstance(item, dict) and campo in item]
+def _nomes(payload: Mapping[str, Any], *, campo: str = "name", recurso: str) -> list[str]:
+    valores = payload.get("value")
+    if not isinstance(valores, list) or not valores:
+        raise ErroDestinoInvalido(f"A resposta de {recurso} não contém valores válidos.")
+
+    nomes: list[str] = []
+    for item in valores:
+        valor = item.get(campo) if isinstance(item, Mapping) else None
+        if not isinstance(valor, str) or not valor:
+            raise ErroDestinoInvalido(f"A resposta de {recurso} contém um {campo} inválido.")
+        nomes.append(valor)
+    return nomes
+
+
+def _url_azure_valida(valor: str) -> bool:
+    if not valor or valor != valor.strip():
+        return False
+    url = urlparse(valor)
+    return url.scheme == "https" and bool(url.netloc) and bool(url.path)
 
 
 def _verificar_status(resposta: httpx.Response) -> None:
