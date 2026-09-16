@@ -82,7 +82,7 @@ def respostas_verificacao(
             200,
             {
                 "name": "Projeto",
-                "path": r"\Projeto",
+                "path": r"\Projeto\Area",
                 "url": "https://dev.azure.com/org/Projeto/_apis/wit/classificationnodes/Areas",
                 "structureType": "area",
             },
@@ -91,7 +91,7 @@ def respostas_verificacao(
             200,
             {
                 "name": "Sprint 18",
-                "path": r"\Projeto\Sprint 18",
+                "path": r"\Projeto\Iteration\Sprint 18",
                 "url": "https://dev.azure.com/org/Projeto/_apis/wit/classificationnodes/Iterations/Sprint%2018",
                 "structureType": "iteration",
             },
@@ -181,7 +181,7 @@ def test_verificacao_rejeita_url_de_classification_node_incompativel() -> None:
         200,
         {
             "name": "Projeto",
-            "path": r"\Projeto",
+            "path": r"\Projeto\Area",
             "url": "https://dev.azure.com/org/Projeto/_apis/wit/classificationnodes/Areas/Outro",
             "structureType": "area",
         },
@@ -198,7 +198,7 @@ def test_verificacao_aceita_url_oficial_com_id_de_projeto_e_casing_do_endpoint()
         200,
         {
             "name": "Projeto",
-            "path": r"\Projeto",
+            "path": r"\Projeto\Area",
             "url": "https://dev.azure.com/org/00000000-0000-0000-0000-000000000001/_apis/wit/classificationNodes/Areas",
             "structureType": "area",
         },
@@ -207,7 +207,7 @@ def test_verificacao_aceita_url_oficial_com_id_de_projeto_e_casing_do_endpoint()
         200,
         {
             "name": "Sprint 18",
-            "path": r"\Projeto\Sprint 18",
+            "path": r"\Projeto\Iteration\Sprint 18",
             "url": "https://dev.azure.com/org/00000000-0000-0000-0000-000000000001/_apis/wit/classificationNodes/Iterations/Sprint%2018",
             "structureType": "iteration",
         },
@@ -217,6 +217,26 @@ def test_verificacao_aceita_url_oficial_com_id_de_projeto_e_casing_do_endpoint()
     destino = cliente_azure.verificar_destino(CONFIGURACAO)
 
     assert destino.iteration_path == r"Projeto\Sprint 18"
+
+
+def test_verificacao_aceita_area_path_filho_com_segmento_fixo_inserido_pelo_azure() -> None:
+    """Reproduz o `path` real de um nó filho, com o segmento `Area` que o Azure sempre insere."""
+    configuracao = replace(CONFIGURACAO, area_path=r"Projeto\Sustentacao")
+    respostas = respostas_verificacao(configuracao)
+    respostas[-2] = resposta(
+        200,
+        {
+            "name": "Sustentacao",
+            "path": r"\Projeto\Area\Sustentacao",
+            "url": "https://dev.azure.com/org/Projeto/_apis/wit/classificationnodes/Areas/Sustentacao",
+            "structureType": "area",
+        },
+    )
+    cliente_azure, _ = cliente(respostas, configuracao)
+
+    destino = cliente_azure.verificar_destino(configuracao)
+
+    assert destino.area_path == r"Projeto\Sustentacao"
 
 
 def test_criacao_usa_endpoint_com_cifrao_json_patch_e_tipo_remoto() -> None:

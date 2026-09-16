@@ -160,14 +160,14 @@ def test_validar_apenas_valida_remotamente_com_validate_only_true_sem_criacao_pe
         elif caminho.endswith("/classificationnodes/Areas"):
             corpo = {
                 "name": "Projeto",
-                "path": r"\Projeto",
+                "path": r"\Projeto\Area",
                 "url": "https://dev.azure.com/organizacao/Projeto/_apis/wit/classificationnodes/Areas",
                 "structureType": "area",
             }
         elif caminho.endswith("/classificationnodes/Iterations/Sprint 18"):
             corpo = {
                 "name": "Sprint 18",
-                "path": r"\Projeto\Sprint 18",
+                "path": r"\Projeto\Iteration\Sprint 18",
                 "url": "https://dev.azure.com/organizacao/Projeto/_apis/wit/classificationnodes/Iterations/Sprint%2018",
                 "structureType": "iteration",
             }

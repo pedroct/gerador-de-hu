@@ -27,6 +27,9 @@ _CAMPOS_OBRIGATORIOS_COMUNS = frozenset(
 )
 _CAMPO_CRITERIOS_ACEITACAO = "Microsoft.VSTS.Common.AcceptanceCriteria"
 _RELACAO_HIERARQUICA = "System.LinkTypes.Hierarchy-Reverse"
+# O Azure DevOps sempre insere este segmento fixo em `path` logo após o projeto,
+# mesmo quando a consulta usa o caminho curto sem ele (confirmado contra a API real).
+_ROTULOS_ESTRUTURA = {"Areas": "Area", "Iterations": "Iteration"}
 
 
 class ErroAzureDevOps(RuntimeError):
@@ -295,7 +298,7 @@ class ClienteAzureDevOps:
         caminho_retornado = payload.get("path")
         url_retornada = payload.get("url")
         estrutura_retornada = payload.get("structureType")
-        caminho_esperado = "\\" + "\\".join(partes)
+        caminho_esperado = "\\" + "\\".join((partes[0], _ROTULOS_ESTRUTURA[grupo], *partes[1:]))
         if (
             not isinstance(nome, str)
             or not nome
