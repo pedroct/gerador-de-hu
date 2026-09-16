@@ -98,7 +98,7 @@ def test_simulacao_sem_token_nao_instancia_cliente_http(monkeypatch, tmp_path) -
     assert codigo == 0
 
 
-def test_validar_apenas_consulta_remotamente_sem_post() -> None:
+def test_validar_apenas_valida_operacoes_remotamente_sem_criar_itens() -> None:
     cliente = ClienteFalso()
 
     codigo = principal(
@@ -109,7 +109,12 @@ def test_validar_apenas_consulta_remotamente_sem_post() -> None:
     )
 
     assert codigo == 0
-    assert cliente.chamadas_http == ["GET"]
+    assert cliente.chamadas_http == [
+        "GET",
+        "POST validateOnly",
+        "POST validateOnly",
+        "POST validateOnly",
+    ]
     assert cliente.chaves_criadas == []
 
 
@@ -126,8 +131,11 @@ def test_validar_apenas_sem_cliente_carrega_token_e_faz_somente_get(monkeypatch,
 
     def responder(request: httpx.Request) -> httpx.Response:
         chamadas.append(request)
+        if request.method == "POST":
+            assert request.url.params.get("validateOnly") == "true"
+            return httpx.Response(200, json={}, request=request)
         if request.method != "GET":
-            pytest.fail("--validar-apenas não pode fazer POST")
+            pytest.fail(f"Método inesperado: {request.method}")
         caminho = request.url.path
         if caminho.endswith("/_apis/wit/workitemtypes"):
             corpo: dict[str, object] = {
@@ -202,7 +210,11 @@ def test_validar_apenas_sem_cliente_carrega_token_e_faz_somente_get(monkeypatch,
     assert codigo == 0
     assert prompts == ["Credencial do Azure DevOps: "]
     assert chamadas
-    assert all(request.method == "GET" for request in chamadas)
+    assert any(request.method == "POST" for request in chamadas)
+    assert all(
+        request.method == "GET" or request.url.params.get("validateOnly") == "true"
+        for request in chamadas
+    )
     assert "credencial-de-teste" not in saida.getvalue()
 
 
