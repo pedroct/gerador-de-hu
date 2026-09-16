@@ -10,7 +10,7 @@ Comandos executados no diretório `publicar-backlog-azure-boards`:
 
 ```text
 uv run ruff format --check .
-26 files already formatted
+27 files already formatted
 
 uv run pip-audit --format json > /tmp/publicar-backlog-pip-audit-final.json
 Found 15 known vulnerabilities in 3 packages

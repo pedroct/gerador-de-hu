@@ -16,9 +16,7 @@ from publicar_backlog_azure_boards.modelos import (
 )
 from publicar_backlog_azure_boards.planejar_publicacao import criar_plano
 
-CONFIGURACAO = ConfiguracaoPublicacao(
-    "organizacao", "Projeto", "Projeto", r"Projeto\Sprint 18"
-)
+CONFIGURACAO = ConfiguracaoPublicacao("organizacao", "Projeto", "Projeto", r"Projeto\Sprint 18")
 
 
 @pytest.fixture
@@ -36,9 +34,7 @@ class ClienteSimulado:
         self.configuracao = CONFIGURACAO
         self.chaves_criadas: list[str] = []
 
-    def criar_item(
-        self, operacao: OperacaoCriacao, id_pai: int | None = None
-    ) -> RegistroManifesto:
+    def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroManifesto:
         if operacao.chave_pai is not None:
             assert id_pai is not None
         self.chaves_criadas.append(operacao.chave)
@@ -47,7 +43,6 @@ class ClienteSimulado:
             tipo=operacao.tipo,
             url=f"https://exemplo/{operacao.chave}",
         )
-
 
     def verificar_destino(self, configuracao: ConfiguracaoPublicacao) -> None:
         assert configuracao == self.configuracao
@@ -80,9 +75,7 @@ def test_publicacao_pela_cli_cria_itens_em_ordem_e_grava_manifesto_no_caminho_in
         cliente.configuracao,
     )
     caminho_manifesto = tmp_path / "subdiretorio" / "manifesto.json"
-    confirmacao = criar_frase_confirmacao(
-        plano, frozenset(op.chave for op in plano.operacoes)
-    )
+    confirmacao = criar_frase_confirmacao(plano, frozenset(op.chave for op in plano.operacoes))
 
     codigo = principal(
         ["publicar", str(backlog), "--manifesto", str(caminho_manifesto)],
