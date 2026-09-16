@@ -19,6 +19,10 @@ uv lock
 Segredos não devem ser versionados. Copie `.env.example` para `.env` apenas localmente e preencha
 os valores necessários.
 
+O token solicitado interativamente é lido sem eco; nunca o informe em argumentos, arquivos
+versionados, planos, manifestos, logs ou mensagens de erro. A seleção entre `Sustentacao` e
+`Projeto` é sempre explícita.
+
 ## Configuração por execução
 
 A precedência é: argumentos da CLI, arquivo TOML passado por `--config`, arquivo `.env` passado por
@@ -102,6 +106,10 @@ existência do manifesto.
 sem pedir autorização. `--validar-apenas` executa a verificação remota das operações usando
 `validateOnly=true`, sem solicitar autorização e sem criar work items.
 
+`--validar-apenas` pode fazer somente as consultas remotas necessárias para verificar destino,
+tipos, campos, relações e caminhos; a validação das operações usa `validateOnly=true` e não envia
+POST persistente. A simulação continua totalmente local e não exige token.
+
 ## Manifesto, falha parcial e retomada
 
 O manifesto é apenas um registro de correlação e prevenção de duplicidade; ele nunca concede
@@ -116,6 +124,10 @@ ou resposta de criação sem identidade são ambíguos: o POST nunca é repetido
 qualquer nova escrita. Confira manualmente o Azure Boards e reconcilie o manifesto antes de tentar
 novamente. Uma retomada exige nova autorização; divergência de hash, destino, tipo ou título também
 interrompe o fluxo para revisão manual.
+
+reconciliação manual é obrigatória após qualquer criação ambígua: compare a chave documental, o
+título, o tipo, o destino e o ID no Azure Boards com o marcador do manifesto. Só depois de corrigir
+o manifesto e obter nova autorização vinculada ao plano a retomada pode continuar.
 
 ## REST e MCP
 

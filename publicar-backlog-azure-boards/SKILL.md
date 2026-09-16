@@ -50,7 +50,11 @@ uv run python scripts/publicar_backlog.py publicar backlog.md
 não faz chamadas HTTP, não solicita autorização e não realiza chamadas de criação.
 `--validar-apenas` também não
 solicita autorização: ele verifica o destino e valida as operações remotamente com
-`validateOnly=true`, sem criar work items.
+`validateOnly=true`, sem POST persistente e sem criar work items.
+
+Toda reconciliação de uma criação ambígua é manual: compare no Azure Boards o ID, a chave
+documental, o título, o tipo e os caminhos com o marcador do manifesto. Só corrija o manifesto e
+retome após essa conferência e uma nova confirmação vinculada ao hash e ao conjunto pendente.
 
 ## Configuração por execução
 
