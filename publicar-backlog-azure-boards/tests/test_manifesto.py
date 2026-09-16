@@ -1,6 +1,7 @@
 import json
 
 from publicar_backlog_azure_boards.manifesto import (
+    ErroReconciliacaoPendente,
     Manifesto,
     ReconciliacaoPendente,
     gravar_manifesto,
@@ -63,6 +64,57 @@ def test_manifesto_preserva_estado_de_reconciliacao_manual(tmp_path) -> None:
         json.loads(caminho.read_text(encoding="utf-8"))["reconciliacao_pendente"]["chave"]
         == "1.0.0"
     )
+
+
+def test_manifesto_preserva_reconciliacao_com_contexto_completo(tmp_path) -> None:
+    caminho = tmp_path / "mapa.json"
+    reconciliacao = ReconciliacaoPendente(
+        chave="1.0.0",
+        tipo_remoto="Epic",
+        titulo="Épico",
+        tipo=TipoItem.EPIC,
+        destino=CONFIGURACAO,
+        hash_plano="hash",
+        timestamp="2026-09-16T15:00:00+00:00",
+        motivo="URL de resposta malformada",
+    )
+    manifesto = Manifesto(
+        hash_plano="hash",
+        configuracao=CONFIGURACAO,
+        reconciliacoes={"1.0.0": reconciliacao},
+    )
+
+    gravar_manifesto(caminho, manifesto)
+    dados = json.loads(caminho.read_text(encoding="utf-8"))
+
+    assert ler_manifesto(caminho).reconciliacoes == {"1.0.0": reconciliacao}
+    assert dados["reconciliacoes"]["1.0.0"]["resolucao"] == "pendente"
+    assert dados["reconciliacoes"]["1.0.0"]["destino"] == {
+        "organizacao": "organizacao",
+        "projeto": "projeto",
+        "area_path": "projeto",
+        "iteration_path": "projeto\\Sprint",
+        "mapeamento_tipos": {
+            "Epic": "Epic",
+            "Feature": "Feature",
+            "User Story": "User Story",
+            "Bug": "Bug",
+        },
+    }
+    assert "token" not in json.dumps(dados).lower()
+
+
+def test_manifesto_legado_singular_expoe_mapa_de_reconciliacoes() -> None:
+    reconciliacao = ReconciliacaoPendente("1.0.0", "Epic", "Épico")
+
+    manifesto = Manifesto(reconciliacao_pendente=reconciliacao)
+
+    assert manifesto.reconciliacoes == {"1.0.0": reconciliacao}
+    assert manifesto.reconciliacao_pendente == reconciliacao
+
+
+def test_erro_de_reconciliacao_pendente_e_especializacao_compatível() -> None:
+    assert issubclass(ErroReconciliacaoPendente, RuntimeError)
 
 
 def test_gravacao_substitui_atomicamente_sem_deixar_temporario(tmp_path) -> None:

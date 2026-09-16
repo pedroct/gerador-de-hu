@@ -195,16 +195,17 @@ class ClienteAzureDevOps:
     def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroCriado:
         """Cria um item e inclui a relação hierárquica apenas com pai identificado."""
         payload = self._enviar_criacao(operacao, validar=False, id_pai=id_pai)
-        item_id = payload.get("id")
-        url = payload.get("url")
-        if isinstance(item_id, bool) or not isinstance(item_id, int) or item_id <= 0:
+        try:
+            item_id = payload.get("id")
+            url = payload.get("url")
+            if isinstance(item_id, bool) or not isinstance(item_id, int) or item_id <= 0:
+                raise ValueError("id ausente ou inválido")
+            if not isinstance(url, str) or not _url_azure_valida(url):
+                raise ValueError("URL ausente, malformada ou não HTTPS")
+        except (ValueError, UnicodeError) as erro:
             raise ErroCriacaoAmbigua(
                 "A criação respondeu sem identidade válida; reconcilie manualmente o destino."
-            )
-        if not isinstance(url, str) or not _url_azure_valida(url):
-            raise ErroCriacaoAmbigua(
-                "A criação respondeu sem identidade válida; reconcilie manualmente o destino."
-            )
+            ) from erro
         return RegistroCriado(id=item_id, tipo=operacao.tipo.value, url=url)
 
     def _enviar_criacao(
@@ -259,6 +260,13 @@ class ClienteAzureDevOps:
                 "reconcilie manualmente antes de nova escrita."
             ) from erro
         except ErroRespostaInvalida as erro:
+            if validar:
+                raise
+            raise ErroCriacaoAmbigua(
+                "Não é possível confirmar se a criação foi persistida; "
+                "reconcilie manualmente antes de nova escrita."
+            ) from erro
+        except (ValueError, UnicodeError) as erro:
             if validar:
                 raise
             raise ErroCriacaoAmbigua(
@@ -366,7 +374,10 @@ def _nomes(payload: Mapping[str, Any], *, campo: str = "name", recurso: str) -> 
 def _url_azure_valida(valor: str) -> bool:
     if not valor or valor != valor.strip():
         return False
-    url = urlparse(valor)
+    try:
+        url = urlparse(valor)
+    except (ValueError, UnicodeError):
+        return False
     return url.scheme == "https" and bool(url.netloc) and bool(url.path)
 
 

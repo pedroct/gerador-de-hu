@@ -259,6 +259,15 @@ def test_corpo_invalido_de_criacao_e_ambiguo() -> None:
     assert len(chamadas) == 1
 
 
+def test_url_malformada_de_criacao_e_ambigua_sem_repetir_post() -> None:
+    cliente_azure, chamadas = cliente([resposta(200, {"id": 10, "url": "https://[invalido"})])
+
+    with pytest.raises(ErroCriacaoAmbigua):
+        cliente_azure.criar_item(OPERACAO)
+
+    assert len(chamadas) == 1
+
+
 def test_nao_re_tenta_post_apos_erro_transitorio_ambiguo() -> None:
     cliente_azure, chamadas = cliente(
         [resposta(503), resposta(200, {"id": 9, "url": "https://item/9"})]

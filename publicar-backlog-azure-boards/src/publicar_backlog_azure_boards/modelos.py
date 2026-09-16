@@ -80,6 +80,21 @@ class RegistroManifesto:
 
 
 @dataclass(frozen=True)
+class ReconciliacaoPendente:
+    """Preserva o contexto necessário para resolver uma criação incerta manualmente."""
+
+    chave: str
+    tipo_remoto: str
+    titulo: str
+    tipo: TipoItem | None = None
+    destino: ConfiguracaoPublicacao | None = None
+    hash_plano: str = ""
+    timestamp: str = ""
+    motivo: str = ""
+    resolucao: str = "pendente"
+
+
+@dataclass(frozen=True)
 class OperacaoCriacao:
     """Representa uma criação planejada, sem executar qualquer escrita."""
 

@@ -14,22 +14,28 @@ from publicar_backlog_azure_boards.modelos import (
     MapeamentoTipos,
     OperacaoCriacao,
     PlanoPublicacao,
+    ReconciliacaoPendente,
     RegistroManifesto,
     TipoItem,
 )
+
+__all__ = [
+    "ErroReconciliacaoPendente",
+    "Manifesto",
+    "ReconciliacaoManualNecessaria",
+    "ReconciliacaoPendente",
+    "gravar_manifesto",
+    "ler_manifesto",
+    "validar_manifesto",
+]
 
 
 class ReconciliacaoManualNecessaria(RuntimeError):
     """Bloqueia novas escritas enquanto uma criação anterior permanecer ambígua."""
 
 
-@dataclass(frozen=True)
-class ReconciliacaoPendente:
-    """Identifica a operação que precisa ser conferida diretamente no Azure Boards."""
-
-    chave: str
-    tipo_remoto: str
-    titulo: str
+class ErroReconciliacaoPendente(ReconciliacaoManualNecessaria):
+    """Indica que uma reconciliação pendente impede qualquer nova criação."""
 
 
 @dataclass(frozen=True)
@@ -43,6 +49,29 @@ class Manifesto:
     reconciliacao_pendente: ReconciliacaoPendente | None = None
     origem: str = "backlog.md"
     versao: int = 1
+    reconciliacoes: dict[str, ReconciliacaoPendente] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Normaliza o mapa novo e o campo singular legado no mesmo estado lógico."""
+        reconciliacoes = dict(self.reconciliacoes)
+        if self.reconciliacao_pendente is not None:
+            chave = self.reconciliacao_pendente.chave
+            existente = reconciliacoes.get(chave)
+            if existente is not None and existente != self.reconciliacao_pendente:
+                raise ValueError(f"Há duas reconciliações diferentes para o item {chave}.")
+            reconciliacoes.setdefault(chave, self.reconciliacao_pendente)
+        pendente = next(
+            (
+                reconciliacao
+                for reconciliacao in reconciliacoes.values()
+                if reconciliacao.resolucao == "pendente"
+            ),
+            None,
+        )
+        if reconciliacoes != self.reconciliacoes:
+            object.__setattr__(self, "reconciliacoes", reconciliacoes)
+        if pendente != self.reconciliacao_pendente:
+            object.__setattr__(self, "reconciliacao_pendente", pendente)
 
 
 def ler_manifesto(caminho: Path) -> Manifesto:
@@ -89,10 +118,15 @@ def validar_manifesto(
     configuracao: ConfiguracaoPublicacao,
 ) -> tuple[OperacaoCriacao, ...]:
     """Valida registros contra o backlog completo e só então devolve os pendentes."""
-    if manifesto.reconciliacao_pendente is not None:
-        pendencia = manifesto.reconciliacao_pendente
-        raise ReconciliacaoManualNecessaria(
-            f"O item {pendencia.chave} exige reconciliação manual no Azure Boards "
+    pendencias = tuple(
+        reconciliacao
+        for reconciliacao in manifesto.reconciliacoes.values()
+        if reconciliacao.resolucao == "pendente"
+    )
+    if pendencias:
+        chaves = ", ".join(reconciliacao.chave for reconciliacao in pendencias)
+        raise ErroReconciliacaoPendente(
+            f"Os itens {chaves} exigem reconciliação manual no Azure Boards "
             "antes de qualquer nova escrita."
         )
     if not manifesto.itens and not manifesto.hash_plano and manifesto.configuracao is None:
@@ -122,14 +156,12 @@ def _serializar(manifesto: Manifesto) -> dict[str, Any]:
         "hash_plano": manifesto.hash_plano,
         "destino": destino,
         "reconciliacao_pendente": (
-            None
-            if reconciliacao is None
-            else {
-                "chave": reconciliacao.chave,
-                "tipo_remoto": reconciliacao.tipo_remoto,
-                "titulo": reconciliacao.titulo,
-            }
+            None if reconciliacao is None else _serializar_reconciliacao(reconciliacao)
         ),
+        "reconciliacoes": {
+            chave: _serializar_reconciliacao(reconciliacao)
+            for chave, reconciliacao in manifesto.reconciliacoes.items()
+        },
         "itens": {
             chave: {
                 "id": registro.id,
@@ -166,13 +198,20 @@ def _converter(dados: object) -> Manifesto:
         or not isinstance(itens, dict)
     ):
         raise ValueError("O manifesto não contém seus campos obrigatórios.")
-    reconciliacao = _converter_reconciliacao(dados.get("reconciliacao_pendente"))
     if destino is None:
-        if hash_plano or itens or reconciliacao is not None:
+        if hash_plano or itens or dados.get("reconciliacao_pendente") is not None:
             raise ValueError("Um manifesto com dados exige um destino completo.")
         configuracao = None
     else:
         configuracao = _configuracao(destino)
+
+    reconciliacao_legada = _converter_reconciliacao(dados.get("reconciliacao_pendente"), None)
+    reconciliacoes = _converter_reconciliacoes(dados.get("reconciliacoes"), None)
+    if reconciliacao_legada is not None:
+        existente = reconciliacoes.get(reconciliacao_legada.chave)
+        if existente is not None and existente != reconciliacao_legada:
+            raise ValueError("O manifesto contém reconciliações divergentes para a mesma chave.")
+        reconciliacoes[reconciliacao_legada.chave] = reconciliacao_legada
 
     registros: dict[str, RegistroManifesto] = {}
     titulos: dict[str, str] = {}
@@ -205,21 +244,98 @@ def _converter(dados: object) -> Manifesto:
         configuracao=configuracao,
         itens=registros,
         titulos=titulos,
-        reconciliacao_pendente=reconciliacao,
         origem=dados["origem"],
+        reconciliacoes=reconciliacoes,
     )
 
 
-def _converter_reconciliacao(dados: object) -> ReconciliacaoPendente | None:
+def _serializar_reconciliacao(reconciliacao: ReconciliacaoPendente) -> dict[str, object]:
+    return {
+        "chave": reconciliacao.chave,
+        "tipo_remoto": reconciliacao.tipo_remoto,
+        "tipo": None if reconciliacao.tipo is None else reconciliacao.tipo.value,
+        "titulo": reconciliacao.titulo,
+        "destino": (
+            None
+            if reconciliacao.destino is None
+            else _serializar_configuracao(reconciliacao.destino)
+        ),
+        "hash_plano": reconciliacao.hash_plano,
+        "timestamp": reconciliacao.timestamp,
+        "motivo": reconciliacao.motivo,
+        "resolucao": reconciliacao.resolucao,
+    }
+
+
+def _converter_reconciliacoes(
+    dados: object, configuracao: ConfiguracaoPublicacao | None
+) -> dict[str, ReconciliacaoPendente]:
+    if dados is None:
+        return {}
+    if not isinstance(dados, dict):
+        raise ValueError("O mapa de reconciliações do manifesto é inválido.")
+    reconciliacoes: dict[str, ReconciliacaoPendente] = {}
+    for chave, dados_reconciliacao in dados.items():
+        if not isinstance(chave, str) or not chave:
+            raise ValueError("Uma chave de reconciliação do manifesto é inválida.")
+        reconciliacao = _converter_reconciliacao(dados_reconciliacao, configuracao)
+        if reconciliacao is None or reconciliacao.chave != chave:
+            raise ValueError("Uma reconciliação do manifesto não corresponde à sua chave.")
+        reconciliacoes[chave] = reconciliacao
+    return reconciliacoes
+
+
+def _converter_reconciliacao(
+    dados: object, configuracao_padrao: ConfiguracaoPublicacao | None
+) -> ReconciliacaoPendente | None:
     if dados is None:
         return None
     if not isinstance(dados, dict):
         raise ValueError("O estado de reconciliação do manifesto é inválido.")
-    valores = (dados.get("chave"), dados.get("tipo_remoto"), dados.get("titulo"))
-    if not all(isinstance(valor, str) and valor for valor in valores):
+    chave = dados.get("chave")
+    tipo_remoto = dados.get("tipo_remoto")
+    titulo = dados.get("titulo")
+    if not isinstance(chave, str) or not chave:
         raise ValueError("O estado de reconciliação do manifesto é incompleto.")
-    chave, tipo_remoto, titulo = valores
-    return ReconciliacaoPendente(chave, tipo_remoto, titulo)  # type: ignore[arg-type]
+    if not isinstance(tipo_remoto, str) or not tipo_remoto:
+        raise ValueError("O estado de reconciliação do manifesto é incompleto.")
+    if not isinstance(titulo, str) or not titulo:
+        raise ValueError("O estado de reconciliação do manifesto é incompleto.")
+    tipo = dados.get("tipo")
+    if tipo is not None:
+        if not isinstance(tipo, str):
+            raise ValueError("O tipo da reconciliação do manifesto é inválido.")
+        try:
+            tipo_item: TipoItem | None = TipoItem(tipo)
+        except ValueError as erro:
+            raise ValueError("O tipo da reconciliação do manifesto é inválido.") from erro
+    else:
+        tipo_item = None
+
+    destino_dados = dados.get("destino")
+    if destino_dados is None:
+        destino = configuracao_padrao
+    elif isinstance(destino_dados, dict):
+        destino = _configuracao(destino_dados)
+    else:
+        raise ValueError("O destino da reconciliação do manifesto é inválido.")
+    hash_plano = dados.get("hash_plano", "")
+    timestamp = dados.get("timestamp", "")
+    motivo = dados.get("motivo", "")
+    resolucao = dados.get("resolucao", "pendente")
+    if not all(isinstance(valor, str) for valor in (hash_plano, timestamp, motivo, resolucao)):
+        raise ValueError("Os metadados da reconciliação do manifesto são inválidos.")
+    return ReconciliacaoPendente(
+        chave=chave,
+        tipo_remoto=tipo_remoto,
+        titulo=titulo,
+        tipo=tipo_item,
+        destino=destino,
+        hash_plano=hash_plano,
+        timestamp=timestamp,
+        motivo=motivo,
+        resolucao=resolucao,
+    )
 
 
 def _configuracao(destino: dict[str, object]) -> ConfiguracaoPublicacao:

@@ -10,8 +10,10 @@ from publicar_backlog_azure_boards.autorizacao import (
 from publicar_backlog_azure_boards.cliente_azure_devops import ErroCriacaoAmbigua
 from publicar_backlog_azure_boards.executar_publicacao import FalhaPublicacao, executar_plano
 from publicar_backlog_azure_boards.manifesto import (
+    ErroReconciliacaoPendente,
     Manifesto,
     ReconciliacaoManualNecessaria,
+    ReconciliacaoPendente,
     gravar_manifesto,
     ler_manifesto,
 )
@@ -153,8 +155,41 @@ def test_falha_ambigua_deixa_manifesto_bloqueado_para_reconciliacao(tmp_path) ->
     manifesto = ler_manifesto(caminho)
     assert manifesto.reconciliacao_pendente is not None
     assert manifesto.reconciliacao_pendente.chave == "1.0.0"
+    assert manifesto.reconciliacao_pendente.destino == CONFIGURACAO
+    assert manifesto.reconciliacao_pendente.tipo is TipoItem.EPIC
+    assert manifesto.reconciliacao_pendente.hash_plano == "hash"
+    assert manifesto.reconciliacao_pendente.timestamp
+    assert manifesto.reconciliacao_pendente.motivo
+    assert manifesto.reconciliacao_pendente.resolucao == "pendente"
 
     cliente_novo = ClienteFalso()
     with pytest.raises(ReconciliacaoManualNecessaria):
         executar_plano(plano(), autorizacao(), cliente_novo, caminho)
     assert cliente_novo.chaves_criadas == []
+
+
+def test_reconciliacao_pendente_bloqueia_nova_criacao_com_erro_especifico(tmp_path) -> None:
+    caminho = tmp_path / "mapa.json"
+    pendencia = ReconciliacaoPendente(
+        chave="1.0.0",
+        tipo_remoto="Epic",
+        titulo="Épico",
+        destino=CONFIGURACAO,
+        hash_plano="hash",
+        timestamp="2026-09-16T15:00:00+00:00",
+        motivo="timeout após envio",
+    )
+    gravar_manifesto(
+        caminho,
+        Manifesto(
+            hash_plano="hash",
+            configuracao=CONFIGURACAO,
+            reconciliacoes={"1.0.0": pendencia},
+        ),
+    )
+    cliente = ClienteFalso()
+
+    with pytest.raises(ErroReconciliacaoPendente):
+        executar_plano(plano(), autorizacao(), cliente, caminho)
+
+    assert cliente.chaves_criadas == []

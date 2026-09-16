@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
@@ -91,6 +92,11 @@ def executar_plano(
             chave=operacao.chave,
             tipo_remoto=operacao.tipo_remoto,
             titulo=operacao.titulo,
+            tipo=operacao.tipo,
+            destino=cliente.configuracao,
+            hash_plano=plano.hash_plano,
+            timestamp=datetime.now(UTC).isoformat(),
+            motivo="resultado da criação ainda não confirmado",
         )
         manifesto_em_escrita = _manifesto_atualizado(
             manifesto,
@@ -127,6 +133,7 @@ def executar_plano(
             cliente.configuracao,
             novos_registros,
             novos_titulos,
+            chave_reconciliacao=operacao.chave,
         )
         try:
             gravar_manifesto(caminho_manifesto, manifesto_confirmado)
@@ -152,14 +159,20 @@ def _manifesto_atualizado(
     titulos: dict[str, str],
     *,
     reconciliacao: ReconciliacaoPendente | None = None,
+    chave_reconciliacao: str | None = None,
 ) -> Manifesto:
+    reconciliacoes = dict(anterior.reconciliacoes)
+    if reconciliacao is not None:
+        reconciliacoes[reconciliacao.chave] = reconciliacao
+    elif chave_reconciliacao is not None:
+        reconciliacoes.pop(chave_reconciliacao, None)
     return Manifesto(
         hash_plano=plano.hash_plano,
         configuracao=configuracao,
         itens=registros,
         titulos=titulos,
-        reconciliacao_pendente=reconciliacao,
         origem=anterior.origem,
+        reconciliacoes=reconciliacoes,
     )
 
 
@@ -175,7 +188,14 @@ def _limpar_marcador_apos_falha_definitiva(
     try:
         gravar_manifesto(
             caminho,
-            _manifesto_atualizado(anterior, plano, configuracao, registros, titulos),
+            _manifesto_atualizado(
+                anterior,
+                plano,
+                configuracao,
+                registros,
+                titulos,
+                chave_reconciliacao=chave,
+            ),
         )
     except Exception as erro:
         raise ReconciliacaoManualNecessaria(
