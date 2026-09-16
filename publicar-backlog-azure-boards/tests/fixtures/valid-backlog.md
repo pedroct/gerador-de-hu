@@ -1,5 +1,9 @@
 # Backlog para Azure Boards
 
+## Metadados e cobertura
+- Data de geração: `2026-09-10`
+- Spec de origem: `docs/specs/spec-exemplo.md`
+
 ## 1.0.0 [Epic] Corrigir diligências
 
 ### Description

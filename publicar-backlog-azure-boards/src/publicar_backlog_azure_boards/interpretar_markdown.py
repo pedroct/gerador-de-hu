@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 from publicar_backlog_azure_boards.modelos import ItemBacklog, TipoItem
@@ -13,6 +14,7 @@ _ITEM_RE = re.compile(
     r"^(?P<marcas>#{1,6}) (?P<chave>[1-9]\d*\.\d+\.\d+) "
     r"\[(?P<tipo>Epic|Feature|User Story|Bug)\] (?P<titulo>\S.*)$"
 )
+_DATA_GERACAO_RE = re.compile(r"^- Data de geração: `(\d{4}-\d{2}-\d{2})`$", re.MULTILINE)
 _SECOES = {"Parent", "Description", "Acceptance Criteria", "Refinement Status"}
 _FOLHAS = {TipoItem.HISTORIA_USUARIO, TipoItem.BUG}
 
@@ -39,6 +41,22 @@ def interpretar_backlog(caminho: Path) -> list[ItemBacklog]:
     itens_em_construcao = _extrair_itens(texto)
     _validar_itens(itens_em_construcao)
     return [_converter_item(item) for item in itens_em_construcao]
+
+
+def extrair_data_geracao(caminho: Path) -> str:
+    """Lê a data fixa de geração dos Metadados; nunca deriva do relógio."""
+    texto = caminho.read_text(encoding="utf-8")
+    correspondencia = _DATA_GERACAO_RE.search(texto)
+    if correspondencia is None:
+        raise ErroContratoMarkdown(
+            "Metadados e cobertura não possui Data de geração no formato `AAAA-MM-DD`"
+        )
+    data = correspondencia.group(1)
+    try:
+        date.fromisoformat(data)
+    except ValueError as erro:
+        raise ErroContratoMarkdown(f"Data de geração inválida: {data}") from erro
+    return data
 
 
 def _extrair_itens(texto: str) -> list[_ItemEmConstrucao]:

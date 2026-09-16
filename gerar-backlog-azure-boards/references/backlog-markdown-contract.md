@@ -52,6 +52,7 @@ User Story e Bug compartilham a mesma sequência `S` sob a mesma Feature: não s
 # Backlog para Azure Boards
 
 ## Metadados e cobertura
+- Data de geração: `[AAAA-MM-DD]`
 - Spec de origem: [documento, versão ou localização]
 - Escopo analisado: [seções ou limites]
 - Modo: Greenfield | Brownfield
@@ -124,6 +125,7 @@ Repita os blocos nos mesmos níveis de cabeçalho: Epic em `##`, Feature em `###
 
 ## Metadados mínimos
 
+- `Data de geração` registra a data (formato `AAAA-MM-DD`, entre crases) em que este documento foi gerado pela primeira vez. É fixa: uma atualização do backlog (modo `--update` do validador) nunca a recalcula para a data corrente, porque o publicador usa esse valor — nunca o relógio — para prefixar o título de cada item no Azure Boards, e recalculá-la quebraria a comparação de título na retomada de uma publicação parcial. Ela também desambigua itens de backlogs diferentes que reusam a mesma numeração `E.F.S`.
 - `Modo` contém um único valor: `Greenfield` ou `Brownfield`.
 - Em Greenfield, `Raiz analisada` e `Código-fonte relevante` registram explicitamente que não há código relevante. Não invente raiz nem evidência.
 - Em Brownfield, `Raiz analisada` identifica o caminho efetivamente inspecionado. Se a presença ou relevância do projeto era ambígua, use `Presença ambígua` e descreva a incerteza e os limites da busca.

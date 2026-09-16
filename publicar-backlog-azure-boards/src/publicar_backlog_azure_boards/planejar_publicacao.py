@@ -29,13 +29,14 @@ _ORDEM_TIPOS = {
 def criar_plano(
     itens: Sequence[ItemBacklog],
     configuracao: ConfiguracaoPublicacao,
+    data_geracao: str,
 ) -> PlanoPublicacao:
     """Cria o plano completo; a retomada só separa pendentes após validar o manifesto."""
     itens_ordenados = sorted(itens, key=_chave_ordenacao)
-    operacoes = tuple(_criar_operacao(item, configuracao) for item in itens_ordenados)
+    operacoes = tuple(_criar_operacao(item, configuracao, data_geracao) for item in itens_ordenados)
     return PlanoPublicacao(
         operacoes=operacoes,
-        hash_plano=_calcular_hash(itens_ordenados, configuracao),
+        hash_plano=_calcular_hash(itens_ordenados, configuracao, data_geracao),
         configuracao=configuracao,
     )
 
@@ -45,11 +46,13 @@ def _chave_ordenacao(item: ItemBacklog) -> tuple[int, tuple[int, int, int]]:
     return (_ORDEM_TIPOS[item.tipo], (primeiro, segundo, terceiro))
 
 
-def _criar_operacao(item: ItemBacklog, configuracao: ConfiguracaoPublicacao) -> OperacaoCriacao:
+def _criar_operacao(
+    item: ItemBacklog, configuracao: ConfiguracaoPublicacao, data_geracao: str
+) -> OperacaoCriacao:
     return OperacaoCriacao(
         chave=item.chave,
         tipo=item.tipo,
-        titulo=f"{item.chave} {item.titulo}",
+        titulo=f"{data_geracao} {item.chave} {item.titulo}",
         descricao=converter_descricao(item.descricao),
         criterios_aceitacao=converter_criterios(item.criterios_aceitacao),
         chave_pai=item.pai,
@@ -57,7 +60,9 @@ def _criar_operacao(item: ItemBacklog, configuracao: ConfiguracaoPublicacao) -> 
     )
 
 
-def _calcular_hash(itens: Sequence[ItemBacklog], configuracao: ConfiguracaoPublicacao) -> str:
+def _calcular_hash(
+    itens: Sequence[ItemBacklog], configuracao: ConfiguracaoPublicacao, data_geracao: str
+) -> str:
     conteudo = {
         "configuracao": {
             "organizacao": configuracao.organizacao,
@@ -66,6 +71,7 @@ def _calcular_hash(itens: Sequence[ItemBacklog], configuracao: ConfiguracaoPubli
             "iteration_path": configuracao.iteration_path,
             "mapeamento_tipos": configuracao.mapeamento_tipos.como_dict(),
         },
+        "data_geracao": data_geracao,
         "itens": [
             {
                 "chave": item.chave,

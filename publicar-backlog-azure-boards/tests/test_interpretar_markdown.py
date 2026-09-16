@@ -4,6 +4,7 @@ import pytest
 
 from publicar_backlog_azure_boards.interpretar_markdown import (
     ErroContratoMarkdown,
+    extrair_data_geracao,
     interpretar_backlog,
 )
 
@@ -16,6 +17,31 @@ def test_interpreta_epic_feature_e_historia():
         ("1.1.1", "User Story"),
     ]
     assert itens[2].pai == "1.1.0"
+
+
+def test_extrai_data_geracao_dos_metadados():
+    assert extrair_data_geracao(Path("tests/fixtures/valid-backlog.md")) == "2026-09-10"
+
+
+def test_rejeita_backlog_sem_data_de_geracao(tmp_path: Path):
+    caminho = tmp_path / "backlog.md"
+    caminho.write_text(
+        "# Backlog para Azure Boards\n\n## Metadados e cobertura\n- Spec de origem: `x`\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ErroContratoMarkdown):
+        extrair_data_geracao(caminho)
+
+
+def test_rejeita_data_de_geracao_com_calendario_invalido(tmp_path: Path):
+    caminho = tmp_path / "backlog.md"
+    caminho.write_text(
+        "# Backlog para Azure Boards\n\n## Metadados e cobertura\n"
+        "- Data de geração: `2026-13-40`\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ErroContratoMarkdown):
+        extrair_data_geracao(caminho)
 
 
 def test_evidencia_de_implementacao_nao_faz_parte_da_descricao():

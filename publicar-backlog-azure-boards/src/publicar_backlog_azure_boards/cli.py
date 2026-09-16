@@ -25,7 +25,10 @@ from publicar_backlog_azure_boards.configuracao import (
     carregar_configuracao,
 )
 from publicar_backlog_azure_boards.executar_publicacao import executar_plano
-from publicar_backlog_azure_boards.interpretar_markdown import interpretar_backlog
+from publicar_backlog_azure_boards.interpretar_markdown import (
+    extrair_data_geracao,
+    interpretar_backlog,
+)
 from publicar_backlog_azure_boards.manifesto import ler_manifesto, validar_manifesto
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
@@ -123,7 +126,7 @@ def principal(
     entrada_real = sys.stdin if entrada is None else entrada
     saida_real = sys.stdout if saida is None else saida
     try:
-        itens = _carregar_backlog_validado(argumentos_parseados.backlog)
+        itens, data_geracao = _carregar_backlog_validado(argumentos_parseados.backlog)
         if argumentos_parseados.comando == "validar":
             _escrever(saida_real, f"Backlog válido: {len(itens)} itens.\n")
             return 0
@@ -131,7 +134,7 @@ def principal(
         configuracao = _carregar_configuracao(
             argumentos_parseados, cliente, entrada_real, saida_real
         )
-        plano = criar_plano(itens, configuracao.publicacao)
+        plano = criar_plano(itens, configuracao.publicacao, data_geracao)
         if argumentos_parseados.comando == "publicar":
             manifesto = ler_manifesto(argumentos_parseados.manifesto)
             pendentes = validar_manifesto(manifesto, plano, configuracao.publicacao)
@@ -188,9 +191,9 @@ def principal(
         return 1
 
 
-def _carregar_backlog_validado(caminho: Path) -> list[ItemBacklog]:
+def _carregar_backlog_validado(caminho: Path) -> tuple[list[ItemBacklog], str]:
     validar_estrutura_backlog(caminho)
-    return interpretar_backlog(caminho)
+    return interpretar_backlog(caminho), extrair_data_geracao(caminho)
 
 
 def _carregar_configuracao(

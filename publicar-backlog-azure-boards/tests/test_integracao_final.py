@@ -7,7 +7,10 @@ import pytest
 
 from publicar_backlog_azure_boards.autorizacao import criar_frase_confirmacao
 from publicar_backlog_azure_boards.cli import principal
-from publicar_backlog_azure_boards.interpretar_markdown import interpretar_backlog
+from publicar_backlog_azure_boards.interpretar_markdown import (
+    extrair_data_geracao,
+    interpretar_backlog,
+)
 from publicar_backlog_azure_boards.manifesto import ler_manifesto
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
@@ -87,7 +90,9 @@ def test_publicacao_pela_cli_cancela_apos_esgotar_tentativas_de_confirmacao(
 def test_publicacao_pela_cli_aceita_confirmacao_apos_nova_tentativa(
     tmp_path: Path, backlog: Path, cliente: ClienteSimulado
 ) -> None:
-    plano = criar_plano(interpretar_backlog(backlog), cliente.configuracao)
+    plano = criar_plano(
+        interpretar_backlog(backlog), cliente.configuracao, extrair_data_geracao(backlog)
+    )
     caminho_manifesto = tmp_path / "manifesto-retentativa.json"
     confirmacao = criar_frase_confirmacao(plano, frozenset(op.chave for op in plano.operacoes))
     saida = StringIO()
@@ -110,6 +115,7 @@ def test_publicacao_pela_cli_cria_itens_em_ordem_e_grava_manifesto_no_caminho_in
     plano = criar_plano(
         interpretar_backlog(backlog),
         cliente.configuracao,
+        extrair_data_geracao(backlog),
     )
     caminho_manifesto = tmp_path / "subdiretorio" / "manifesto.json"
     confirmacao = criar_frase_confirmacao(plano, frozenset(op.chave for op in plano.operacoes))
