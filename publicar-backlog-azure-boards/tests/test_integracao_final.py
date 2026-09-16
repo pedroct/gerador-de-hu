@@ -67,6 +67,43 @@ def test_publicacao_pela_cli_rejeita_confirmacao_invalida_sem_criacoes(
     assert cliente.chaves_criadas == []
 
 
+def test_publicacao_pela_cli_cancela_apos_esgotar_tentativas_de_confirmacao(
+    tmp_path: Path, backlog: Path, cliente: ClienteSimulado
+) -> None:
+    manifesto = tmp_path / "manifesto-esgotado.json"
+    entradas = "1\n" + "CONFIRMAÇÃO INCORRETA\n" * 3
+
+    codigo = principal(
+        ["publicar", str(backlog), "--manifesto", str(manifesto)],
+        cliente=cliente,
+        entrada=StringIO(entradas),
+        saida=StringIO(),
+    )
+
+    assert codigo == 2
+    assert cliente.chaves_criadas == []
+
+
+def test_publicacao_pela_cli_aceita_confirmacao_apos_nova_tentativa(
+    tmp_path: Path, backlog: Path, cliente: ClienteSimulado
+) -> None:
+    plano = criar_plano(interpretar_backlog(backlog), cliente.configuracao)
+    caminho_manifesto = tmp_path / "manifesto-retentativa.json"
+    confirmacao = criar_frase_confirmacao(plano, frozenset(op.chave for op in plano.operacoes))
+    saida = StringIO()
+
+    codigo = principal(
+        ["publicar", str(backlog), "--manifesto", str(caminho_manifesto)],
+        cliente=cliente,
+        entrada=StringIO(f"1\n{confirmacao.lower()}\n{confirmacao}\n"),
+        saida=saida,
+    )
+
+    assert codigo == 0
+    assert cliente.chaves_criadas == ["1.0.0", "1.1.0", "1.1.1"]
+    assert "maiúsculas" in saida.getvalue()
+
+
 def test_publicacao_pela_cli_cria_itens_em_ordem_e_grava_manifesto_no_caminho_informado(
     tmp_path: Path, backlog: Path, cliente: ClienteSimulado
 ) -> None:

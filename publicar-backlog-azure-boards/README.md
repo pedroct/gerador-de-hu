@@ -100,9 +100,11 @@ AUTORIZAR PUBLICAÇÃO 12 ITENS Projeto Projeto Projeto\\Sprint 2026\\Sprint 18 
 AUTORIZAR LOTE 2 4 ITENS Projeto Projeto Projeto\\Sprint 2026\\Sprint 18 B91C
 ```
 
-Confirmação ausente, vaga, incorreta ou ligada a outro hash resulta em zero chamadas de criação.
-Não existe opção `--yes`, variável de ambiente de confirmação nem autorização concedida pela
-existência do manifesto.
+A comparação é exata, inclusive maiúsculas e minúsculas. Uma confirmação incorreta permite até 3
+tentativas na mesma execução antes de cancelar, com um aviso a cada erro; confirmação ausente
+(entrada encerrada) cancela imediatamente. Confirmação ausente, vaga, incorreta ou ligada a outro
+hash resulta em zero chamadas de criação. Não existe opção `--yes`, variável de ambiente de
+confirmação nem autorização concedida pela existência do manifesto.
 
 ## Modos sem publicação
 

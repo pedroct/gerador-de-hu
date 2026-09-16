@@ -36,6 +36,8 @@ from publicar_backlog_azure_boards.modelos import (
 from publicar_backlog_azure_boards.planejar_publicacao import criar_plano
 from publicar_backlog_azure_boards.validacao_estrutural import validar_estrutura_backlog
 
+_MAX_TENTATIVAS_CONFIRMACAO = 3
+
 
 class IdentidadeCriada(Protocol):
     """Campos mínimos retornados por uma criação."""
@@ -348,21 +350,31 @@ def _solicitar_autorizacao(
     numero_lote = None if lote is None else lote.numero
     frase = criar_frase_confirmacao(plano, autorizadas, numero_lote)
     _escrever(saida, f"Digite exatamente: {frase}\n")
-    try:
-        autorizacao = criar_autorizacao(
-            plano,
-            coletar_confirmacao(entrada, saida),
-            frozenset(autorizadas),
-            modalidade=modalidade,
-            numero_lote=numero_lote,
-        )
-    except ErroAutorizacao:
-        _escrever(saida, "Confirmação inválida; nenhuma chamada de criação foi realizada.\n")
-        return None
-    if not autorizacao.valida_para(plano, plano.configuracao):
-        _escrever(saida, "Confirmação inválida; nenhuma chamada de criação foi realizada.\n")
-        return None
-    return autorizacao
+    for tentativa in range(1, _MAX_TENTATIVAS_CONFIRMACAO + 1):
+        confirmacao = coletar_confirmacao(entrada, saida)
+        if confirmacao is None:
+            break
+        try:
+            autorizacao = criar_autorizacao(
+                plano,
+                confirmacao,
+                frozenset(autorizadas),
+                modalidade=modalidade,
+                numero_lote=numero_lote,
+            )
+        except ErroAutorizacao:
+            autorizacao = None
+        if autorizacao is not None and autorizacao.valida_para(plano, plano.configuracao):
+            return autorizacao
+        if tentativa < _MAX_TENTATIVAS_CONFIRMACAO:
+            _escrever(
+                saida,
+                "Confirmação não corresponde ao texto exibido (a comparação diferencia "
+                f"maiúsculas de minúsculas). Tentativa {tentativa} de "
+                f"{_MAX_TENTATIVAS_CONFIRMACAO}; digite novamente.\n",
+            )
+    _escrever(saida, "Confirmação inválida; nenhuma chamada de criação foi realizada.\n")
+    return None
 
 
 def _solicitar_tamanho_lote(entrada: TextIO, saida: TextIO) -> int:
