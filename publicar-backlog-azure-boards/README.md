@@ -129,6 +129,22 @@ reconciliação manual é obrigatória após qualquer criação ambígua: compar
 título, o tipo, o destino e o ID no Azure Boards com o marcador do manifesto. Só depois de corrigir
 o manifesto e obter nova autorização vinculada ao plano a retomada pode continuar.
 
+Uma reconciliação pendente (`resolucao: "pendente"`) só pode ser encerrada com um dos dois estados
+terminais abaixo — não existe um estado genérico `"resolvida"`. Cada um exige uma consistência
+específica com `manifesto.itens`, e `validar_manifesto` rejeita o manifesto (sem criar nada) quando
+essa consistência não é respeitada:
+
+- `resolvida_criada`: use quando a conferência no Azure Boards confirmou que o item **existe**. A
+  chave precisa estar presente em `manifesto.itens` com o `id`, `tipo`, `título` e `url` reais do
+  item encontrado; se a chave estiver ausente de `itens`, a validação falha.
+- `resolvida_nao_criada`: use quando a conferência confirmou que o item **não existe** no Azure
+  Boards. A chave precisa continuar ausente de `manifesto.itens`; se a chave estiver presente em
+  `itens`, a validação falha.
+
+Marcar `resolvida_criada` sem também adicionar a chave a `itens` (ou vice-versa) deixaria a próxima
+execução livre para recriar um item já existente ou esconder um item nunca criado; por isso o
+operador deve sempre atualizar `itens` e `resolucao` juntos antes de retomar a publicação.
+
 ## REST e MCP
 
 A publicação usa obrigatoriamente a REST API do Azure DevOps. Isso mantém a ordem hierárquica, o

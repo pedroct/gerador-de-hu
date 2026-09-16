@@ -8,9 +8,12 @@ from publicar_backlog_azure_boards.manifesto import (
     ReconciliacaoPendente,
     gravar_manifesto,
     ler_manifesto,
+    validar_manifesto,
 )
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
+    OperacaoCriacao,
+    PlanoPublicacao,
     RegistroManifesto,
     TipoItem,
 )
@@ -230,7 +233,7 @@ def test_manifesto_legado_resolvido_sem_destino_preserva_estado_no_round_trip(tm
                     "chave": "1.0.0",
                     "tipo_remoto": "Epic",
                     "titulo": "Épico",
-                    "resolucao": "resolvida",
+                    "resolucao": "resolvida_nao_criada",
                 },
                 "itens": {},
             }
@@ -243,9 +246,61 @@ def test_manifesto_legado_resolvido_sem_destino_preserva_estado_no_round_trip(tm
     dados = json.loads(caminho.read_text(encoding="utf-8"))
 
     assert manifesto.reconciliacao_pendente is not None
-    assert manifesto.reconciliacao_pendente.resolucao == "resolvida"
-    assert dados["reconciliacao_pendente"]["resolucao"] == "resolvida"
-    assert ler_manifesto(caminho).reconciliacoes["1.0.0"].resolucao == "resolvida"
+    assert manifesto.reconciliacao_pendente.resolucao == "resolvida_nao_criada"
+    assert dados["reconciliacao_pendente"]["resolucao"] == "resolvida_nao_criada"
+    assert ler_manifesto(caminho).reconciliacoes["1.0.0"].resolucao == "resolvida_nao_criada"
+
+
+def test_validar_manifesto_rejeita_resolvida_criada_sem_o_item_em_itens() -> None:
+    plano = PlanoPublicacao(
+        operacoes=(OperacaoCriacao("1.0.0", TipoItem.EPIC, "Épico", "", "", None, "Epic"),),
+        hash_plano="hash",
+        configuracao=CONFIGURACAO,
+    )
+    reconciliacao = ReconciliacaoPendente(
+        chave="1.0.0",
+        tipo_remoto="Epic",
+        titulo="Épico",
+        tipo=TipoItem.EPIC,
+        destino=CONFIGURACAO,
+        hash_plano="hash",
+        resolucao="resolvida_criada",
+    )
+    manifesto = Manifesto(
+        hash_plano="hash",
+        configuracao=CONFIGURACAO,
+        reconciliacoes={"1.0.0": reconciliacao},
+    )
+
+    with pytest.raises(ValueError, match="resolvida_criada"):
+        validar_manifesto(manifesto, plano, CONFIGURACAO)
+
+
+def test_validar_manifesto_rejeita_resolvida_nao_criada_com_o_item_em_itens() -> None:
+    plano = PlanoPublicacao(
+        operacoes=(OperacaoCriacao("1.0.0", TipoItem.EPIC, "Épico", "", "", None, "Epic"),),
+        hash_plano="hash",
+        configuracao=CONFIGURACAO,
+    )
+    reconciliacao = ReconciliacaoPendente(
+        chave="1.0.0",
+        tipo_remoto="Epic",
+        titulo="Épico",
+        tipo=TipoItem.EPIC,
+        destino=CONFIGURACAO,
+        hash_plano="hash",
+        resolucao="resolvida_nao_criada",
+    )
+    manifesto = Manifesto(
+        hash_plano="hash",
+        configuracao=CONFIGURACAO,
+        itens={"1.0.0": RegistroManifesto(1, TipoItem.EPIC, "https://exemplo/1")},
+        titulos={"1.0.0": "Épico"},
+        reconciliacoes={"1.0.0": reconciliacao},
+    )
+
+    with pytest.raises(ValueError, match="resolvida_nao_criada"):
+        validar_manifesto(manifesto, plano, CONFIGURACAO)
 
 
 def test_gravacao_substitui_atomicamente_sem_deixar_temporario(tmp_path) -> None:

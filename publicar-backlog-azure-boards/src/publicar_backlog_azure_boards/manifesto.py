@@ -141,6 +141,26 @@ def validar_manifesto(
             f"Os itens {chaves} exigem reconciliação manual no Azure Boards "
             "antes de qualquer nova escrita."
         )
+    for reconciliacao in manifesto.reconciliacoes.values():
+        chave_criada = reconciliacao.chave in manifesto.itens
+        if (
+            reconciliacao.resolucao == EstadoReconciliacao.RESOLVIDA_CRIADA.value
+            and not chave_criada
+        ):
+            raise ValueError(
+                f"O item {reconciliacao.chave} está marcado como "
+                f"{EstadoReconciliacao.RESOLVIDA_CRIADA.value}, mas não existe em "
+                "manifesto.itens; corrija o manifesto antes de qualquer nova escrita."
+            )
+        if (
+            reconciliacao.resolucao == EstadoReconciliacao.RESOLVIDA_NAO_CRIADA.value
+            and chave_criada
+        ):
+            raise ValueError(
+                f"O item {reconciliacao.chave} está marcado como "
+                f"{EstadoReconciliacao.RESOLVIDA_NAO_CRIADA.value}, mas já existe em "
+                "manifesto.itens; corrija o manifesto antes de qualquer nova escrita."
+            )
     if not manifesto.itens and not manifesto.hash_plano and manifesto.configuracao is None:
         return plano.operacoes
     if manifesto.hash_plano != plano.hash_plano:

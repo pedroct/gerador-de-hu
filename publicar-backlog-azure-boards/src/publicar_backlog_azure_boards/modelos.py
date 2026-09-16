@@ -16,10 +16,20 @@ class TipoItem(StrEnum):
 
 
 class EstadoReconciliacao(StrEnum):
-    """Estados aceitos para uma reconciliação registrada no manifesto."""
+    """Estados aceitos para uma reconciliação registrada no manifesto.
+
+    Os dois estados terminais são distintos de propósito: ``RESOLVIDA_CRIADA`` afirma
+    que o item existe no Azure Boards e por isso precisa estar em ``Manifesto.itens``;
+    ``RESOLVIDA_NAO_CRIADA`` afirma o oposto, que o item não foi criado e por isso a
+    chave deve continuar ausente de ``Manifesto.itens``. ``validar_manifesto`` rejeita
+    qualquer manifesto em que a resolução registrada divirja dessa exigência, para que
+    uma reconciliação marcada sem a atualização correspondente de ``itens`` nunca
+    libere silenciosamente uma nova criação nem esconda um item já publicado.
+    """
 
     PENDENTE = "pendente"
-    RESOLVIDA = "resolvida"
+    RESOLVIDA_CRIADA = "resolvida_criada"
+    RESOLVIDA_NAO_CRIADA = "resolvida_nao_criada"
 
 
 @dataclass(frozen=True)
