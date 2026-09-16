@@ -1,15 +1,12 @@
 from __future__ import annotations
 
+from io import StringIO
 from pathlib import Path
 
 import pytest
 
-from publicar_backlog_azure_boards.autorizacao import (
-    criar_autorizacao,
-    criar_frase_confirmacao,
-)
+from publicar_backlog_azure_boards.autorizacao import criar_frase_confirmacao
 from publicar_backlog_azure_boards.cli import principal
-from publicar_backlog_azure_boards.executar_publicacao import executar_plano
 from publicar_backlog_azure_boards.interpretar_markdown import interpretar_backlog
 from publicar_backlog_azure_boards.manifesto import ler_manifesto
 from publicar_backlog_azure_boards.modelos import (
@@ -53,25 +50,48 @@ class ClienteSimulado:
         )
 
 
-def test_fluxo_completo_exige_confirmacao_e_grava_manifesto(
+    def verificar_destino(self, configuracao: ConfiguracaoPublicacao) -> None:
+        assert configuracao == self.configuracao
+
+    def validar_operacao(self, operacao: OperacaoCriacao) -> None:
+        del operacao
+
+
+def test_publicacao_pela_cli_rejeita_confirmacao_invalida_sem_criacoes(
     tmp_path: Path, backlog: Path, cliente: ClienteSimulado
 ) -> None:
-    assert principal(["publicar", str(backlog), "--simulacao"], cliente=cliente) == 0
+    manifesto = tmp_path / "manifesto-invalido.json"
+
+    codigo = principal(
+        ["publicar", str(backlog), "--manifesto", str(manifesto)],
+        cliente=cliente,
+        entrada=StringIO("1\nCONFIRMAÇÃO INCORRETA\n"),
+        saida=StringIO(),
+    )
+
+    assert codigo == 2
     assert cliente.chaves_criadas == []
 
+
+def test_publicacao_pela_cli_cria_itens_em_ordem_e_grava_manifesto_no_caminho_informado(
+    tmp_path: Path, backlog: Path, cliente: ClienteSimulado
+) -> None:
     plano = criar_plano(
         interpretar_backlog(backlog),
         cliente.configuracao,
     )
-    autorizacao = criar_autorizacao(
-        plano,
-        criar_frase_confirmacao(plano, frozenset(op.chave for op in plano.operacoes)),
-        frozenset(op.chave for op in plano.operacoes),
+    caminho_manifesto = tmp_path / "subdiretorio" / "manifesto.json"
+    confirmacao = criar_frase_confirmacao(
+        plano, frozenset(op.chave for op in plano.operacoes)
     )
-    executar_plano(plano, autorizacao, cliente, tmp_path / "manifesto.json")
 
-    assert set(ler_manifesto(tmp_path / "manifesto.json").itens) == {
-        "1.0.0",
-        "1.1.0",
-        "1.1.1",
-    }
+    codigo = principal(
+        ["publicar", str(backlog), "--manifesto", str(caminho_manifesto)],
+        cliente=cliente,
+        entrada=StringIO(f"1\n{confirmacao}\n"),
+        saida=StringIO(),
+    )
+
+    assert codigo == 0
+    assert cliente.chaves_criadas == ["1.0.0", "1.1.0", "1.1.1"]
+    assert list(ler_manifesto(caminho_manifesto).itens) == cliente.chaves_criadas
