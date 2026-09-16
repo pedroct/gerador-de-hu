@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from publicar_backlog_azure_boards.manifesto import (
     ErroReconciliacaoPendente,
     Manifesto,
@@ -14,6 +16,21 @@ from publicar_backlog_azure_boards.modelos import (
 )
 
 CONFIGURACAO = ConfiguracaoPublicacao("organizacao", "projeto", "projeto", "projeto\\Sprint")
+
+
+def destino_json() -> dict[str, object]:
+    return {
+        "organizacao": "organizacao",
+        "projeto": "projeto",
+        "area_path": "projeto",
+        "iteration_path": "projeto\\Sprint",
+        "mapeamento_tipos": {
+            "Epic": "Epic",
+            "Feature": "Feature",
+            "User Story": "User Story",
+            "Bug": "Bug",
+        },
+    }
 
 
 def test_manifesto_inexistente_comeca_vazio(tmp_path) -> None:
@@ -115,6 +132,78 @@ def test_manifesto_legado_singular_expoe_mapa_de_reconciliacoes() -> None:
 
 def test_erro_de_reconciliacao_pendente_e_especializacao_compatível() -> None:
     assert issubclass(ErroReconciliacaoPendente, RuntimeError)
+
+
+def test_estado_de_reconciliacao_desconhecido_e_rejeitado() -> None:
+    with pytest.raises(ValueError, match="resolução"):
+        ReconciliacaoPendente(
+            chave="1.0.0",
+            tipo_remoto="Epic",
+            titulo="Épico",
+            resolucao="resolvidaa",
+        )
+
+
+@pytest.mark.parametrize("destino_reconciliacao", [None, pytest.param("ausente")])
+def test_reconciliacao_nova_exige_destino_completo(tmp_path, destino_reconciliacao) -> None:
+    dados_reconciliacao: dict[str, object] = {
+        "chave": "1.0.0",
+        "tipo_remoto": "Epic",
+        "tipo": "Epic",
+        "titulo": "Épico",
+        "hash_plano": "hash",
+        "timestamp": "2026-09-16T15:00:00+00:00",
+        "motivo": "timeout após envio",
+        "resolucao": "pendente",
+        "destino": destino_json(),
+    }
+    if destino_reconciliacao is None:
+        dados_reconciliacao["destino"] = None
+    else:
+        dados_reconciliacao.pop("destino")
+    caminho = tmp_path / "mapa.json"
+    caminho.write_text(
+        json.dumps(
+            {
+                "versao": 1,
+                "origem": "backlog.md",
+                "hash_plano": "hash",
+                "destino": destino_json(),
+                "reconciliacoes": {"1.0.0": dados_reconciliacao},
+                "itens": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="é inválido"):
+        ler_manifesto(caminho)
+
+
+def test_manifesto_legado_preserva_reconciliacao_sem_destino(tmp_path) -> None:
+    caminho = tmp_path / "mapa.json"
+    caminho.write_text(
+        json.dumps(
+            {
+                "versao": 1,
+                "origem": "backlog.md",
+                "hash_plano": "hash",
+                "destino": destino_json(),
+                "reconciliacao_pendente": {
+                    "chave": "1.0.0",
+                    "tipo_remoto": "Epic",
+                    "titulo": "Épico",
+                },
+                "itens": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifesto = ler_manifesto(caminho)
+
+    assert manifesto.reconciliacao_pendente is not None
+    assert manifesto.reconciliacao_pendente.destino is None
 
 
 def test_gravacao_substitui_atomicamente_sem_deixar_temporario(tmp_path) -> None:

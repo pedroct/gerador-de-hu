@@ -11,6 +11,7 @@ from typing import Any, cast
 
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
+    EstadoReconciliacao,
     MapeamentoTipos,
     OperacaoCriacao,
     PlanoPublicacao,
@@ -54,6 +55,18 @@ class Manifesto:
     def __post_init__(self) -> None:
         """Normaliza o mapa novo e o campo singular legado no mesmo estado lógico."""
         reconciliacoes = dict(self.reconciliacoes)
+        if self.reconciliacao_pendente is None:
+            sem_destino = tuple(
+                reconciliacao.chave
+                for reconciliacao in reconciliacoes.values()
+                if reconciliacao.destino is None
+            )
+            if sem_destino:
+                raise ValueError(
+                    "Reconciliações novas exigem contexto de destino completo: "
+                    + ", ".join(sem_destino)
+                    + "."
+                )
         if self.reconciliacao_pendente is not None:
             chave = self.reconciliacao_pendente.chave
             existente = reconciliacoes.get(chave)
@@ -64,7 +77,7 @@ class Manifesto:
             (
                 reconciliacao
                 for reconciliacao in reconciliacoes.values()
-                if reconciliacao.resolucao == "pendente"
+                if reconciliacao.resolucao == EstadoReconciliacao.PENDENTE.value
             ),
             None,
         )
@@ -121,7 +134,7 @@ def validar_manifesto(
     pendencias = tuple(
         reconciliacao
         for reconciliacao in manifesto.reconciliacoes.values()
-        if reconciliacao.resolucao == "pendente"
+        if reconciliacao.resolucao == EstadoReconciliacao.PENDENTE.value
     )
     if pendencias:
         chaves = ", ".join(reconciliacao.chave for reconciliacao in pendencias)
@@ -161,6 +174,7 @@ def _serializar(manifesto: Manifesto) -> dict[str, Any]:
         "reconciliacoes": {
             chave: _serializar_reconciliacao(reconciliacao)
             for chave, reconciliacao in manifesto.reconciliacoes.items()
+            if reconciliacao.destino is not None
         },
         "itens": {
             chave: {
@@ -199,19 +213,25 @@ def _converter(dados: object) -> Manifesto:
     ):
         raise ValueError("O manifesto não contém seus campos obrigatórios.")
     if destino is None:
-        if hash_plano or itens or dados.get("reconciliacao_pendente") is not None:
+        if (
+            hash_plano
+            or itens
+            or dados.get("reconciliacao_pendente") is not None
+            or dados.get("reconciliacoes")
+        ):
             raise ValueError("Um manifesto com dados exige um destino completo.")
         configuracao = None
     else:
         configuracao = _configuracao(destino)
 
-    reconciliacao_legada = _converter_reconciliacao(dados.get("reconciliacao_pendente"), None)
-    reconciliacoes = _converter_reconciliacoes(dados.get("reconciliacoes"), None)
+    reconciliacao_legada = _converter_reconciliacao(
+        dados.get("reconciliacao_pendente"), exigir_destino=False
+    )
+    reconciliacoes = _converter_reconciliacoes(dados.get("reconciliacoes"))
     if reconciliacao_legada is not None:
         existente = reconciliacoes.get(reconciliacao_legada.chave)
         if existente is not None and existente != reconciliacao_legada:
             raise ValueError("O manifesto contém reconciliações divergentes para a mesma chave.")
-        reconciliacoes[reconciliacao_legada.chave] = reconciliacao_legada
 
     registros: dict[str, RegistroManifesto] = {}
     titulos: dict[str, str] = {}
@@ -245,6 +265,7 @@ def _converter(dados: object) -> Manifesto:
         itens=registros,
         titulos=titulos,
         origem=dados["origem"],
+        reconciliacao_pendente=reconciliacao_legada,
         reconciliacoes=reconciliacoes,
     )
 
@@ -268,7 +289,7 @@ def _serializar_reconciliacao(reconciliacao: ReconciliacaoPendente) -> dict[str,
 
 
 def _converter_reconciliacoes(
-    dados: object, configuracao: ConfiguracaoPublicacao | None
+    dados: object,
 ) -> dict[str, ReconciliacaoPendente]:
     if dados is None:
         return {}
@@ -278,7 +299,7 @@ def _converter_reconciliacoes(
     for chave, dados_reconciliacao in dados.items():
         if not isinstance(chave, str) or not chave:
             raise ValueError("Uma chave de reconciliação do manifesto é inválida.")
-        reconciliacao = _converter_reconciliacao(dados_reconciliacao, configuracao)
+        reconciliacao = _converter_reconciliacao(dados_reconciliacao, exigir_destino=True)
         if reconciliacao is None or reconciliacao.chave != chave:
             raise ValueError("Uma reconciliação do manifesto não corresponde à sua chave.")
         reconciliacoes[chave] = reconciliacao
@@ -286,7 +307,7 @@ def _converter_reconciliacoes(
 
 
 def _converter_reconciliacao(
-    dados: object, configuracao_padrao: ConfiguracaoPublicacao | None
+    dados: object, *, exigir_destino: bool
 ) -> ReconciliacaoPendente | None:
     if dados is None:
         return None
@@ -314,7 +335,9 @@ def _converter_reconciliacao(
 
     destino_dados = dados.get("destino")
     if destino_dados is None:
-        destino = configuracao_padrao
+        if exigir_destino:
+            raise ValueError("Uma reconciliação nova exige destino completo.")
+        destino = None
     elif isinstance(destino_dados, dict):
         destino = _configuracao(destino_dados)
     else:

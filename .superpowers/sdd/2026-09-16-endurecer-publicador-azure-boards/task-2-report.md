@@ -116,3 +116,65 @@ Não há bloqueadores conhecidos. A resolução não foi automatizada de propós
 deve ser conferido no Azure Boards e limpo por uma operação manual explícita fora do fluxo de
 publicação. O formato continua aceitando registros legados com metadados ausentes para permitir
 leitura e migração segura; marcadores criados pelo executor sempre recebem o contexto completo.
+
+## Adendo — fix round 1
+
+### Achados tratados
+
+- `EstadoReconciliacao` agora limita a resolução a `pendente` e `resolvida`. O modelo rejeita
+  valores desconhecidos, impedindo que typos sejam interpretados como resolução e liberem POST.
+  O fluxo automático só grava `pendente`; `resolvida` continua sendo uma decisão manual explícita.
+- Entradas do mapa novo `reconciliacoes` exigem destino interno completo e falham quando `destino`
+  está ausente ou é `null`. A compatibilidade sem destino ficou restrita ao campo legado
+  `reconciliacao_pendente`, claramente identificado.
+
+### RED
+
+Comando:
+
+```text
+cd publicar-backlog-azure-boards && uv run pytest tests/test_manifesto.py tests/test_executar_publicacao.py -q
+```
+
+Saída:
+
+```text
+3 failed, 16 passed in 0.13s
+```
+
+As falhas cobriram o estado desconhecido e os dois formatos de destino ausente/nulo no mapa novo.
+
+### GREEN e verificação
+
+Teste focado solicitado:
+
+```text
+cd publicar-backlog-azure-boards && uv run pytest tests/test_cliente_azure_devops.py tests/test_manifesto.py tests/test_executar_publicacao.py -q
+47 passed in 0.12s
+```
+
+Suíte completa:
+
+```text
+uv run pytest -q
+95 passed in 0.27s
+```
+
+Verificações adicionais após o fix:
+
+```text
+uv run ruff check .
+All checks passed!
+
+uv run ruff format --check .
+22 files already formatted
+
+uv run mypy src
+Success: no issues found in 12 source files
+
+uv run bandit -r src
+No issues identified.
+
+git diff --check
+saída vazia; sem erros de espaço em branco
+```

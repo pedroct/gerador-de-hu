@@ -15,6 +15,13 @@ class TipoItem(StrEnum):
     BUG = "Bug"
 
 
+class EstadoReconciliacao(StrEnum):
+    """Estados aceitos para uma reconciliação registrada no manifesto."""
+
+    PENDENTE = "pendente"
+    RESOLVIDA = "resolvida"
+
+
 @dataclass(frozen=True)
 class MapeamentoTipos:
     """Mapeia os tipos documentais para os nomes reais do processo remoto."""
@@ -91,7 +98,17 @@ class ReconciliacaoPendente:
     hash_plano: str = ""
     timestamp: str = ""
     motivo: str = ""
-    resolucao: str = "pendente"
+    resolucao: str = EstadoReconciliacao.PENDENTE.value
+
+    def __post_init__(self) -> None:
+        """Rejeita typos que poderiam liberar uma criação sem resolução manual."""
+        try:
+            EstadoReconciliacao(self.resolucao)
+        except (TypeError, ValueError) as erro:
+            permitidos = ", ".join(estado.value for estado in EstadoReconciliacao)
+            raise ValueError(
+                f"A resolução da reconciliação é inválida; use um destes estados: {permitidos}."
+            ) from erro
 
 
 @dataclass(frozen=True)
