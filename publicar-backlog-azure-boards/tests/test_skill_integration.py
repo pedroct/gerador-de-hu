@@ -118,7 +118,9 @@ def test_validar_apenas_valida_operacoes_remotamente_sem_criar_itens() -> None:
     assert cliente.chaves_criadas == []
 
 
-def test_validar_apenas_sem_cliente_carrega_token_e_faz_somente_get(monkeypatch, tmp_path) -> None:
+def test_validar_apenas_valida_remotamente_com_validate_only_true_sem_criacao_persistente(
+    monkeypatch, tmp_path
+) -> None:
     env_vazio = tmp_path / ".env"
     env_vazio.write_text("", encoding="utf-8")
     chamadas: list[httpx.Request] = []
