@@ -48,6 +48,13 @@ def test_plano_converte_apenas_campos_copiaveis_e_inclui_pai() -> None:
     assert historia.tipo_remoto == "User Story"
 
 
+def test_operacao_prefixa_titulo_com_a_chave_documental() -> None:
+    plano = criar_plano(ITENS, CONFIGURACAO)
+    historia = plano.operacoes[-1]
+
+    assert historia.titulo == "1.1.1 História"
+
+
 def test_hash_muda_quando_destino_muda() -> None:
     outro_destino = replace(CONFIGURACAO, projeto="outro-projeto")
 

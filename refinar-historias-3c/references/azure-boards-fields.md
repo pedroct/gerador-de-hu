@@ -14,13 +14,15 @@ No processo Agile, a Microsoft orienta que `Description` detalhe **quem**, **o q
 
 ## Description
 
-Use esta forma como padrão adaptável:
+Use esta forma como padrão adaptável. A barra invertida ao fim das quatro primeiras linhas é uma
+quebra de linha dura do CommonMark — sem ela, um renderizador padrão (inclusive o conversor usado
+pelo publicador Azure Boards) junta as linhas em um parágrafo único:
 
 ```markdown
 ### Card
-**História:**
-Como ...,
-quero ...,
+**História:**\
+Como ...,\
+quero ...,\
 para ...
 **Estado 3W:** Completo | Incompleto
 

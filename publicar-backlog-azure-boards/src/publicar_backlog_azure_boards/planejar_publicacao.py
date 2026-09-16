@@ -49,7 +49,7 @@ def _criar_operacao(item: ItemBacklog, configuracao: ConfiguracaoPublicacao) -> 
     return OperacaoCriacao(
         chave=item.chave,
         tipo=item.tipo,
-        titulo=item.titulo,
+        titulo=f"{item.chave} {item.titulo}",
         descricao=converter_descricao(item.descricao),
         criterios_aceitacao=converter_criterios(item.criterios_aceitacao),
         chave_pai=item.pai,

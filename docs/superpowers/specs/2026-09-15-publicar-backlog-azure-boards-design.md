@@ -117,12 +117,12 @@ Cada componente deve ter uma responsabilidade única e interfaces testáveis ind
 | `[Feature]` | Tipo de work item configurado para Feature |
 | `[User Story]` | Tipo de requisito configurado no projeto |
 | `[Bug]` | Tipo de work item configurado para Bug |
-| Título | `System.Title` |
+| Chave documental + Título | `System.Title`, como `"<chave> <título>"` |
 | `Description` copiável | `System.Description` |
 | `Acceptance Criteria` | `Microsoft.VSTS.Common.AcceptanceCriteria` |
 | `Parent` | Relação hierárquica real |
 | `Implementation Evidence` | Não enviado |
-| Chave documental | Manifesto de publicação |
+| Chave documental | Também usada isoladamente no manifesto de publicação, para correlação |
 
 Os tipos de work item não devem ser presumidos apenas pelo idioma ou pelo processo padrão. A
 verificação preliminar deve consultar os tipos disponíveis no projeto e permitir uma configuração

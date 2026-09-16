@@ -136,7 +136,7 @@ Repita os blocos nos mesmos níveis de cabeçalho: Epic em `##`, Feature em `###
 
 - Em Epic: problema ou oportunidade, resultado esperado, escopo e `Origem na spec`.
 - Em Feature: capacidade, valor, fronteiras e `Origem na spec`.
-- Em User Story ou Bug: contém, nesta ordem e exatamente uma vez, os headings `###### Card` e `###### Conversation`. Sob cada heading, transcreva o conteúdo correspondente retornado pela `refinar-historias-3c`; não recalcule nem reestruture o conteúdo.
+- Em User Story ou Bug: contém, nesta ordem e exatamente uma vez, os headings `###### Card` e `###### Conversation`. Sob cada heading, transcreva o conteúdo correspondente retornado pela `refinar-historias-3c`; não recalcule nem reestruture o conteúdo. Preserve as barras invertidas de quebra de linha dura do template da `História:` (Card) exatamente como a `refinar-historias-3c` as produz — sem elas, o conversor Markdown→HTML do publicador junta as linhas Como/quero/para em um parágrafo único.
 - Lacunas, conflitos e decisões pendentes podem aparecer na Conversation com suas fontes e estados. Não complete ator, valor, regra ou solução por plausibilidade.
 
 ### Implementation Evidence
