@@ -1,9 +1,12 @@
+import inspect
 from dataclasses import replace
 from io import StringIO
 
 import pytest
 
 from publicar_backlog_azure_boards.autorizacao import (
+    Autorizacao,
+    ErroAutorizacao,
     ModalidadeAutorizacao,
     coletar_confirmacao,
     criar_autorizacao,
@@ -15,6 +18,7 @@ from publicar_backlog_azure_boards.autorizacao import (
 from publicar_backlog_azure_boards.configuracao import carregar_configuracao
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
+    MapeamentoTipos,
     OperacaoCriacao,
     PlanoPublicacao,
     TipoItem,
@@ -48,10 +52,9 @@ PENDENTES = ("1.0.0", "1.1.0")
 def _autorizacao_inteira(plano: PlanoPublicacao = PLANO):
     frase = criar_frase_confirmacao(plano, PENDENTES)
     return criar_autorizacao(
-        plano=plano,
-        chaves_pendentes=PENDENTES,
-        modalidade=ModalidadeAutorizacao.INTEIRA,
-        confirmacao=frase,
+        plano,
+        frase,
+        frozenset(PENDENTES),
     )
 
 
@@ -65,6 +68,12 @@ def test_confirmacao_exata_e_aceita() -> None:
     esperada = criar_frase_confirmacao(PLANO, PENDENTES)
 
     assert validar_confirmacao(esperada, esperada) is True
+
+
+def test_confirmacao_nao_pode_ser_injetada_no_construtor() -> None:
+    campos = inspect.signature(Autorizacao).parameters
+
+    assert "_confirmada" not in campos
 
 
 def test_confirmacao_parcial_e_rejeitada() -> None:
@@ -82,13 +91,15 @@ def test_frase_de_lote_identifica_numero_quantidade_e_destino() -> None:
 
 
 def test_ausencia_de_confirmacao_nao_cria_autorizacao_operacional() -> None:
-    autorizacao = criar_autorizacao(
-        plano=PLANO,
-        chaves_pendentes=PENDENTES,
-        modalidade=ModalidadeAutorizacao.INTEIRA,
-    )
+    with pytest.raises(ErroAutorizacao):
+        criar_autorizacao(PLANO, None, frozenset(PENDENTES))
 
-    assert autorizacao.valida_para(PLANO) is False
+
+def test_fabrica_exige_conjunto_imutavel_de_chaves() -> None:
+    confirmacao = criar_frase_confirmacao(PLANO, PENDENTES)
+
+    with pytest.raises(ValueError, match="imutável"):
+        criar_autorizacao(PLANO, confirmacao, set(PENDENTES))  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(
@@ -100,23 +111,29 @@ def test_ausencia_de_confirmacao_nao_cria_autorizacao_operacional() -> None:
         ),
         replace(PLANO, operacoes=PLANO.operacoes[:1]),
         replace(PLANO, configuracao=replace(CONFIGURACAO, iteration_path="Projeto\\Sprint 19")),
+        replace(
+            PLANO,
+            configuracao=replace(
+                CONFIGURACAO,
+                mapeamento_tipos=MapeamentoTipos(historia_usuario="Product Backlog Item"),
+            ),
+        ),
     ],
-    ids=["conteudo", "quantidade", "destino"],
+    ids=["conteudo", "quantidade", "destino", "mapeamento"],
 )
 def test_autorizacao_vincula_conteudo_quantidade_e_destino(
     plano_divergente: PlanoPublicacao,
 ) -> None:
     autorizacao = _autorizacao_inteira()
 
-    assert autorizacao.valida_para(plano_divergente) is False
+    assert autorizacao.valida_para(plano_divergente, plano_divergente.configuracao) is False
 
 
 def test_autorizacao_inteira_vincula_conjunto_pendente_exato() -> None:
     autorizacao = _autorizacao_inteira()
 
-    assert autorizacao.chaves_autorizadas == PENDENTES
-    assert autorizacao.chaves_pendentes == PENDENTES
-    assert autorizacao.valida_para(PLANO) is True
+    assert autorizacao.chaves_autorizadas == frozenset(PENDENTES)
+    assert autorizacao.valida_para(PLANO, CONFIGURACAO) is True
 
 
 def test_autorizacao_por_lote_vincula_faixa_e_conjunto() -> None:
@@ -125,16 +142,15 @@ def test_autorizacao_por_lote_vincula_faixa_e_conjunto() -> None:
     confirmacao = criar_frase_confirmacao(PLANO, chaves_lote, numero_lote=lote.numero)
 
     autorizacao = criar_autorizacao(
-        plano=PLANO,
-        chaves_pendentes=PENDENTES,
+        PLANO,
+        confirmacao,
+        frozenset(chaves_lote),
         modalidade=ModalidadeAutorizacao.LOTES,
-        confirmacao=confirmacao,
-        lote=lote,
+        numero_lote=lote.numero,
     )
 
-    assert autorizacao.chaves_autorizadas == ("1.1.0",)
-    assert autorizacao.faixa == (1, 2)
-    assert autorizacao.valida_para(PLANO) is True
+    assert autorizacao.chaves_autorizadas == frozenset({"1.1.0"})
+    assert autorizacao.valida_para(PLANO, CONFIGURACAO) is True
 
 
 def test_coleta_confirmacao_remove_apenas_quebra_de_linha() -> None:

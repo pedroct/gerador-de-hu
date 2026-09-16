@@ -3,7 +3,7 @@ from dataclasses import replace
 import pytest
 
 from publicar_backlog_azure_boards.autorizacao import (
-    ModalidadeAutorizacao,
+    ErroAutorizacao,
     criar_autorizacao,
     criar_frase_confirmacao,
 )
@@ -41,23 +41,22 @@ def autorizacao(chaves_pendentes: tuple[str, ...] = ("1.0.0", "1.1.0")):
     plano_atual = plano()
     confirmacao = criar_frase_confirmacao(plano_atual, chaves_pendentes)
     return criar_autorizacao(
-        plano=plano_atual,
-        chaves_pendentes=chaves_pendentes,
-        modalidade=ModalidadeAutorizacao.INTEIRA,
-        confirmacao=confirmacao,
+        plano_atual,
+        confirmacao,
+        frozenset(chaves_pendentes),
     )
 
 
 class ClienteFalso:
-    configuracao = CONFIGURACAO
-
     def __init__(
         self,
         falhar_na_chave: str | None = None,
         erro: Exception | None = None,
+        configuracao: ConfiguracaoPublicacao = CONFIGURACAO,
     ) -> None:
         self.falhar_na_chave = falhar_na_chave
         self.erro = erro or RuntimeError("falha permanente")
+        self.configuracao = configuracao
         self.chaves_criadas: list[str] = []
 
     def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None):
@@ -119,10 +118,26 @@ def test_executor_bloqueia_conteudo_divergente_mesmo_com_mesmo_hash(tmp_path) ->
     )
     cliente = ClienteFalso()
 
-    with pytest.raises(PermissionError):
+    with pytest.raises(ErroAutorizacao):
         executar_plano(plano_alterado, autorizacao(), cliente, tmp_path / "mapa.json")
 
     assert cliente.chaves_criadas == []
+
+
+def test_cliente_de_outro_destino_e_rejeitado_antes_de_criar(tmp_path) -> None:
+    cliente_outro_projeto = ClienteFalso(
+        configuracao=replace(
+            CONFIGURACAO,
+            projeto="outro-projeto",
+            area_path="outro-projeto",
+            iteration_path="outro-projeto\\Sprint",
+        )
+    )
+
+    with pytest.raises(ErroAutorizacao):
+        executar_plano(plano(), autorizacao(), cliente_outro_projeto, tmp_path / "mapa.json")
+
+    assert cliente_outro_projeto.chaves_criadas == []
 
 
 def test_falha_ambigua_deixa_manifesto_bloqueado_para_reconciliacao(tmp_path) -> None:

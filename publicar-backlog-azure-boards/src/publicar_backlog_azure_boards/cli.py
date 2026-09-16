@@ -11,6 +11,7 @@ from typing import Protocol, TextIO, cast
 
 from publicar_backlog_azure_boards.autorizacao import (
     Autorizacao,
+    ErroAutorizacao,
     Lote,
     ModalidadeAutorizacao,
     coletar_confirmacao,
@@ -343,14 +344,18 @@ def _solicitar_autorizacao(
     numero_lote = None if lote is None else lote.numero
     frase = criar_frase_confirmacao(plano, autorizadas, numero_lote)
     _escrever(saida, f"Digite exatamente: {frase}\n")
-    autorizacao = criar_autorizacao(
-        plano=plano,
-        chaves_pendentes=chaves,
-        modalidade=modalidade,
-        confirmacao=coletar_confirmacao(entrada, saida),
-        lote=lote,
-    )
-    if not autorizacao.valida_para(plano):
+    try:
+        autorizacao = criar_autorizacao(
+            plano,
+            coletar_confirmacao(entrada, saida),
+            frozenset(autorizadas),
+            modalidade=modalidade,
+            numero_lote=numero_lote,
+        )
+    except ErroAutorizacao:
+        _escrever(saida, "Confirmação inválida; nenhuma chamada de criação foi realizada.\n")
+        return None
+    if not autorizacao.valida_para(plano, plano.configuracao):
         _escrever(saida, "Confirmação inválida; nenhuma chamada de criação foi realizada.\n")
         return None
     return autorizacao

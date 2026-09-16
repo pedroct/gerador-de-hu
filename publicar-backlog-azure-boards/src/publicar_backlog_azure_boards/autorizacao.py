@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import dataclass, field
+import hashlib
+import json
+from collections.abc import Collection
+from dataclasses import dataclass
 from enum import StrEnum
 from hmac import compare_digest
 from typing import TextIO
 
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
+    OperacaoCriacao,
     PlanoPublicacao,
-    assinatura_plano,
 )
 
 
@@ -21,6 +23,10 @@ class ModalidadeAutorizacao(StrEnum):
     INTEIRA = "inteira"
     LOTES = "lotes"
     CANCELADA = "cancelada"
+
+
+class ErroAutorizacao(PermissionError):
+    """Indica que a confirmação não autoriza a escrita solicitada."""
 
 
 @dataclass(frozen=True)
@@ -41,44 +47,77 @@ class Lote:
 class Autorizacao:
     """Associa consentimento ao conteúdo, destino, quantidade e conjunto exibidos."""
 
-    plano_hash: str
-    assinatura: str
-    configuracao: ConfiguracaoPublicacao
-    quantidade_total: int
-    chaves_plano: tuple[str, ...]
-    chaves_pendentes: tuple[str, ...]
-    chaves_autorizadas: tuple[str, ...]
+    hash_plano: str
+    quantidade: int
     modalidade: ModalidadeAutorizacao
+    chaves_autorizadas: frozenset[str]
+    impressao_destino: str
+    impressao_conteudo: str
+    confirmacao: str
     numero_lote: int | None = None
-    faixa: tuple[int, int] | None = None
-    _confirmada: bool = field(default=False, repr=False)
 
-    def valida_para(self, plano: PlanoPublicacao) -> bool:
-        """Recalcula a identidade integral e bloqueia qualquer divergência executável."""
-        chaves_atuais = tuple(operacao.chave for operacao in plano.operacoes)
-        if not self._confirmada:
+    def valida_para(self, plano: PlanoPublicacao, destino: ConfiguracaoPublicacao) -> bool:
+        """Recalcula a impressão integral e bloqueia qualquer divergência executável."""
+        if not isinstance(self.chaves_autorizadas, frozenset):
             return False
-        if not compare_digest(self.plano_hash, plano.hash_plano):
+        if self.hash_plano != plano.hash_plano or self.quantidade != len(self.chaves_autorizadas):
             return False
-        if not compare_digest(self.assinatura, assinatura_plano(plano)):
+        if self.impressao_destino != imprimir_destino(destino):
             return False
-        if self.configuracao != plano.configuracao:
+        if self.impressao_conteudo != imprimir_operacoes(plano, self.chaves_autorizadas):
             return False
-        if self.quantidade_total != len(plano.operacoes) or self.chaves_plano != chaves_atuais:
-            return False
-        if len(set(self.chaves_pendentes)) != len(self.chaves_pendentes):
-            return False
-        if not set(self.chaves_pendentes).issubset(chaves_atuais):
+        if not self.chaves_autorizadas <= {operacao.chave for operacao in plano.operacoes}:
             return False
         if self.modalidade is ModalidadeAutorizacao.INTEIRA:
-            return self.chaves_autorizadas == self.chaves_pendentes and self.faixa is None
-        if self.modalidade is not ModalidadeAutorizacao.LOTES or self.faixa is None:
+            if self.numero_lote is not None:
+                return False
+        elif self.modalidade is ModalidadeAutorizacao.LOTES:
+            if self.numero_lote is None or self.numero_lote < 1:
+                return False
+        else:
             return False
-        inicio, fim = self.faixa
-        return (
-            0 <= inicio < fim <= len(self.chaves_pendentes)
-            and self.chaves_autorizadas == self.chaves_pendentes[inicio:fim]
-        )
+        esperada = criar_frase_confirmacao(plano, self.chaves_autorizadas, self.numero_lote)
+        return validar_confirmacao(self.confirmacao, esperada)
+
+
+def imprimir_destino(configuracao: ConfiguracaoPublicacao) -> str:
+    """Resume criptograficamente todos os campos que identificam o destino remoto."""
+    conteudo = {
+        "organizacao": configuracao.organizacao,
+        "projeto": configuracao.projeto,
+        "area_path": configuracao.area_path,
+        "iteration_path": configuracao.iteration_path,
+        "mapeamento_tipos": configuracao.mapeamento_tipos.como_dict(),
+    }
+    return _resumir(conteudo)
+
+
+def imprimir_operacoes(plano: PlanoPublicacao, chaves: Collection[str]) -> str:
+    """Resume criptograficamente as operações autorizadas na ordem do plano."""
+    autorizadas = frozenset(chaves)
+    operacoes = [
+        _operacao_para_impressao(operacao)
+        for operacao in plano.operacoes
+        if operacao.chave in autorizadas
+    ]
+    return _resumir(operacoes)
+
+
+def _operacao_para_impressao(operacao: OperacaoCriacao) -> dict[str, str | None]:
+    return {
+        "chave": operacao.chave,
+        "tipo": operacao.tipo.value,
+        "titulo": operacao.titulo,
+        "descricao": operacao.descricao,
+        "criterios_aceitacao": operacao.criterios_aceitacao,
+        "chave_pai": operacao.chave_pai,
+        "tipo_remoto": operacao.tipo_remoto,
+    }
+
+
+def _resumir(conteudo: object) -> str:
+    serializado = json.dumps(conteudo, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(serializado.encode()).hexdigest()
 
 
 def validar_confirmacao(confirmacao: str, esperada: str) -> bool:
@@ -129,7 +168,7 @@ def criar_lotes(total: int, tamanho: int) -> tuple[Lote, ...]:
 
 def criar_frase_confirmacao(
     plano: PlanoPublicacao,
-    chaves_autorizadas: Sequence[str],
+    chaves_autorizadas: Collection[str],
     numero_lote: int | None = None,
 ) -> str:
     """Gera a frase que vincula quantidade, destino e código do plano completo."""
@@ -142,49 +181,35 @@ def criar_frase_confirmacao(
 
 
 def criar_autorizacao(
-    *,
     plano: PlanoPublicacao,
-    chaves_pendentes: Sequence[str],
-    modalidade: ModalidadeAutorizacao,
-    confirmacao: str | None = None,
-    lote: Lote | None = None,
+    confirmacao: str | None,
+    chaves: frozenset[str],
+    *,
+    modalidade: ModalidadeAutorizacao = ModalidadeAutorizacao.INTEIRA,
+    numero_lote: int | None = None,
 ) -> Autorizacao:
-    """Cria autorização somente a partir do plano e da seleção efetivamente exibidos."""
+    """Cria autorização somente após validar a frase exibida para o conjunto selecionado."""
     if modalidade is ModalidadeAutorizacao.CANCELADA:
         raise ValueError("Uma publicação cancelada não pode gerar autorização.")
-    chaves_plano = tuple(operacao.chave for operacao in plano.operacoes)
-    pendentes = tuple(chaves_pendentes)
-    if len(set(pendentes)) != len(pendentes) or not set(pendentes).issubset(chaves_plano):
-        raise ValueError("As chaves pendentes divergem do plano completo.")
+    if not isinstance(chaves, frozenset):
+        raise ValueError("As chaves autorizadas devem formar um conjunto imutável.")
+    if not chaves or not chaves <= {operacao.chave for operacao in plano.operacoes}:
+        raise ValueError("As chaves autorizadas divergem do plano completo.")
+    if modalidade is ModalidadeAutorizacao.INTEIRA and numero_lote is not None:
+        raise ValueError("A publicação inteira não aceita número de lote.")
+    if modalidade is ModalidadeAutorizacao.LOTES and (numero_lote is None or numero_lote < 1):
+        raise ValueError("A modalidade por lotes exige um número de lote positivo.")
 
-    if modalidade is ModalidadeAutorizacao.INTEIRA:
-        if lote is not None:
-            raise ValueError("A publicação inteira não aceita faixa de lote.")
-        autorizadas = pendentes
-        faixa = None
-        numero_lote = None
-    else:
-        if lote is None or not 0 <= lote.inicio < lote.fim <= len(pendentes):
-            raise ValueError("A modalidade por lotes exige uma faixa válida.")
-        autorizadas = pendentes[lote.inicio : lote.fim]
-        faixa = (lote.inicio, lote.fim)
-        numero_lote = lote.numero
-
-    autorizacao = Autorizacao(
-        plano_hash=plano.hash_plano,
-        assinatura=assinatura_plano(plano),
-        configuracao=plano.configuracao,
-        quantidade_total=len(plano.operacoes),
-        chaves_plano=chaves_plano,
-        chaves_pendentes=pendentes,
-        chaves_autorizadas=autorizadas,
+    esperada = criar_frase_confirmacao(plano, chaves, numero_lote)
+    if confirmacao is None or not validar_confirmacao(confirmacao, esperada):
+        raise ErroAutorizacao("A frase de confirmação não corresponde à autorização exibida.")
+    return Autorizacao(
+        hash_plano=plano.hash_plano,
+        quantidade=len(chaves),
         modalidade=modalidade,
+        chaves_autorizadas=chaves,
+        impressao_destino=imprimir_destino(plano.configuracao),
+        impressao_conteudo=imprimir_operacoes(plano, chaves),
+        confirmacao=confirmacao,
         numero_lote=numero_lote,
-        faixa=faixa,
     )
-    if confirmacao is None:
-        return autorizacao
-    esperada = criar_frase_confirmacao(plano, autorizadas, numero_lote)
-    if validar_confirmacao(confirmacao, esperada):
-        object.__setattr__(autorizacao, "_confirmada", True)
-    return autorizacao

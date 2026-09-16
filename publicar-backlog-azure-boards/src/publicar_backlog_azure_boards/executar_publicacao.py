@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from publicar_backlog_azure_boards.autorizacao import Autorizacao
+from publicar_backlog_azure_boards.autorizacao import Autorizacao, ErroAutorizacao
 from publicar_backlog_azure_boards.cliente_azure_devops import ErroCriacaoAmbigua
 from publicar_backlog_azure_boards.manifesto import (
     Manifesto,
@@ -64,18 +64,17 @@ def executar_plano(
     caminho_manifesto: Path,
 ) -> ResultadoPublicacao:
     """Publica somente o conjunto confirmado e bloqueia toda divergência posterior."""
-    if not autorizacao.valida_para(plano):
-        raise PermissionError("A autorização não corresponde ao plano executável completo.")
+    if cliente.configuracao != plano.configuracao:
+        raise ErroAutorizacao("O destino do cliente não corresponde ao plano executável completo.")
+    if not autorizacao.valida_para(plano, cliente.configuracao):
+        raise ErroAutorizacao("A autorização não corresponde ao plano executável completo.")
 
     manifesto = ler_manifesto(caminho_manifesto)
     pendentes = validar_manifesto(manifesto, plano, cliente.configuracao)
     chaves_pendentes = tuple(operacao.chave for operacao in pendentes)
-    if chaves_pendentes != autorizacao.chaves_pendentes:
-        raise PermissionError("O conjunto pendente divergiu desde a autorização.")
-
     autorizadas = set(autorizacao.chaves_autorizadas)
     if not autorizadas or not autorizadas.issubset(chaves_pendentes):
-        raise PermissionError("A autorização não cobre um conjunto pendente válido.")
+        raise ErroAutorizacao("A autorização não cobre um conjunto pendente válido.")
 
     registros = dict(manifesto.itens)
     titulos = dict(manifesto.titulos)
