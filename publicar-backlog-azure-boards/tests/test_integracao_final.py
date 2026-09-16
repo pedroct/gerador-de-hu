@@ -16,7 +16,6 @@ from publicar_backlog_azure_boards.modelos import (
 )
 from publicar_backlog_azure_boards.planejar_publicacao import criar_plano
 
-
 CONFIGURACAO = ConfiguracaoPublicacao(
     "organizacao", "Projeto", "Projeto", r"Projeto\Sprint 18"
 )
