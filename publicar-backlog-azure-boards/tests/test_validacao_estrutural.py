@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 
 import publicar_backlog_azure_boards.validacao_estrutural as modulo_validacao
+from publicar_backlog_azure_boards.contrato_backlog import parse_backlog
+from publicar_backlog_azure_boards.interpretar_markdown import interpretar_backlog
 from publicar_backlog_azure_boards.validacao_estrutural import (
     ErroValidacaoEstrutural,
     validar_estrutura_backlog,
@@ -77,3 +79,26 @@ def test_validador_empacotado_nao_acessa_diretorio_irmao(
     monkeypatch.setattr(Path, "is_file", lambda self: False)
 
     modulo.validar_estrutura_backlog(FIXTURE_VALIDO)
+
+
+def test_contrato_e_interpretador_concordam_sobre_implementation_evidence(
+    tmp_path: Path,
+) -> None:
+    """Guarda de deriva: os dois parsers do contrato devem separar a mesma fronteira
+    entre Description e um heading `Implementation Evidence *(sufixo)*` seguinte."""
+    texto = (
+        "# Backlog para Azure Boards\n"
+        "\n## 1.0.0 [Epic] Épico\n"
+        "### Description\n"
+        "Texto real da descrição. Origem na spec: seção 1.\n"
+        "### Implementation Evidence *(sufixo)*\n"
+        "Texto que não deveria vazar para a Description de nenhum dos dois parsers.\n"
+    )
+    caminho = escrever_fixture_invalida(tmp_path, texto)
+
+    descricao_contrato = parse_backlog(texto)[0].section("Description")
+    descricao_interpretada = interpretar_backlog(caminho)[0].descricao
+
+    assert descricao_contrato == descricao_interpretada
+    assert "Implementation Evidence" not in descricao_contrato
+    assert "não deveria vazar" not in descricao_contrato

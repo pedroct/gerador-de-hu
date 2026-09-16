@@ -11,6 +11,7 @@ ITEM_RE = re.compile(
 )
 WORK_ITEM_HINT_RE = re.compile(r"^#+ .*(?:\[Epic\]|\[Feature\]|\[User Story\]|\[Bug\])")
 SECTION_NAMES = {"Parent", "Description", "Acceptance Criteria", "Refinement Status"}
+IMPLEMENTATION_EVIDENCE = "Implementation Evidence"
 ACCEPTANCE_CRITERIA = "Acceptance Criteria"
 REFINEMENT_STATUS = "Refinement Status"
 USER_STORY = "User Story"
@@ -44,7 +45,14 @@ def _section_heading(raw: str, level: int) -> str | None:
     if not raw.startswith(prefix):
         return None
     section_name = raw[len(prefix) :]
-    return section_name if section_name in SECTION_NAMES else None
+    if section_name in SECTION_NAMES:
+        return section_name
+    # Mesma normalização usada por ``interpretar_markdown._nome_secao``: um heading
+    # "Implementation Evidence <sufixo>" é uma seção própria, separada da Description
+    # anterior, para que os dois parsers concordem sobre onde a Description termina.
+    if section_name.startswith(f"{IMPLEMENTATION_EVIDENCE} "):
+        return IMPLEMENTATION_EVIDENCE
+    return None
 
 
 def parse_backlog(text: str) -> list[BacklogItem]:
