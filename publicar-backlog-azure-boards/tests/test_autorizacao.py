@@ -1,4 +1,3 @@
-import inspect
 from dataclasses import replace
 from io import StringIO
 
@@ -13,6 +12,8 @@ from publicar_backlog_azure_boards.autorizacao import (
     criar_frase_confirmacao,
     criar_lotes,
     escolher_modalidade,
+    imprimir_destino,
+    imprimir_operacoes,
     validar_confirmacao,
 )
 from publicar_backlog_azure_boards.configuracao import carregar_configuracao
@@ -71,9 +72,19 @@ def test_confirmacao_exata_e_aceita() -> None:
 
 
 def test_confirmacao_nao_pode_ser_injetada_no_construtor() -> None:
-    campos = inspect.signature(Autorizacao).parameters
+    frase = criar_frase_confirmacao(PLANO, PENDENTES)
+    chaves = frozenset(PENDENTES)
 
-    assert "_confirmada" not in campos
+    with pytest.raises(ErroAutorizacao):
+        Autorizacao(
+            hash_plano=PLANO.hash_plano,
+            quantidade=len(chaves),
+            modalidade=ModalidadeAutorizacao.INTEIRA,
+            chaves_autorizadas=chaves,
+            impressao_destino=imprimir_destino(PLANO.configuracao),
+            impressao_conteudo=imprimir_operacoes(PLANO, chaves),
+            confirmacao=frase,
+        )
 
 
 def test_confirmacao_parcial_e_rejeitada() -> None:

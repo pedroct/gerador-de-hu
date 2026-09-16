@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Collection
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from hmac import compare_digest
 from typing import TextIO
@@ -27,6 +27,20 @@ class ModalidadeAutorizacao(StrEnum):
 
 class ErroAutorizacao(PermissionError):
     """Indica que a confirmação não autoriza a escrita solicitada."""
+
+
+class _SentinelaFabrica:
+    """Marcador de identidade único, criado apenas neste módulo.
+
+    Nenhum código fora de ``autorizacao.py`` consegue produzir outra instância desta
+    classe; portanto, possuir o objeto exato ``_SENTINELA_FABRICA`` só é possível para
+    quem passou por ``criar_autorizacao``.
+    """
+
+    __slots__ = ()
+
+
+_SENTINELA_FABRICA = _SentinelaFabrica()
 
 
 @dataclass(frozen=True)
@@ -55,6 +69,15 @@ class Autorizacao:
     impressao_conteudo: str
     confirmacao: str
     numero_lote: int | None = None
+    _sentinela_fabrica: _SentinelaFabrica | None = field(default=None, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        """Recusa qualquer instância que não tenha passado por ``criar_autorizacao``."""
+        if self._sentinela_fabrica is not _SENTINELA_FABRICA:
+            raise ErroAutorizacao(
+                "Autorizacao só pode ser criada pela fábrica criar_autorizacao; "
+                "construção direta da dataclass não é permitida."
+            )
 
     def valida_para(self, plano: PlanoPublicacao, destino: ConfiguracaoPublicacao) -> bool:
         """Recalcula a impressão integral e bloqueia qualquer divergência executável."""
@@ -212,4 +235,5 @@ def criar_autorizacao(
         impressao_conteudo=imprimir_operacoes(plano, chaves),
         confirmacao=confirmacao,
         numero_lote=numero_lote,
+        _sentinela_fabrica=_SENTINELA_FABRICA,
     )
