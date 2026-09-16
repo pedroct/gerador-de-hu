@@ -10,7 +10,13 @@ ITEM_RE = re.compile(
     r"\[(?P<kind>Epic|Feature|User Story|Bug)\] (?P<title>\S.*)$"
 )
 WORK_ITEM_HINT_RE = re.compile(r"^#+ .*(?:\[Epic\]|\[Feature\]|\[User Story\]|\[Bug\])")
-SECTION_NAMES = {"Parent", "Description", "Acceptance Criteria", "Refinement Status"}
+SECTION_NAMES = {
+    "Parent",
+    "Título curto",
+    "Description",
+    "Acceptance Criteria",
+    "Refinement Status",
+}
 IMPLEMENTATION_EVIDENCE = "Implementation Evidence"
 ACCEPTANCE_CRITERIA = "Acceptance Criteria"
 REFINEMENT_STATUS = "Refinement Status"

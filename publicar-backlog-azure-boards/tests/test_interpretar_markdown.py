@@ -19,6 +19,16 @@ def test_interpreta_epic_feature_e_historia():
     assert itens[2].pai == "1.1.0"
 
 
+def test_extrai_titulo_curto_quando_declarado():
+    itens = interpretar_backlog(Path("tests/fixtures/valid-backlog.md"))
+    assert itens[2].titulo_curto == "Reabertura no prazo"
+
+
+def test_titulo_curto_fica_vazio_quando_nao_declarado():
+    itens = interpretar_backlog(Path("tests/fixtures/valid-backlog.md"))
+    assert itens[0].titulo_curto == ""
+
+
 def test_extrai_data_geracao_dos_metadados():
     assert extrair_data_geracao(Path("tests/fixtures/valid-backlog.md")) == "2026-09-10"
 

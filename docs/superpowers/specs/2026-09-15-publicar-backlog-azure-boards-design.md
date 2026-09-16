@@ -117,7 +117,7 @@ Cada componente deve ter uma responsabilidade única e interfaces testáveis ind
 | `[Feature]` | Tipo de work item configurado para Feature |
 | `[User Story]` | Tipo de requisito configurado no projeto |
 | `[Bug]` | Tipo de work item configurado para Bug |
-| Data de geração + Chave documental + Título | `System.Title`, como `"<AAAA-MM-DD> <chave> <título>"`; a data vem fixa dos Metadados (nunca do relógio), para não colidir entre backlogs diferentes e não quebrar a retomada |
+| Data de geração + Chave documental + Título curto | `System.Title`, como `"<AAAA-MM-DD> <chave> <título curto>"`; a data vem fixa dos Metadados (nunca do relógio), para não colidir entre backlogs diferentes e não quebrar a retomada. `Título curto` é opcional: quando ausente, cai no título completo do heading |
 | `Description` copiável | `System.Description` |
 | `Acceptance Criteria` | `Microsoft.VSTS.Common.AcceptanceCriteria` |
 | `Parent` | Relação hierárquica real |

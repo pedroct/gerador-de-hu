@@ -16,6 +16,12 @@ O documento sempre declara um modo:
 
 Não crie itens apenas para preencher um nível. Uma demanda rastreável pode permanecer como item de folha incompleto e `Não pronta`. Sugestões, propostas ou hipóteses não confirmadas nunca originam item ou regra; mantenha-as somente em `Itens não cobertos` ou na Conversation de uma demanda confirmada. Conteúdo sem pai justificável também fica em `Itens não cobertos`.
 
+## Título curto
+
+O título no heading do item (`[Epic] Título...`) permanece completo e descritivo — é o que aparece no documento e no `Parent` de outros itens. Todo item também declara, em uma subseção própria `Título curto`, uma versão reduzida desse mesmo título: até 60 caracteres, mantendo o sentido essencial sem repetir o tipo, o ator quando óbvio pelo contexto, ou o código documental. O publicador usa exclusivamente essa versão curta no campo `Title` do Azure Boards (prefixada pela data de geração e pela chave documental) porque o título completo de uma User Story ou Bug, no estilo comportamental "Ator faz X para Y", frequentemente ultrapassa o que a interface do Azure Boards mostra sem truncar.
+
+Exemplo: heading `#### 1.1.1 [User Story] Gestor da Aplicação cadastra e mantém a hierarquia de lotações` recebe `Título curto` = `Cadastro de hierarquia de lotações`.
+
 ## Política de tipo (User Story vs. Bug)
 
 User Story e Bug são tipos irmãos de folha: usam o mesmo esquema de numeração `E.F.S`, compartilham a mesma sequência `S` sob a mesma Feature (não são contadores separados por tipo) e seguem a mesma disciplina de refinamento 3C. Uma Feature pode ter filhos mistos, por exemplo `1.1.1 [User Story]` e `1.1.2 [Bug]`. Não crie um terceiro tipo nem misture os dois em um único item.
@@ -63,6 +69,9 @@ User Story e Bug compartilham a mesma sequência `S` sob a mesma Feature: não s
 
 ## 1.0.0 [Epic] Título do épico
 
+### Título curto
+[até 60 caracteres]
+
 ### Description
 Objetivo, valor e escopo.
 
@@ -73,6 +82,9 @@ Origem na spec: [seção/âncora/localização disponível]
 #### Parent
 `1.0.0`
 
+#### Título curto
+[até 60 caracteres]
+
 #### Description
 Capacidade, resultado e limites de escopo.
 
@@ -82,6 +94,9 @@ Origem na spec: [seção/âncora/localização disponível]
 
 ##### Parent
 `1.1.0`
+
+##### Título curto
+[até 60 caracteres]
 
 ##### Description
 
@@ -103,6 +118,9 @@ Origem na spec: [seção/âncora/localização disponível]
 
 ##### Parent
 `1.1.0`
+
+##### Título curto
+[até 60 caracteres]
 
 ##### Description
 

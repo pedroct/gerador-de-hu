@@ -15,7 +15,7 @@ _ITEM_RE = re.compile(
     r"\[(?P<tipo>Epic|Feature|User Story|Bug)\] (?P<titulo>\S.*)$"
 )
 _DATA_GERACAO_RE = re.compile(r"^- Data de geração: `(\d{4}-\d{2}-\d{2})`$", re.MULTILINE)
-_SECOES = {"Parent", "Description", "Acceptance Criteria", "Refinement Status"}
+_SECOES = {"Parent", "Título curto", "Description", "Acceptance Criteria", "Refinement Status"}
 _FOLHAS = {TipoItem.HISTORIA_USUARIO, TipoItem.BUG}
 
 
@@ -234,4 +234,5 @@ def _converter_item(item: _ItemEmConstrucao) -> ItemBacklog:
         pai=None if item.tipo is TipoItem.EPIC else _valor_pai(item),
         descricao=item.texto_secao("Description"),
         criterios_aceitacao=item.texto_secao("Acceptance Criteria"),
+        titulo_curto=item.texto_secao("Título curto"),
     )

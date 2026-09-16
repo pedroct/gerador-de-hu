@@ -74,6 +74,7 @@ class ItemBacklog:
     pai: str | None
     descricao: str
     criterios_aceitacao: str
+    titulo_curto: str = ""
 
 
 @dataclass(frozen=True)

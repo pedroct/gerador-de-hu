@@ -26,6 +26,9 @@ Origem na spec: seção 2.1.
 ##### Parent
 `1.1.0`
 
+##### Título curto
+Reabertura no prazo
+
 ##### Description
 ###### Card
 História confirmada.

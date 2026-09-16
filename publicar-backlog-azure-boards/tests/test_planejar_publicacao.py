@@ -56,6 +56,24 @@ def test_operacao_prefixa_titulo_com_data_de_geracao_e_chave_documental() -> Non
     assert historia.titulo == "2026-09-16 1.1.1 História"
 
 
+def test_operacao_usa_titulo_curto_quando_declarado() -> None:
+    itens_com_titulo_curto = [
+        ItemBacklog(
+            "1.1.1",
+            TipoItem.HISTORIA_USUARIO,
+            "História completa e bem mais longa",
+            "1.1.0",
+            "Descrição",
+            "",
+            titulo_curto="História curta",
+        ),
+    ]
+
+    plano = criar_plano(itens_com_titulo_curto, CONFIGURACAO, DATA_GERACAO)
+
+    assert plano.operacoes[0].titulo == "2026-09-16 1.1.1 História curta"
+
+
 def test_hash_muda_quando_destino_muda() -> None:
     outro_destino = replace(CONFIGURACAO, projeto="outro-projeto")
 

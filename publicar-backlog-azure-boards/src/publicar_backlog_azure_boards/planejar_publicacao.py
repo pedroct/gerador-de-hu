@@ -52,7 +52,7 @@ def _criar_operacao(
     return OperacaoCriacao(
         chave=item.chave,
         tipo=item.tipo,
-        titulo=f"{data_geracao} {item.chave} {item.titulo}",
+        titulo=f"{data_geracao} {item.chave} {item.titulo_curto or item.titulo}",
         descricao=converter_descricao(item.descricao),
         criterios_aceitacao=converter_criterios(item.criterios_aceitacao),
         chave_pai=item.pai,
@@ -77,6 +77,7 @@ def _calcular_hash(
                 "chave": item.chave,
                 "tipo": item.tipo,
                 "titulo": item.titulo,
+                "titulo_curto": item.titulo_curto,
                 "pai": item.pai,
                 "descricao": item.descricao,
                 "criterios_aceitacao": item.criterios_aceitacao,
