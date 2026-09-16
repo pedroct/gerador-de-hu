@@ -13,8 +13,11 @@ não afirma que a publicação acontece automaticamente.
 
 ## Fluxo obrigatório
 
-1. Carregue o backlog e execute `validar`; a CLI deve integrar o validador estrutural existente da
-   skill geradora antes de interpretar ou planejar.
+1. Carregue o backlog e execute `validar`; a CLI usa sua própria cópia embarcada do contrato
+   estrutural (módulo `contrato_backlog.py`) antes de interpretar ou planejar. Essa cópia não
+   depende de `gerar-backlog-azure-boards` em tempo de execução e precisa ser ressincronizada
+   manualmente se as regras da skill geradora
+   (`gerar-backlog-azure-boards/scripts/validate_backlog.py`) mudarem.
 2. Carregue a configuração, incluindo o `Iteration Path` escolhido para esta execução, e leia o
    manifesto existente.
 3. Execute a verificação preliminar somente leitura: credencial, destino, tipos, campos, relação

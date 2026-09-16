@@ -57,8 +57,12 @@ O mapeamento remoto aparece no plano, integra o payload e também participa do h
 
 ## Fluxo operacional
 
-Valide primeiro o contrato Markdown. A CLI executa o validador estrutural mantido por
-`gerar-backlog-azure-boards` antes do interpretador e do planejamento:
+Valide primeiro o contrato Markdown. O publicador embarca sua própria cópia das regras do contrato
+estrutural, no módulo `contrato_backlog.py`; a CLI executa essa cópia antes do interpretador e do
+planejamento, sem depender de `gerar-backlog-azure-boards` em tempo de execução. Essa cópia precisa
+ser ressincronizada manualmente se as regras da skill geradora
+(`gerar-backlog-azure-boards/scripts/validate_backlog.py`) mudarem — não há sincronização
+automática:
 
 ```bash
 uv run python scripts/publicar_backlog.py validar backlog.md
