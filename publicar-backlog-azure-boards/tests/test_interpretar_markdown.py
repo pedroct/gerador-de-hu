@@ -23,6 +23,15 @@ def test_evidencia_de_implementacao_nao_faz_parte_da_descricao():
     assert "Implementation Evidence" not in item.descricao
 
 
+def test_card_e_conversation_sao_normalizados_para_heading_proeminente():
+    """Nível 6 no documento fonte renderiza <h6>, menor que o texto em negrito ao redor."""
+    item = interpretar_backlog(Path("tests/fixtures/valid-backlog.md"))[-1]
+    assert "###### Card" not in item.descricao
+    assert "###### Conversation" not in item.descricao
+    assert "### Card" in item.descricao
+    assert "### Conversation" in item.descricao
+
+
 def test_ignora_heading_de_item_dentro_de_cerca_de_codigo(tmp_path: Path):
     caminho = tmp_path / "backlog.md"
     caminho.write_text(

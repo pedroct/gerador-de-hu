@@ -112,7 +112,7 @@ def _tratar_heading(
         and item.tipo in _FOLHAS
         and conteudo in {"Card", "Conversation"}
     ):
-        item.secoes["Description"].append(linha)
+        item.secoes["Description"].append(f"### {conteudo}")
         return secao_atual
     raise ErroContratoMarkdown(f"heading fora do contrato: {linha}")
 
