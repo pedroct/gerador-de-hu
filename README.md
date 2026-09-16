@@ -321,6 +321,7 @@ AZURE_DEVOPS_ORGANIZACAO=minha-organizacao
 AZURE_DEVOPS_PROJETO=Projeto
 AZURE_DEVOPS_AREA_PATH=Projeto
 AZURE_DEVOPS_ITERATION_PATH=Projeto\\Sprint 2026\\Sprint 18
+AZURE_DEVOPS_TIPO_USER_STORY=User Story
 AZURE_DEVOPS_TOKEN=
 ```
 
@@ -335,6 +336,11 @@ explícita; a ferramenta não escolhe silenciosamente. Nunca versionar token: ma
 arquivos de exemplo e forneça-o apenas por variável de ambiente ou mecanismo seguro do sistema
 operacional.
 
-O MCP do Azure DevOps é opcional e pode ajudar na inspeção. A simulação é totalmente local e não
-faz chamadas HTTP; a publicação principal usa a REST API, com verificação preliminar, confirmação
-textual, ordem determinística e manifesto.
+Em processos Scrum, defina `AZURE_DEVOPS_TIPO_USER_STORY=Product Backlog Item`; esse mapeamento
+integra o plano e seu hash. O token digitado interativamente não produz eco. A simulação é
+totalmente local, não solicita token e não faz chamadas HTTP.
+
+O MCP do Azure DevOps é opcional e pode ajudar na inspeção. A publicação principal usa a REST API,
+com validador estrutural antes do planejamento, confirmação vinculada ao plano completo, ordem
+determinística e manifesto. Um POST de criação com resultado ambíguo não é repetido: o manifesto
+exige reconciliação manual antes de qualquer nova escrita.

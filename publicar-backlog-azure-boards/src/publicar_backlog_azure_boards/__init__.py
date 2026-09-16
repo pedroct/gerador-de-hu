@@ -1,13 +1,8 @@
-"""Base do publicador de backlog no Azure Boards."""
-
-import sys
+"""Publicador de backlog no Azure Boards."""
 
 
-def main() -> None:
-    """Encerra o ponto de entrada até que o executor seja implementado."""
-    print(
-        "O executor do publicador ainda não foi implementado; "
-        "tente novamente após a conclusão das próximas tarefas.",
-        file=sys.stderr,
-    )
-    raise SystemExit(1)
+def main() -> int:
+    """Executa a mesma CLI usada pelo script de desenvolvimento."""
+    from publicar_backlog_azure_boards.cli import principal
+
+    return principal()

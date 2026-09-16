@@ -1,8 +1,6 @@
 import tomllib
 from pathlib import Path
 
-import pytest
-
 from publicar_backlog_azure_boards import main
 
 CAMINHO_PYPROJECT = Path(__file__).parents[1] / "pyproject.toml"
@@ -18,12 +16,11 @@ def test_projeto_declara_comando_em_portugues() -> None:
     assert "publicar-backlog-azure-boards" in dados["project"]["scripts"]
 
 
-def test_comando_placeholder_encerra_controladamente(capsys: pytest.CaptureFixture[str]) -> None:
-    with pytest.raises(SystemExit) as erro:
-        main()
+def test_entry_point_instalado_chama_cli_real(monkeypatch, capsys) -> None:
+    backlog = Path(__file__).parent / "fixtures" / "valid-backlog.md"
+    monkeypatch.setattr("sys.argv", ["publicar-backlog-azure-boards", "validar", str(backlog)])
 
-    assert erro.value.code == 1
-    assert capsys.readouterr().err == (
-        "O executor do publicador ainda não foi implementado; "
-        "tente novamente após a conclusão das próximas tarefas.\n"
-    )
+    codigo = main()
+
+    assert codigo == 0
+    assert "Backlog válido: 3 itens." in capsys.readouterr().out

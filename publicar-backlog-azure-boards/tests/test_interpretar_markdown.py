@@ -11,7 +11,9 @@ from publicar_backlog_azure_boards.interpretar_markdown import (
 def test_interpreta_epic_feature_e_historia():
     itens = interpretar_backlog(Path("tests/fixtures/valid-backlog.md"))
     assert [(item.chave, item.tipo) for item in itens] == [
-        ("1.0.0", "Epic"), ("1.1.0", "Feature"), ("1.1.1", "User Story")
+        ("1.0.0", "Epic"),
+        ("1.1.0", "Feature"),
+        ("1.1.1", "User Story"),
     ]
     assert itens[2].pai == "1.1.0"
 
@@ -24,11 +26,7 @@ def test_evidencia_de_implementacao_nao_faz_parte_da_descricao():
 def test_ignora_heading_de_item_dentro_de_cerca_de_codigo(tmp_path: Path):
     caminho = tmp_path / "backlog.md"
     caminho.write_text(
-        "## 1.0.0 [Epic] Épico\n"
-        "### Description\n"
-        "```markdown\n"
-        "### 9.9.0 [Feature] Exemplo\n"
-        "```\n",
+        "## 1.0.0 [Epic] Épico\n### Description\n```markdown\n### 9.9.0 [Feature] Exemplo\n```\n",
         encoding="utf-8",
     )
 
@@ -84,8 +82,7 @@ def test_rejeita_criterio_de_aceitacao_fora_de_bloco_gherkin(tmp_path: Path):
             "1.0.0 não possui Description",
         ),
         (
-            "## 1.0.0 [Epic] Épico\n### Description\nTexto.\n"
-            "### Título fora do contrato\n",
+            "## 1.0.0 [Epic] Épico\n### Description\nTexto.\n### Título fora do contrato\n",
             "heading fora do contrato: ### Título fora do contrato",
         ),
     ],

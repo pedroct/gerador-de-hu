@@ -1,3 +1,4 @@
+from dataclasses import replace
 from io import StringIO
 
 import pytest
@@ -12,7 +13,12 @@ from publicar_backlog_azure_boards.autorizacao import (
     validar_confirmacao,
 )
 from publicar_backlog_azure_boards.configuracao import carregar_configuracao
-from publicar_backlog_azure_boards.modelos import ConfiguracaoPublicacao
+from publicar_backlog_azure_boards.modelos import (
+    ConfiguracaoPublicacao,
+    OperacaoCriacao,
+    PlanoPublicacao,
+    TipoItem,
+)
 
 CONFIGURACAO = ConfiguracaoPublicacao(
     organizacao="organizacao",
@@ -20,78 +26,119 @@ CONFIGURACAO = ConfiguracaoPublicacao(
     area_path="Projeto",
     iteration_path="Projeto\\Sprint 18",
 )
+PLANO = PlanoPublicacao(
+    operacoes=(
+        OperacaoCriacao("1.0.0", TipoItem.EPIC, "Épico", "<p>Descrição</p>", "", None, "Epic"),
+        OperacaoCriacao(
+            "1.1.0",
+            TipoItem.FEATURE,
+            "Feature",
+            "<p>Descrição</p>",
+            "",
+            "1.0.0",
+            "Feature",
+        ),
+    ),
+    hash_plano="7f3a9d",
+    configuracao=CONFIGURACAO,
+)
+PENDENTES = ("1.0.0", "1.1.0")
+
+
+def _autorizacao_inteira(plano: PlanoPublicacao = PLANO):
+    frase = criar_frase_confirmacao(plano, PENDENTES)
+    return criar_autorizacao(
+        plano=plano,
+        chaves_pendentes=PENDENTES,
+        modalidade=ModalidadeAutorizacao.INTEIRA,
+        confirmacao=frase,
+    )
 
 
 def test_confirmacao_incorreta_e_rejeitada() -> None:
-    esperada = criar_frase_confirmacao("7f3a9d", 3, CONFIGURACAO)
+    esperada = criar_frase_confirmacao(PLANO, PENDENTES)
 
-    assert validar_confirmacao("AUTORIZAR PUBLICAÇÃO 3 ITENS X 0000", esperada) is False
+    assert validar_confirmacao("AUTORIZAR PUBLICAÇÃO 2 ITENS X 0000", esperada) is False
 
 
 def test_confirmacao_exata_e_aceita() -> None:
-    esperada = criar_frase_confirmacao("7f3a9d", 3, CONFIGURACAO)
+    esperada = criar_frase_confirmacao(PLANO, PENDENTES)
 
     assert validar_confirmacao(esperada, esperada) is True
 
 
 def test_confirmacao_parcial_e_rejeitada() -> None:
-    esperada = criar_frase_confirmacao("7f3a9d", 3, CONFIGURACAO)
+    esperada = criar_frase_confirmacao(PLANO, PENDENTES)
 
     assert validar_confirmacao("AUTORIZAR PUBLICAÇÃO", esperada) is False
 
 
-def test_frase_de_lote_identifica_numero_e_quantidade() -> None:
-    frase = criar_frase_confirmacao("b91c9d", 4, CONFIGURACAO, numero_lote=2)
+def test_frase_de_lote_identifica_numero_quantidade_e_destino() -> None:
+    lote = criar_lotes(total=2, tamanho=1)[1]
 
-    assert frase == "AUTORIZAR LOTE 2 4 ITENS Projeto Projeto Projeto\\Sprint 18 B91C"
+    frase = criar_frase_confirmacao(PLANO, PENDENTES[lote.inicio : lote.fim], numero_lote=2)
+
+    assert frase == "AUTORIZAR LOTE 2 1 ITENS Projeto Projeto Projeto\\Sprint 18 7F3A"
 
 
 def test_ausencia_de_confirmacao_nao_cria_autorizacao_operacional() -> None:
-    autorizacao = criar_autorizacao(plano_hash="novo")
+    autorizacao = criar_autorizacao(
+        plano=PLANO,
+        chaves_pendentes=PENDENTES,
+        modalidade=ModalidadeAutorizacao.INTEIRA,
+    )
 
-    assert autorizacao.valida_para("novo") is False
+    assert autorizacao.valida_para(PLANO) is False
 
 
-def test_confirmacao_exata_cria_autorizacao_operacional() -> None:
-    plano_hash = "novo"
-    confirmacao = criar_frase_confirmacao(plano_hash, 3, CONFIGURACAO)
+@pytest.mark.parametrize(
+    "plano_divergente",
+    [
+        replace(
+            PLANO,
+            operacoes=(replace(PLANO.operacoes[0], titulo="Épico alterado"), PLANO.operacoes[1]),
+        ),
+        replace(PLANO, operacoes=PLANO.operacoes[:1]),
+        replace(PLANO, configuracao=replace(CONFIGURACAO, iteration_path="Projeto\\Sprint 19")),
+    ],
+    ids=["conteudo", "quantidade", "destino"],
+)
+def test_autorizacao_vincula_conteudo_quantidade_e_destino(
+    plano_divergente: PlanoPublicacao,
+) -> None:
+    autorizacao = _autorizacao_inteira()
+
+    assert autorizacao.valida_para(plano_divergente) is False
+
+
+def test_autorizacao_inteira_vincula_conjunto_pendente_exato() -> None:
+    autorizacao = _autorizacao_inteira()
+
+    assert autorizacao.chaves_autorizadas == PENDENTES
+    assert autorizacao.chaves_pendentes == PENDENTES
+    assert autorizacao.valida_para(PLANO) is True
+
+
+def test_autorizacao_por_lote_vincula_faixa_e_conjunto() -> None:
+    lote = criar_lotes(total=2, tamanho=1)[1]
+    chaves_lote = PENDENTES[lote.inicio : lote.fim]
+    confirmacao = criar_frase_confirmacao(PLANO, chaves_lote, numero_lote=lote.numero)
 
     autorizacao = criar_autorizacao(
-        plano_hash=plano_hash,
+        plano=PLANO,
+        chaves_pendentes=PENDENTES,
+        modalidade=ModalidadeAutorizacao.LOTES,
         confirmacao=confirmacao,
-        quantidade=3,
-        configuracao=CONFIGURACAO,
+        lote=lote,
     )
 
-    assert autorizacao.valida_para(plano_hash) is True
-
-
-def test_confirmacao_incorreta_nao_cria_autorizacao_operacional() -> None:
-    autorizacao = criar_autorizacao(
-        plano_hash="novo",
-        confirmacao="AUTORIZAR PUBLICAÇÃO 3 ITENS X 0000",
-        quantidade=3,
-        configuracao=CONFIGURACAO,
-    )
-
-    assert autorizacao.valida_para("novo") is False
-
-
-def test_plano_alterado_invalida_autorizacao() -> None:
-    plano_hash = "novo"
-    confirmacao = criar_frase_confirmacao(plano_hash, 3, CONFIGURACAO)
-    autorizacao = criar_autorizacao(
-        plano_hash=plano_hash,
-        confirmacao=confirmacao,
-        quantidade=3,
-        configuracao=CONFIGURACAO,
-    )
-
-    assert autorizacao.valida_para("antigo") is False
+    assert autorizacao.chaves_autorizadas == ("1.1.0",)
+    assert autorizacao.faixa == (1, 2)
+    assert autorizacao.valida_para(PLANO) is True
 
 
 def test_coleta_confirmacao_remove_apenas_quebra_de_linha() -> None:
-    esperada = criar_frase_confirmacao("novo", 3, CONFIGURACAO)
+    esperada = criar_frase_confirmacao(PLANO, PENDENTES)
 
     confirmacao = coletar_confirmacao(StringIO(f"{esperada}\r\n"), StringIO())
 
@@ -133,8 +180,8 @@ def test_argumento_tem_precedencia_sobre_arquivo_e_ambiente(tmp_path) -> None:
 [azure_devops]
 organizacao = "organizacao-do-arquivo"
 projeto = "projeto-do-arquivo"
-area_path = "Area do arquivo"
-iteration_path = "Iteracao do arquivo"
+area_path = "projeto-do-arquivo\\\\Area"
+iteration_path = "projeto-do-arquivo\\\\Iteracao"
 token = "token-do-arquivo"
 """,
         encoding="utf-8",
@@ -142,8 +189,8 @@ token = "token-do-arquivo"
     ambiente = {
         "AZURE_DEVOPS_ORGANIZACAO": "organizacao-do-ambiente",
         "AZURE_DEVOPS_PROJETO": "projeto-do-ambiente",
-        "AZURE_DEVOPS_AREA_PATH": "Area do ambiente",
-        "AZURE_DEVOPS_ITERATION_PATH": "Iteracao do ambiente",
+        "AZURE_DEVOPS_AREA_PATH": "projeto-do-ambiente\\Area",
+        "AZURE_DEVOPS_ITERATION_PATH": "projeto-do-ambiente\\Iteracao",
         "AZURE_DEVOPS_TOKEN": "token-do-ambiente",
     }
 
@@ -157,7 +204,7 @@ token = "token-do-arquivo"
 
     assert configuracao.publicacao.organizacao == "organizacao-do-arquivo"
     assert configuracao.publicacao.projeto == "projeto-do-argumento"
-    assert configuracao.token.get_secret_value() == "token-do-arquivo"
+    assert configuracao.obter_token() == "token-do-arquivo"
 
 
 def test_multiplos_area_paths_exigem_escolha_explicita() -> None:
@@ -165,34 +212,86 @@ def test_multiplos_area_paths_exigem_escolha_explicita() -> None:
         "AZURE_DEVOPS_ORGANIZACAO": "organizacao",
         "AZURE_DEVOPS_PROJETO": "Projeto",
         "AZURE_DEVOPS_TOKEN": "token",
-        "AZURE_DEVOPS_AREA_PATHS": "Sustentacao,Projeto",
+        "AZURE_DEVOPS_AREA_PATHS": "Projeto\\Sustentacao,Projeto\\Produto",
         "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
     }
 
     configuracao = carregar_configuracao(
         ambiente=ambiente,
-        entrada=StringIO("Projeto\n"),
+        entrada=StringIO("Projeto\\Produto\n"),
         saida=StringIO(),
     )
 
-    assert configuracao.publicacao.area_path == "Projeto"
+    assert configuracao.publicacao.area_path == "Projeto\\Produto"
 
 
-def test_iteration_path_e_exigida_em_cada_execucao() -> None:
-    ambiente = {
-        "AZURE_DEVOPS_ORGANIZACAO": "organizacao",
-        "AZURE_DEVOPS_PROJETO": "Projeto",
-        "AZURE_DEVOPS_TOKEN": "token",
-        "AZURE_DEVOPS_AREA_PATH": "Projeto",
-    }
+def test_area_path_relativo_e_normalizado_com_o_projeto() -> None:
+    configuracao = carregar_configuracao(
+        ambiente={
+            "AZURE_DEVOPS_ORGANIZACAO": "organizacao",
+            "AZURE_DEVOPS_PROJETO": "MeuProjeto",
+            "AZURE_DEVOPS_TOKEN": "token",
+            "AZURE_DEVOPS_AREA_PATH": "Sustentacao",
+            "AZURE_DEVOPS_ITERATION_PATH": "MeuProjeto\\Sprint 18",
+        },
+        entrada=StringIO(),
+        saida=StringIO(),
+    )
+
+    assert configuracao.publicacao.area_path == "MeuProjeto\\Sustentacao"
+
+
+def test_token_interativo_usa_leitura_sem_eco() -> None:
+    prompts: list[str] = []
 
     configuracao = carregar_configuracao(
-        ambiente=ambiente,
-        entrada=StringIO("Projeto\\Sprint 18\n"),
+        ambiente={
+            "AZURE_DEVOPS_ORGANIZACAO": "organizacao",
+            "AZURE_DEVOPS_PROJETO": "Projeto",
+            "AZURE_DEVOPS_AREA_PATH": "Projeto",
+            "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
+        },
+        entrada=StringIO("segredo-que-nao-deve-ser-lido\n"),
+        saida=StringIO(),
+        ler_segredo=lambda prompt: prompts.append(prompt) or "token-seguro",
+    )
+
+    assert configuracao.obter_token() == "token-seguro"
+    assert prompts == ["Credencial do Azure DevOps: "]
+
+
+def test_configuracao_sem_token_e_permitida_quando_nao_ha_http() -> None:
+    configuracao = carregar_configuracao(
+        ambiente={
+            "AZURE_DEVOPS_ORGANIZACAO": "organizacao",
+            "AZURE_DEVOPS_PROJETO": "Projeto",
+            "AZURE_DEVOPS_AREA_PATH": "Projeto",
+            "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
+            "AZURE_DEVOPS_TOKEN": "nao-deve-ser-lido",
+        },
+        entrada=StringIO(),
+        saida=StringIO(),
+        exigir_token=False,
+    )
+
+    assert configuracao.token is None
+
+
+def test_mapeamento_remoto_e_carregado_do_ambiente() -> None:
+    configuracao = carregar_configuracao(
+        ambiente={
+            "AZURE_DEVOPS_ORGANIZACAO": "organizacao",
+            "AZURE_DEVOPS_PROJETO": "Projeto",
+            "AZURE_DEVOPS_AREA_PATH": "Projeto",
+            "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
+            "AZURE_DEVOPS_TOKEN": "token",
+            "AZURE_DEVOPS_TIPO_USER_STORY": "Product Backlog Item",
+        },
+        entrada=StringIO(),
         saida=StringIO(),
     )
 
-    assert configuracao.publicacao.iteration_path == "Projeto\\Sprint 18"
+    assert configuracao.publicacao.mapeamento_tipos.historia_usuario == "Product Backlog Item"
 
 
 def test_repr_da_configuracao_nao_expoe_token() -> None:

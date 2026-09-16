@@ -13,12 +13,15 @@ não afirma que a publicação acontece automaticamente.
 
 ## Fluxo obrigatório
 
-1. Carregue o backlog e execute `validar` antes de qualquer autorização.
+1. Carregue o backlog e execute `validar`; a CLI deve integrar o validador estrutural existente da
+   skill geradora antes de interpretar ou planejar.
 2. Carregue a configuração, incluindo o `Iteration Path` escolhido para esta execução, e leia o
    manifesto existente.
 3. Execute a verificação preliminar somente leitura: credencial, destino, tipos, campos, relação
    hierárquica, Area Path, Iteration Path e consistência do manifesto.
-4. Apresente o plano com destino, quantidades, ordem, relações, manifesto e hash.
+4. Apresente o plano com destino, mapeamento remoto de tipos, quantidades, ordem, relações,
+   manifesto e hash. A autorização deve vincular o conteúdo executável completo, a quantidade e o
+   conjunto pendente ou a faixa exata do lote; o executor repete essa validação antes da escrita.
 5. Pergunte se a pessoa autoriza o backlog inteiro, por lotes ou o cancelamento. Em lotes, pergunte
    o tamanho e apresente cada lote novamente.
 6. Mostre a frase completa e solicite que a pessoa a digite exatamente. A frase começa com
@@ -28,8 +31,10 @@ não afirma que a publicação acontece automaticamente.
 
 Confirmação ausente, vaga, incorreta ou vinculada a outro hash resulta em **zero chamadas de criação**.
 Após uma falha parcial, preserve o manifesto, corrija a causa e exija nova autorização para a
-retomada. Não use `--yes`, confirmação implícita, manifesto como autorização, exclusão, rollback ou
-atualização automática.
+retomada. Timeout ou resposta ambígua de criação nunca autoriza repetir o POST: interrompa com o
+manifesto bloqueado e exija reconciliação manual no Azure Boards antes de nova escrita. Não use
+`--yes`, confirmação implícita, manifesto como autorização, exclusão, rollback ou atualização
+automática.
 
 ## Comandos
 
@@ -41,8 +46,9 @@ uv run python scripts/publicar_backlog.py publicar backlog.md --validar-apenas
 uv run python scripts/publicar_backlog.py publicar backlog.md
 ```
 
-`--simulacao` executa somente a preparação, a validação local e o planejamento; não faz chamadas
-HTTP, não solicita autorização e não realiza chamadas de criação. `--validar-apenas` também não
+`--simulacao` executa somente a preparação, a validação local e o planejamento; não solicita token,
+não faz chamadas HTTP, não solicita autorização e não realiza chamadas de criação.
+`--validar-apenas` também não
 solicita autorização: ele verifica o destino e valida as operações remotamente com
 `validateOnly=true`, sem criar work items.
 
@@ -65,7 +71,11 @@ exemplo:
 ```dotenv
 AZURE_DEVOPS_AREA_PATH=Projeto
 AZURE_DEVOPS_ITERATION_PATH=Projeto\\Sprint 2026\\Sprint 18
+AZURE_DEVOPS_TIPO_USER_STORY=Product Backlog Item
 ```
+
+Use o mapeamento acima quando o processo remoto expuser `Product Backlog Item`. O nome remoto deve
+participar do plano, do payload e do hash; não altere o rótulo documental `[User Story]`.
 
 O token deve vir de variável de ambiente ou mecanismo seguro do sistema operacional. Nunca o
 versione, não o coloque no backlog, no manifesto, no plano, em exemplos preenchidos ou em logs.
@@ -84,3 +94,4 @@ executar a skill nem substitui a REST API.
 - Não transforme `Implementation Evidence` em conteúdo de work item.
 - Não invente Area Path, Iteration Path, IDs, prioridades, responsáveis ou datas.
 - Não use `bypassRules=true` e não publique work items reais durante testes padrão.
+- Não repita POST após timeout, erro de rede ou resposta transitória sem idempotência.
