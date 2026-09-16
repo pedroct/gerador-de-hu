@@ -180,6 +180,17 @@ def test_reconciliacao_nova_exige_destino_completo(tmp_path, destino_reconciliac
         ler_manifesto(caminho)
 
 
+def test_reconciliacao_nova_sem_destino_e_rejeitada_mesmo_com_registro_legado() -> None:
+    legado = ReconciliacaoPendente("1.0.0", "Epic", "Épico")
+    nova = ReconciliacaoPendente("2.0.0", "Feature", "Funcionalidade")
+
+    with pytest.raises(ValueError, match="exigem contexto de destino completo"):
+        Manifesto(
+            reconciliacao_pendente=legado,
+            reconciliacoes={"2.0.0": nova},
+        )
+
+
 def test_manifesto_legado_preserva_reconciliacao_sem_destino(tmp_path) -> None:
     caminho = tmp_path / "mapa.json"
     caminho.write_text(
@@ -204,6 +215,37 @@ def test_manifesto_legado_preserva_reconciliacao_sem_destino(tmp_path) -> None:
 
     assert manifesto.reconciliacao_pendente is not None
     assert manifesto.reconciliacao_pendente.destino is None
+
+
+def test_manifesto_legado_resolvido_sem_destino_preserva_estado_no_round_trip(tmp_path) -> None:
+    caminho = tmp_path / "mapa.json"
+    caminho.write_text(
+        json.dumps(
+            {
+                "versao": 1,
+                "origem": "backlog.md",
+                "hash_plano": "hash",
+                "destino": destino_json(),
+                "reconciliacao_pendente": {
+                    "chave": "1.0.0",
+                    "tipo_remoto": "Epic",
+                    "titulo": "Épico",
+                    "resolucao": "resolvida",
+                },
+                "itens": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifesto = ler_manifesto(caminho)
+    gravar_manifesto(caminho, manifesto)
+    dados = json.loads(caminho.read_text(encoding="utf-8"))
+
+    assert manifesto.reconciliacao_pendente is not None
+    assert manifesto.reconciliacao_pendente.resolucao == "resolvida"
+    assert dados["reconciliacao_pendente"]["resolucao"] == "resolvida"
+    assert ler_manifesto(caminho).reconciliacoes["1.0.0"].resolucao == "resolvida"
 
 
 def test_gravacao_substitui_atomicamente_sem_deixar_temporario(tmp_path) -> None:

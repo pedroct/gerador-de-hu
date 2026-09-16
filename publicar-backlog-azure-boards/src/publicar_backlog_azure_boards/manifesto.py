@@ -55,18 +55,17 @@ class Manifesto:
     def __post_init__(self) -> None:
         """Normaliza o mapa novo e o campo singular legado no mesmo estado lógico."""
         reconciliacoes = dict(self.reconciliacoes)
-        if self.reconciliacao_pendente is None:
-            sem_destino = tuple(
-                reconciliacao.chave
-                for reconciliacao in reconciliacoes.values()
-                if reconciliacao.destino is None
+        sem_destino = tuple(
+            reconciliacao.chave
+            for reconciliacao in reconciliacoes.values()
+            if reconciliacao.destino is None
+        )
+        if sem_destino:
+            raise ValueError(
+                "Reconciliações novas exigem contexto de destino completo: "
+                + ", ".join(sem_destino)
+                + "."
             )
-            if sem_destino:
-                raise ValueError(
-                    "Reconciliações novas exigem contexto de destino completo: "
-                    + ", ".join(sem_destino)
-                    + "."
-                )
         if self.reconciliacao_pendente is not None:
             chave = self.reconciliacao_pendente.chave
             existente = reconciliacoes.get(chave)
@@ -83,7 +82,7 @@ class Manifesto:
         )
         if reconciliacoes != self.reconciliacoes:
             object.__setattr__(self, "reconciliacoes", reconciliacoes)
-        if pendente != self.reconciliacao_pendente:
+        if self.reconciliacao_pendente is None and pendente is not None:
             object.__setattr__(self, "reconciliacao_pendente", pendente)
 
 
