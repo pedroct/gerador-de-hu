@@ -74,3 +74,36 @@ instalado validou `tests/fixtures/valid-backlog.md` e produziu `Backlog válido:
 
 O diretório não rastreado preexistente `graphify-out/` não foi incluído nem alterado. Não foram
 despachados subagentes ou revisores.
+
+## Adendo — auditoria do fluxo real de `--validar-apenas`
+
+A revisão posterior apontou que o caminho real de `--validar-apenas` não carregaria a credencial.
+Essa falha não se reproduziu no estado auditado: a condição de `_carregar_configuracao` exige
+token para todo `publicar` não simulado sem cliente injetado, e `--validar-apenas` é uma opção
+desse comando. A implementação já presente no `HEAD` também constrói `ClienteAzureDevOps` com o
+token obtido antes de executar a verificação de destino.
+
+A regressão complementar em `tests/test_skill_integration.py` cobre o caminho sem cliente injetado:
+remove o token do ambiente, intercepta `getpass.getpass`, confirma que a credencial chega ao
+construtor do cliente, responde somente aos GETs esperados e falha caso qualquer POST seja
+realizado. Também confirma que a credencial não aparece na saída. O teste existente de simulação
+continua cobrindo a ausência de token e HTTP.
+
+Verificações executadas após a correção da regressão:
+
+```text
+uv run pytest tests/test_configuracao_projeto.py tests/test_cliente_azure_devops.py tests/test_skill_integration.py -q
+41 passed in 0.14s
+
+uv run pytest -q
+108 passed in 0.19s
+
+uv run ruff check .
+All checks passed!
+
+uv run ruff format --check .
+25 files already formatted
+
+uv run mypy src
+Success: no issues found in 13 source files
+```

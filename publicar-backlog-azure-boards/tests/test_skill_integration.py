@@ -5,6 +5,11 @@ import sys
 from io import StringIO
 from pathlib import Path
 
+import httpx
+import pytest
+
+from publicar_backlog_azure_boards.cliente_azure_devops import ClienteAzureDevOps
+
 RAIZ = Path(__file__).resolve().parents[1]
 for caminho in (RAIZ / "src",):
     if str(caminho) not in sys.path:
@@ -106,6 +111,99 @@ def test_validar_apenas_consulta_remotamente_sem_post() -> None:
     assert codigo == 0
     assert cliente.chamadas_http == ["GET"]
     assert cliente.chaves_criadas == []
+
+
+def test_validar_apenas_sem_cliente_carrega_token_e_faz_somente_get(monkeypatch, tmp_path) -> None:
+    env_vazio = tmp_path / ".env"
+    env_vazio.write_text("", encoding="utf-8")
+    chamadas: list[httpx.Request] = []
+    prompts: list[str] = []
+    saida = StringIO()
+
+    def ler_sem_eco(prompt: str) -> str:
+        prompts.append(prompt)
+        return "credencial-de-teste"
+
+    def responder(request: httpx.Request) -> httpx.Response:
+        chamadas.append(request)
+        if request.method != "GET":
+            pytest.fail("--validar-apenas não pode fazer POST")
+        caminho = request.url.path
+        if caminho.endswith("/_apis/wit/workitemtypes"):
+            corpo: dict[str, object] = {
+                "value": [{"name": tipo} for tipo in CONFIGURACAO.mapeamento_tipos.nomes_remotos()]
+            }
+        elif caminho.endswith("/fields"):
+            corpo = {
+                "value": [
+                    {"referenceName": campo}
+                    for campo in (
+                        "System.Title",
+                        "System.Description",
+                        "System.AreaPath",
+                        "System.IterationPath",
+                    )
+                ]
+            }
+        elif caminho.endswith("/_apis/wit/workitemrelationtypes"):
+            corpo = {"value": [{"referenceName": "System.LinkTypes.Hierarchy-Reverse"}]}
+        elif caminho.endswith("/classificationnodes/Areas"):
+            corpo = {
+                "name": "Projeto",
+                "path": r"\Projeto",
+                "url": "https://dev.azure.com/organizacao/Projeto/_apis/wit/classificationnodes/Areas",
+                "structureType": "area",
+            }
+        elif caminho.endswith("/classificationnodes/Iterations/Sprint 18"):
+            corpo = {
+                "name": "Sprint 18",
+                "path": r"\Projeto\Sprint 18",
+                "url": "https://dev.azure.com/organizacao/Projeto/_apis/wit/classificationnodes/Iterations/Sprint%2018",
+                "structureType": "iteration",
+            }
+        else:
+            pytest.fail(f"GET inesperado: {request.url}")
+        return httpx.Response(200, json=corpo, request=request)
+
+    def construir_cliente(configuracao, token):
+        assert token == "credencial" + "-de-teste"
+        return ClienteAzureDevOps(
+            configuracao,
+            token,
+            transport=httpx.MockTransport(responder),
+            espera_inicial=0,
+        )
+
+    monkeypatch.setattr("getpass.getpass", ler_sem_eco)
+    monkeypatch.setattr(_publicar_backlog, "ClienteAzureDevOps", construir_cliente)
+
+    codigo = principal(
+        [
+            "publicar",
+            str(BACKLOG),
+            "--validar-apenas",
+            "--organizacao",
+            "organizacao",
+            "--projeto",
+            "Projeto",
+            "--area-path",
+            "Projeto",
+            "--iteration-path",
+            r"Projeto\Sprint 18",
+            "--env-file",
+            str(env_vazio),
+            "--manifesto",
+            str(tmp_path / "manifesto.json"),
+        ],
+        entrada=StringIO(),
+        saida=saida,
+    )
+
+    assert codigo == 0
+    assert prompts == ["Credencial do Azure DevOps: "]
+    assert chamadas
+    assert all(request.method == "GET" for request in chamadas)
+    assert "credencial-de-teste" not in saida.getvalue()
 
 
 def test_validador_estrutural_existente_bloqueia_antes_do_planejamento(
