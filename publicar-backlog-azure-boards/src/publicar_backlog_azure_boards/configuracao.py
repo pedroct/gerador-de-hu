@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import getpass
 import os
 import sys
 import tomllib
 from collections.abc import Callable, Mapping
-from getpass import getpass
 from pathlib import Path
 from typing import TextIO
 
@@ -134,7 +134,7 @@ def carregar_configuracao(
         if not valores[campo]:
             valores[campo] = _perguntar(campo, entrada_interativa, saida_interativa)
     if exigir_token and not valores["token"]:
-        leitor = ler_segredo or (lambda prompt: getpass(prompt=prompt, stream=saida_interativa))
+        leitor = ler_segredo or (lambda prompt: getpass.getpass(prompt))
         valores["token"] = leitor("Credencial do Azure DevOps: ").strip()
 
     tipos_padrao = {

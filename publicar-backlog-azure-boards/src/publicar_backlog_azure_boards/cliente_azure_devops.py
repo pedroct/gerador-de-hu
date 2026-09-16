@@ -7,7 +7,8 @@ import time
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import quote, unquote, urlencode, urlparse
+from uuid import UUID
 
 import httpx
 
@@ -292,6 +293,7 @@ class ClienteAzureDevOps:
         )
         nome = payload.get("name")
         caminho_retornado = payload.get("path")
+        url_retornada = payload.get("url")
         estrutura_retornada = payload.get("structureType")
         caminho_esperado = "\\" + "\\".join(partes)
         if (
@@ -300,6 +302,8 @@ class ClienteAzureDevOps:
             or nome != partes[-1]
             or not isinstance(caminho_retornado, str)
             or caminho_retornado != caminho_esperado
+            or not isinstance(url_retornada, str)
+            or not _url_classificacao_valida(url_retornada, grupo, partes, self.configuracao)
             or estrutura_retornada != tipo_estrutura
         ):
             raise ErroDestinoInvalido(f"{grupo} não corresponde ao destino configurado.")
@@ -379,6 +383,45 @@ def _url_azure_valida(valor: str) -> bool:
     except (ValueError, UnicodeError):
         return False
     return url.scheme == "https" and bool(url.netloc) and bool(url.path)
+
+
+def _url_classificacao_valida(
+    valor: str,
+    grupo: str,
+    partes: tuple[str, ...],
+    configuracao: ConfiguracaoPublicacao,
+) -> bool:
+    """Confere a URL oficial do nó sem tratar seu caminho como campo do item."""
+    if not _url_azure_valida(valor):
+        return False
+    try:
+        url = urlparse(valor)
+        hostname = url.hostname
+        segmentos = tuple(unquote(segmento) for segmento in url.path.split("/") if segmento)
+    except (ValueError, UnicodeError):
+        return False
+
+    caminho_nodo = tuple(partes[1:])
+    esperado = ("_apis", "wit", "classificationnodes", grupo, *caminho_nodo)
+    if (
+        hostname is None
+        or hostname.casefold() != "dev.azure.com"
+        or len(segmentos) != len(esperado) + 2
+        or segmentos[0].casefold() != configuracao.organizacao.casefold()
+        or tuple(segmento.casefold() for segmento in segmentos[2:5])
+        != tuple(segmento.casefold() for segmento in esperado[:3])
+        or segmentos[5:] != esperado[3:]
+    ):
+        return False
+
+    projeto_retornado = segmentos[1]
+    if projeto_retornado.casefold() == configuracao.projeto.casefold():
+        return True
+    try:
+        UUID(projeto_retornado)
+    except (ValueError, AttributeError):
+        return False
+    return True
 
 
 def _verificar_status(resposta: httpx.Response) -> None:

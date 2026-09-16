@@ -93,6 +93,21 @@ def test_simulacao_sem_token_nao_instancia_cliente_http(monkeypatch, tmp_path) -
     assert codigo == 0
 
 
+def test_validar_apenas_consulta_remotamente_sem_post() -> None:
+    cliente = ClienteFalso()
+
+    codigo = principal(
+        ["publicar", str(BACKLOG), "--validar-apenas"],
+        cliente=cliente,
+        entrada=StringIO(),
+        saida=StringIO(),
+    )
+
+    assert codigo == 0
+    assert cliente.chamadas_http == ["GET"]
+    assert cliente.chaves_criadas == []
+
+
 def test_validador_estrutural_existente_bloqueia_antes_do_planejamento(
     monkeypatch, tmp_path
 ) -> None:

@@ -165,7 +165,12 @@ def principal(
                 configuracao.obter_token(),
             ),
         )
-        _verificar_preliminar(cliente_real, configuracao.publicacao, pendentes)
+        _verificar_preliminar(
+            cliente_real,
+            configuracao.publicacao,
+            pendentes,
+            validar_operacoes=not argumentos_parseados.validar_apenas,
+        )
         if argumentos_parseados.validar_apenas:
             _escrever(saida_real, "Validação preliminar concluída sem chamadas de criação.\n")
             return 0
@@ -237,8 +242,12 @@ def _verificar_preliminar(
     cliente: ClientePublicacao,
     configuracao: ConfiguracaoPublicacao,
     operacoes: Sequence[OperacaoCriacao],
+    *,
+    validar_operacoes: bool = True,
 ) -> None:
     cliente.verificar_destino(configuracao)
+    if not validar_operacoes:
+        return
     for operacao in operacoes:
         cliente.validar_operacao(operacao)
 

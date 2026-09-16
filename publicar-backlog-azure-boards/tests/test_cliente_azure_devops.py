@@ -78,12 +78,21 @@ def respostas_verificacao(
         resposta(200, {"value": [{"name": tipo} for tipo in tipos]}),
         *(resposta(200, {"value": CAMPOS_OBRIGATORIOS}) for _ in tipos),
         resposta(200, {"value": [{"referenceName": "System.LinkTypes.Hierarchy-Reverse"}]}),
-        resposta(200, {"name": "Projeto", "path": r"\Projeto", "structureType": "area"}),
+        resposta(
+            200,
+            {
+                "name": "Projeto",
+                "path": r"\Projeto",
+                "url": "https://dev.azure.com/org/Projeto/_apis/wit/classificationnodes/Areas",
+                "structureType": "area",
+            },
+        ),
         resposta(
             200,
             {
                 "name": "Sprint 18",
                 "path": r"\Projeto\Sprint 18",
+                "url": "https://dev.azure.com/org/Projeto/_apis/wit/classificationnodes/Iterations/Sprint%2018",
                 "structureType": "iteration",
             },
         ),
@@ -164,6 +173,50 @@ def test_verificacao_rejeita_resposta_incompleta_ou_destino_incompativel(
 
     with pytest.raises(ErroDestinoInvalido):
         cliente_azure.verificar_destino(CONFIGURACAO)
+
+
+def test_verificacao_rejeita_url_de_classification_node_incompativel() -> None:
+    respostas = respostas_verificacao()
+    respostas[-2] = resposta(
+        200,
+        {
+            "name": "Projeto",
+            "path": r"\Projeto",
+            "url": "https://dev.azure.com/org/Projeto/_apis/wit/classificationnodes/Areas/Outro",
+            "structureType": "area",
+        },
+    )
+    cliente_azure, _ = cliente(respostas)
+
+    with pytest.raises(ErroDestinoInvalido):
+        cliente_azure.verificar_destino(CONFIGURACAO)
+
+
+def test_verificacao_aceita_url_oficial_com_id_de_projeto_e_casing_do_endpoint() -> None:
+    respostas = respostas_verificacao()
+    respostas[-2] = resposta(
+        200,
+        {
+            "name": "Projeto",
+            "path": r"\Projeto",
+            "url": "https://dev.azure.com/org/00000000-0000-0000-0000-000000000001/_apis/wit/classificationNodes/Areas",
+            "structureType": "area",
+        },
+    )
+    respostas[-1] = resposta(
+        200,
+        {
+            "name": "Sprint 18",
+            "path": r"\Projeto\Sprint 18",
+            "url": "https://dev.azure.com/org/00000000-0000-0000-0000-000000000001/_apis/wit/classificationNodes/Iterations/Sprint%2018",
+            "structureType": "iteration",
+        },
+    )
+    cliente_azure, _ = cliente(respostas)
+
+    destino = cliente_azure.verificar_destino(CONFIGURACAO)
+
+    assert destino.iteration_path == r"Projeto\Sprint 18"
 
 
 def test_criacao_usa_endpoint_com_cifrao_json_patch_e_tipo_remoto() -> None:
