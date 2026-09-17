@@ -4,7 +4,7 @@ Skills para transformar especificações em histórias de usuário refinadas e e
 
 ## O que o projeto faz
 
-O fluxo combina nove capacidades complementares:
+O fluxo combina oito capacidades complementares:
 
 ```text
 Spec
