@@ -164,6 +164,17 @@ class DraftingSkillIsolationTests(unittest.TestCase):
         )
         self.assertIn("spec de débitos como seção separada", self.drafting)
 
+    def test_drafting_skill_suggests_screen_spec_skill_conditionally(self):
+        self.assertIn(
+            "Se a spec tiver requisitos com faceta de interface, indique também, como "
+            "próximo passo manual opcional, a skill `especificar-telas-ux-ui` (quando "
+            "instalada), sem chamá-la diretamente.",
+            self.drafting,
+        )
+        self.assert_has_no_named_skill_invocation(
+            self.drafting, ("especificar-telas-ux-ui",)
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

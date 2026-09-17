@@ -52,6 +52,23 @@ User Story e Bug compartilham a mesma sequência `S` sob a mesma Feature: não s
 - Não renumere itens existentes e não reutilize chaves removidas; por isso uma atualização pode conter lacunas.
 - Nunca apresente a chave documental como ID atribuído pelo Azure Boards.
 
+## Depende de e Bloqueia
+
+Campo opcional, presente apenas quando o item nasceu do fluxo de `especificar-telas-ux-ui` (uma seção
+`## Necessidade de especificação de tela` na spec de origem, com o documento companheiro `Spec: Telas
+UX-UI`). Um item funcional (User Story ou Bug) que depende de tela declara `Depende de` com uma ou mais
+chaves `E.F.S`, uma por plataforma que precisa de especificação; o item de design correspondente (sempre
+`User Story`) declara `Bloqueia` com a chave `E.F.S` do item funcional que ele libera.
+
+- É texto informativo dentro de `Description`, na mesma seção da Conversation — não é um novo nível hierárquico e não substitui `Parent`.
+- Não altera a prontidão calculada pela 3C: um item pode estar `Pronto` segundo Card, Conversation e
+  Confirmation mesmo com `Depende de` apontando para um item de design ainda não `Pronto`. A 3C continua
+  sendo a única dona da prontidão geral.
+- Não cria nem representa o link formal Predecessor/Sucessor do Azure Boards; essa relação, quando
+  existir na importação, é responsabilidade de uma etapa de publicação futura.
+- Sempre um item de design por plataforma necessária: um item funcional que depende de tela em web e em
+  mobile declara `Depende de` com as duas chaves.
+
 ## Template completo
 
 ```markdown
@@ -106,6 +123,8 @@ Origem na spec: [seção/âncora/localização disponível]
 ###### Conversation
 [conteúdo da Conversation retornado pela 3C]
 
+[Se aplicável: `Depende de: 1.1.2` (chave do item de design; uma por plataforma pendente) — ou `Bloqueia: 1.1.1` quando este item for a User Story de design gerada por especificar-telas-ux-ui; ambos informativos, não substituem Parent nem alteram a prontidão da 3C]
+
 Origem na spec: [seção/âncora/localização disponível]
 
 ##### Implementation Evidence *(metadado de revisão — não é copiado para o Azure Boards; o campo `Description` termina no fim da Conversation acima)*
@@ -129,6 +148,8 @@ Origem na spec: [seção/âncora/localização disponível]
 
 ###### Conversation
 [conteúdo da Conversation retornado pela 3C]
+
+[Se aplicável: `Depende de: 1.1.2` (chave do item de design; uma por plataforma pendente) — informativo, não substitui Parent nem altera a prontidão da 3C]
 
 Origem na spec: [seção/âncora/localização disponível]
 

@@ -42,7 +42,7 @@ mesmo quando o pedido parecer pequeno demais ou incompleto.
    (quando instalada) como próximo passo manual, antes de a spec seguir para
    `gerar-backlog-azure-boards`. Se houver copy voltada ao usuário na spec, indique
    também, como próximo passo manual opcional, a skill `revisar-textos-requisitos` (quando
-   instalada), sem chamá-la diretamente.
+   instalada), sem chamá-la diretamente. Se a spec tiver requisitos com faceta de interface, indique também, como próximo passo manual opcional, a skill `especificar-telas-ux-ui` (quando instalada), sem chamá-la diretamente.
 
 ## Ausência de repositório relevante
 
