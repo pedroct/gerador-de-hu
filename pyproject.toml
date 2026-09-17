@@ -51,6 +51,7 @@ testpaths = [
   "entrevistar-lacunas-requisito/tests",
   "revisar-textos-requisitos/tests",
   "especificar-debitos-tecnicos/tests",
+  "especificar-telas-ux-ui/tests",
 ]
 addopts = "-ra --import-mode=importlib"
 
