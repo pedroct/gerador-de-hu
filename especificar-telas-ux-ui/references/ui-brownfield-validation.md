@@ -49,6 +49,10 @@ Ausência de evidência não significa `Implementado`. Use exatamente um destes 
 | `Impossível validar` | A raiz, os arquivos ou a evidência necessários não estavam acessíveis, ou o escopo permaneceu ambíguo. |
 | `Não aplicável` | O produto genuinamente não tem essa plataforma no seu escopo. |
 
+Em Greenfield-UI (nenhum código de front-end acessível para a plataforma), classifique sempre como
+`Não encontrado`, registrando a ausência de código como motivo; `Impossível validar` é reservado a uma
+plataforma que existe mas não pôde ser inspecionada.
+
 `Confiança` qualifica a conclusão (`Alta`, `Média` ou `Baixa`) e não substitui o status.
 
 ## Matriz obrigatória

@@ -194,6 +194,16 @@ class SkillIntegrationTests(unittest.TestCase):
             ("especificar-telas-ux-ui",),
         )
 
+    def test_backlog_contract_has_no_named_skill_invocation_for_telas(self):
+        self.assert_has_no_named_skill_invocation(
+            self.backlog_contract,
+            ("especificar-telas-ux-ui",),
+        )
+
+    def test_contract_template_has_a_slot_for_depende_de_and_bloqueia(self):
+        self.assertIn("Depende de: 1.1.2", self.backlog_contract)
+        self.assertIn("Bloqueia: 1.1.1", self.backlog_contract)
+
     def test_backlog_pairs_design_item_and_fills_dependency_fields(self):
         self.assertIn(
             "crie a User Story de design correspondente como item-irmão do item funcional "
@@ -226,8 +236,14 @@ class SkillIntegrationTests(unittest.TestCase):
         )
 
     def test_readme_documents_screen_spec_skill(self):
-        self.assertIn("especificar-telas-ux-ui", self.readme)
-        self.assertIn("Telas UX-UI", self.readme)
+        self.assertIn(
+            "| [`especificar-telas-ux-ui`](especificar-telas-ux-ui/SKILL.md) | Um requisito da spec "
+            "pode exigir tela nova ou fluxo de tela alterado em web e/ou mobile |",
+            self.readme,
+        )
+        self.assertIn(
+            "- **Telas UX-UI:** identifica, por inspeção somente leitura", self.readme
+        )
 
 
 if __name__ == "__main__":

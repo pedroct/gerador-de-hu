@@ -74,7 +74,7 @@ nunca pelo texto de negócio — e anota a spec para consumo opcional do passo s
 Spec
  └─ especificar-telas-ux-ui (opcional, se instalada)
      └─ Spec anotada + Spec: Telas UX-UI — <contexto>
-         └─ gerar-backlog-azure-boards (nova rodada, consome como arquivo opcional)
+         └─ gerar-backlog-azure-boards (consome como arquivo opcional)
 ```
 
 - **Drafting a partir de pedido de negócio:** investiga o código-fonte a partir de um pedido informal (e-mail, ticket) e produz a spec inicial, separando o que foi afirmado, evidenciado e lacunas.

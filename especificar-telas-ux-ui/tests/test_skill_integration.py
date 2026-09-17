@@ -109,6 +109,16 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn('display_name: "Especificar telas UX-UI"', self.agent)
         self.assertIn("$especificar-telas-ux-ui", self.agent)
 
+    def test_greenfield_ui_has_explicit_status_mapping(self):
+        self.assertIn(
+            "Em Greenfield-UI, classifique todo par como `Não encontrado`", self.skill
+        )
+        self.assertIn(
+            "Em Greenfield-UI (nenhum código de front-end acessível para a plataforma), classifique "
+            "sempre como",
+            self.reference,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

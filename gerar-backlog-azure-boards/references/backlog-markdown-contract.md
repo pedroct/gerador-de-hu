@@ -123,6 +123,8 @@ Origem na spec: [seção/âncora/localização disponível]
 ###### Conversation
 [conteúdo da Conversation retornado pela 3C]
 
+[Se aplicável: `Depende de: 1.1.2` (chave do item de design; uma por plataforma pendente) — ou `Bloqueia: 1.1.1` quando este item for a User Story de design gerada por especificar-telas-ux-ui; ambos informativos, não substituem Parent nem alteram a prontidão da 3C]
+
 Origem na spec: [seção/âncora/localização disponível]
 
 ##### Implementation Evidence *(metadado de revisão — não é copiado para o Azure Boards; o campo `Description` termina no fim da Conversation acima)*
@@ -146,6 +148,8 @@ Origem na spec: [seção/âncora/localização disponível]
 
 ###### Conversation
 [conteúdo da Conversation retornado pela 3C]
+
+[Se aplicável: `Depende de: 1.1.2` (chave do item de design; uma por plataforma pendente) — informativo, não substitui Parent nem altera a prontidão da 3C]
 
 Origem na spec: [seção/âncora/localização disponível]
 
