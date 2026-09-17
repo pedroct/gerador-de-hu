@@ -1,0 +1,4 @@
+interface:
+  display_name: "Especificar telas UX-UI"
+  short_description: "Identifica necessidade de tela nova ou alterada, por código"
+  default_prompt: "Use $especificar-telas-ux-ui para identificar, a partir da spec e do código de front-end, quais requisitos precisam de tela nova ou alterada para a equipe de UX-UI."
