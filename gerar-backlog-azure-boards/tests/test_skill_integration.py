@@ -183,6 +183,52 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn("Parcialmente implementado", self.readme)
         self.assertIn("Impossível validar", self.readme)
 
+    def test_backlog_consumes_telas_output_as_file_not_invocation(self):
+        self.assertIn(
+            "como input opcional por arquivo — nunca como invocação de "
+            "`especificar-telas-ux-ui`",
+            self.backlog,
+        )
+        self.assert_has_no_named_skill_invocation(
+            self.backlog,
+            ("especificar-telas-ux-ui",),
+        )
+
+    def test_backlog_pairs_design_item_and_fills_dependency_fields(self):
+        self.assertIn(
+            "crie a User Story de design correspondente como item-irmão do item funcional "
+            "que ela bloqueia, sob a mesma Feature",
+            self.backlog,
+        )
+        self.assertIn(
+            "Um item de design nascido do passo 2 é sempre `User Story`", self.backlog
+        )
+        self.assertIn(
+            "preencha `Depende de` no item funcional com a chave `E.F.S` do item de "
+            "design, e `Bloqueia` no item de design com a chave `E.F.S` do item funcional",
+            self.backlog,
+        )
+
+    def test_backlog_boundaries_mark_dependency_field_as_informative(self):
+        self.assertIn(
+            "O campo `Depende de`/`Bloqueia`, quando presente, é informativo",
+            self.backlog,
+        )
+
+    def test_contract_documents_depende_de_and_bloqueia_as_informative(self):
+        self.assertIn("## Depende de e Bloqueia", self.backlog_contract)
+        self.assertIn(
+            "Não altera a prontidão calculada pela 3C", self.backlog_contract
+        )
+        self.assertIn(
+            "não é um novo nível hierárquico e não substitui `Parent`",
+            self.backlog_contract,
+        )
+
+    def test_readme_documents_screen_spec_skill(self):
+        self.assertIn("especificar-telas-ux-ui", self.readme)
+        self.assertIn("Telas UX-UI", self.readme)
+
 
 if __name__ == "__main__":
     unittest.main()

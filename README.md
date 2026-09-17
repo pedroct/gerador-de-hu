@@ -4,7 +4,7 @@ Skills para transformar especificações em histórias de usuário refinadas e e
 
 ## O que o projeto faz
 
-O fluxo combina sete capacidades complementares:
+O fluxo combina nove capacidades complementares:
 
 ```text
 Spec
@@ -66,6 +66,17 @@ Débito técnico identificado
          └─ gerar-backlog-azure-boards (etapa manual)
 ```
 
+Antes da geração do backlog, quando um requisito envolve tela nova ou fluxo de tela alterado em
+front-end web ou mobile, `especificar-telas-ux-ui` identifica essa necessidade por inspeção de código —
+nunca pelo texto de negócio — e anota a spec para consumo opcional do passo seguinte:
+
+```text
+Spec
+ └─ especificar-telas-ux-ui (opcional, se instalada)
+     └─ Spec anotada + Spec: Telas UX-UI — <contexto>
+         └─ gerar-backlog-azure-boards (nova rodada, consome como arquivo opcional)
+```
+
 - **Drafting a partir de pedido de negócio:** investiga o código-fonte a partir de um pedido informal (e-mail, ticket) e produz a spec inicial, separando o que foi afirmado, evidenciado e lacunas.
 - **Entrevista de lacunas:** fecha, por entrevista em rodadas, a seção de lacunas de uma spec já escrita, sem investigar código nem desenhar plano algum; referenciada condicionalmente por Drafting e, após a geração do backlog, como sugestão para fechar Histórias `Não pronta` — nunca obrigatória.
 - **3W — Who, What, Why:** identifica ator, capacidade/resultado e valor, separando fatos de lacunas.
@@ -73,8 +84,9 @@ Débito técnico identificado
 - **Gherkin:** converte apenas regras confirmadas em exemplos verificáveis e classifica a Confirmation como `Ausente`, `Parcial` ou `Completa`.
 - **Backlog a partir de spec:** agrupa requisitos rastreáveis em Épicos, Features e Histórias e sempre gera o documento Markdown revisável, marcando lacunas e Histórias incompletas como `Não pronta` em vez de bloquear a geração ou inventar fechamento só para completar o documento; para essas Histórias, sugere a entrevista de lacunas como próxima rodada.
 - **Spec de débitos técnicos:** registra débitos encontrados no entendimento ou refinamento, classifica-os, prioriza-os e recomenda `User Story` ou `Bug` por item, sem criar work items no Azure Boards.
+- **Telas UX-UI:** identifica, por inspeção somente leitura do código de front-end (web e mobile), quais requisitos exigem tela nova ou fluxo alterado; produz um brief em linguagem de UX-UI e uma anotação consumida opcionalmente por `gerar-backlog-azure-boards`, que cria uma User Story de design dependente do item funcional.
 
-As dependências são acíclicas: 3W, Gherkin e a skill de débitos técnicos são folhas; a skill de backlog chama somente 3C; `redigir-spec-pedido-negocio` é uma predecessora isolada, que nunca chama nem é chamada pelas outras skills. `entrevistar-lacunas-requisito` também é folha e nunca é chamada incondicionalmente nem invocada diretamente por outra skill — é só referenciada, de forma condicional, pelo fluxo de `redigir-spec-pedido-negocio` e, após a geração do backlog, pela sugestão de fechar Histórias `Não pronta` em `gerar-backlog-azure-boards`; em ambos os casos, quem decide rodá-la é o usuário. A skill de débitos técnicos pode ser chamada opcionalmente por 3C ou Drafting quando um débito for identificado e devolve sua spec separada para a geração manual do backlog.
+As dependências são acíclicas: 3W, Gherkin e a skill de débitos técnicos são folhas; a skill de backlog chama somente 3C; `redigir-spec-pedido-negocio` é uma predecessora isolada, que nunca chama nem é chamada pelas outras skills. `entrevistar-lacunas-requisito` também é folha e nunca é chamada incondicionalmente nem invocada diretamente por outra skill — é só referenciada, de forma condicional, pelo fluxo de `redigir-spec-pedido-negocio` e, após a geração do backlog, pela sugestão de fechar Histórias `Não pronta` em `gerar-backlog-azure-boards`; em ambos os casos, quem decide rodá-la é o usuário. A skill de débitos técnicos pode ser chamada opcionalmente por 3C ou Drafting quando um débito for identificado e devolve sua spec separada para a geração manual do backlog. `especificar-telas-ux-ui` também é folha e nunca é chamada incondicionalmente; é referenciada, de forma condicional, por `redigir-spec-pedido-negocio` e consumida por `gerar-backlog-azure-boards` apenas como arquivo opcional, nunca como invocação.
 
 ## Instalação
 
@@ -170,6 +182,7 @@ Os status comparam apenas o projeto com um requisito rastreável da spec. Códig
 | [`refinar-historias-3c`](refinar-historias-3c/SKILL.md) | A história precisa de conversa e confirmação | Card, Conversation, Confirmation e prontidão 3C |
 | [`refinar-historias-gherkin`](refinar-historias-gherkin/SKILL.md) | Regras confirmadas precisam de exemplos BDD | Regras, Gherkin e estado local da Confirmation |
 | [`gerar-backlog-azure-boards`](gerar-backlog-azure-boards/SKILL.md) | Uma spec precisa virar backlog hierárquico | Documento Markdown de backlog e itens não cobertos |
+| [`especificar-telas-ux-ui`](especificar-telas-ux-ui/SKILL.md) | Um requisito da spec pode exigir tela nova ou fluxo de tela alterado em web e/ou mobile | Anotação de necessidade de tela na spec + `Spec: Telas UX-UI` com Card, roteiro de tela e evidência de código, por plataforma |
 | [`especificar-debitos-tecnicos`](especificar-debitos-tecnicos/SKILL.md) | Débitos técnicos foram identificados durante entendimento ou refinamento | Spec priorizada, rastreável e pronta para geração de backlog |
 
 ## Formato do backlog
@@ -251,6 +264,7 @@ uv run python -m unittest discover -s gerar-backlog-azure-boards/tests -v
 uv run python -m unittest discover -s redigir-spec-pedido-negocio/tests -v
 uv run python -m unittest discover -s entrevistar-lacunas-requisito/tests -v
 uv run python -m unittest discover -s especificar-debitos-tecnicos/tests -v
+uv run python -m unittest discover -s especificar-telas-ux-ui/tests -v
 ```
 
 Valide os oito pacotes com o utilitário oficial:
@@ -263,6 +277,7 @@ for skill_dir in \
   refinar-historias-3c \
   refinar-historias-3w \
   refinar-historias-gherkin \
+  especificar-telas-ux-ui \
   especificar-debitos-tecnicos; do
   uv run --with pyyaml python \
     /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
