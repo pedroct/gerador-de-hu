@@ -42,6 +42,7 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 files = [
   "gerar-backlog-azure-boards/scripts",
+  "redigir-spec-demanda-azure-boards/scripts",
 ]
 
 [tool.pytest.ini_options]
@@ -60,6 +61,7 @@ addopts = "-ra --import-mode=importlib"
 branch = true
 source = [
   "gerar-backlog-azure-boards/scripts",
+  "redigir-spec-demanda-azure-boards/scripts",
 ]
 
 [tool.coverage.report]

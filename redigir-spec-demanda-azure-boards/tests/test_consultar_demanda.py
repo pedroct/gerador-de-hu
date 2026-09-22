@@ -8,7 +8,8 @@ import pytest
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "consultar_demanda.py"
 SPEC = importlib.util.spec_from_file_location("consultar_demanda", SCRIPT)
-assert SPEC is not None and SPEC.loader is not None
+assert SPEC is not None
+assert SPEC.loader is not None
 modulo = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = modulo
 SPEC.loader.exec_module(modulo)
@@ -43,13 +44,41 @@ def resposta_demanda(**campos: object) -> dict[str, object]:
     }
 
 
+def modulo_fonte() -> str:
+    return SCRIPT.read_text(encoding="utf-8")
+
+
 def requisitar_resposta_padrao(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
     if "/workitems/42?" in url:
         return resposta_demanda()
     return {"value": [{"referenceName": campo} for campo in CAMPOS]}
 
 
-def test_consultar_demanda_mapeia_campos_e_usa_apenas_urls_get() -> None:
+class RespostaFalsa:
+    """Dublê de resposta HTTP usado no lugar do objeto devolvido por urlopen."""
+
+    def __init__(self, corpo: bytes) -> None:
+        self._corpo = corpo
+
+    def read(self) -> bytes:
+        return self._corpo
+
+    def __enter__(self) -> "RespostaFalsa":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+
+@pytest.fixture(autouse=True)
+def _sem_espera_real(monkeypatch: pytest.MonkeyPatch) -> list[float]:
+    """Registra as esperas de retry em vez de dormir, mantendo a suíte rápida."""
+    esperas: list[float] = []
+    monkeypatch.setattr(modulo.time, "sleep", esperas.append)
+    return esperas
+
+
+def test_consultar_demanda_mapeia_campos_e_url_por_consulta() -> None:
     chamadas: list[str] = []
 
     def requisitar(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
@@ -71,10 +100,51 @@ def test_consultar_demanda_mapeia_campos_e_usa_apenas_urls_get() -> None:
         "Demanda%20de%20Neg%C3%B3cio/fields?api-version=7.1"
     )
     assert all("api-version=" in url for url in chamadas)
+
+
+def test_caminho_de_producao_emite_somente_requests_get(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercita `requisitar=None`, o único caminho que a CLI usa de verdade."""
+    requisicoes: list[object] = []
+
+    def abrir(requisicao: object, timeout: float | None = None) -> RespostaFalsa:
+        requisicoes.append(requisicao)
+        corpo = (
+            resposta_demanda()
+            if "/workitems/42?" in requisicao.full_url
+            else {"value": [{"referenceName": campo} for campo in CAMPOS]}
+        )
+        assert timeout == modulo.TIMEOUT_SEGUNDOS
+        return RespostaFalsa(json.dumps(corpo).encode("utf-8"))
+
+    monkeypatch.setattr(modulo, "urlopen", abrir)
+
+    demanda = modulo.consultar_demanda(42, CONFIGURACAO)
+
+    assert demanda.titulo == "Consultar débitos do contribuinte"
+    assert len(requisicoes) == 2
+    # A proibição de escrita é verificada nos objetos Request reais, não na string da URL.
+    assert [requisicao.get_method() for requisicao in requisicoes] == ["GET", "GET"]
+    assert all(requisicao.data is None for requisicao in requisicoes)
+    assert [requisicao.full_url for requisicao in requisicoes] == [
+        "https://dev.azure.com/org/projeto/_apis/wit/workitems/42?$expand=Fields&api-version=7.1",
+        "https://dev.azure.com/org/projeto/_apis/wit/workitemtypes/"
+        "Demanda%20de%20Neg%C3%B3cio/fields?api-version=7.1",
+    ]
+    esperado = "Basic " + modulo.base64.b64encode(b":segredo").decode()
     assert all(
-        not any(verbo in url for verbo in ("POST", "PATCH", "PUT", "DELETE"))
-        for url in chamadas
+        requisicao.get_header("Authorization") == esperado for requisicao in requisicoes
     )
+
+
+def test_fonte_do_leitor_nao_declara_metodo_diferente_de_get() -> None:
+    """Trava a regressão que uma asserção sobre URLs jamais pegaria."""
+    fonte = modulo_fonte()
+    assert fonte.count("method=") == 1
+    assert 'method="GET"' in fonte
+    for verbo in ("POST", "PATCH", "PUT", "DELETE"):
+        assert f'"{verbo}"' not in fonte
 
 
 @pytest.mark.parametrize("id_item", [0, -1])
@@ -181,17 +251,38 @@ def test_consultar_demanda_rejeita_definicao_de_campos_invalida(
         modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
 
 
-def test_consultar_demanda_converte_erro_http_e_json_sem_expor_token() -> None:
-    class RespostaHttp:
-        status = 401
-
+@pytest.mark.parametrize(
+    ("codigo", "trecho_publico"),
+    [
+        (401, "credencial inválida"),
+        (403, "sem permissão"),
+        (404, "não encontrada"),
+    ],
+)
+def test_consultar_demanda_converte_erro_http_sem_expor_token(
+    codigo: int, trecho_publico: str
+) -> None:
     def requisitar(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
-        raise modulo.HTTPError(url, 401, "não autorizado", {}, None)
+        raise modulo.HTTPError(url, codigo, "recusado", {}, None)
 
-    with pytest.raises(modulo.ErroConsultaDemanda, match="401") as erro:
+    with pytest.raises(modulo.ErroConsultaDemanda, match=str(codigo)) as erro:
         modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
 
     assert "segredo" not in str(erro.value)
+    # O código HTTP não é segredo e é o que distingue ID errado de acesso negado.
+    assert erro.value.codigo_http == codigo
+    assert trecho_publico in erro.value.detalhe_publico
+
+
+def test_erro_http_sem_diagnostico_publico_nao_inventa_detalhe() -> None:
+    def requisitar(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
+        raise modulo.HTTPError(url, 418, "bule de chá", {}, None)
+
+    with pytest.raises(modulo.ErroConsultaDemanda) as erro:
+        modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
+
+    assert erro.value.codigo_http is None
+    assert erro.value.detalhe_publico is None
 
 
 def test_consultar_demanda_nao_expoe_detalhes_do_erro_de_transporte() -> None:
@@ -206,29 +297,90 @@ def test_consultar_demanda_nao_expoe_detalhes_do_erro_de_transporte() -> None:
     assert valor_proibido not in str(erro.value)
 
 
-def test_requisitar_json_envia_get_e_token_no_cabecalho() -> None:
-    chamadas: list[tuple[str, dict[str, str]]] = []
+def test_requisitar_json_repassa_cabecalhos_e_usa_get_com_timeout() -> None:
+    chamadas: list[tuple[str, dict[str, str], str, float | None]] = []
 
-    class Resposta:
-        def read(self) -> bytes:
-            return json.dumps({"ok": True}).encode()
-
-        def __enter__(self) -> "Resposta":
-            return self
-
-        def __exit__(self, *args: object) -> None:
-            pass
-
-    def abrir(request: object) -> Resposta:
-        chamadas.append((request.full_url, dict(request.header_items())))
-        return Resposta()
+    def abrir(request: object, timeout: float | None = None) -> RespostaFalsa:
+        chamadas.append(
+            (
+                request.full_url,
+                dict(request.header_items()),
+                request.get_method(),
+                timeout,
+            )
+        )
+        return RespostaFalsa(json.dumps({"ok": True}).encode())
 
     resultado = modulo.requisitar_json(
         "https://dev.azure.com/x", {"Authorization": "Bearer segredo"}, abrir=abrir
     )
 
     assert resultado == {"ok": True}
-    assert chamadas == [("https://dev.azure.com/x", {"Authorization": "Bearer segredo"})]
+    assert chamadas == [
+        (
+            "https://dev.azure.com/x",
+            {"Authorization": "Bearer segredo"},
+            "GET",
+            modulo.TIMEOUT_SEGUNDOS,
+        )
+    ]
+
+
+def test_requisitar_json_honra_retry_after_dentro_do_limite(
+    _sem_espera_real: list[float],
+) -> None:
+    chamadas = 0
+
+    def abrir(request: object, timeout: float | None = None) -> RespostaFalsa:
+        nonlocal chamadas
+        chamadas += 1
+        if chamadas == 1:
+            raise HTTPError(request.full_url, 429, "throttle", {"Retry-After": "2"}, None)
+        return RespostaFalsa(b'{"ok": true}')
+
+    assert modulo.requisitar_json("https://dev.azure.com/x", {}, abrir=abrir) == {"ok": True}
+    assert _sem_espera_real == [2.0]
+
+
+@pytest.mark.parametrize(
+    ("cabecalhos", "esperado"),
+    [
+        ({}, 0.5),
+        ({"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}, 0.5),
+        ({"Retry-After": "-3"}, 0.5),
+        ({"Retry-After": "900"}, modulo._ESPERA_RETRY_AFTER_MAXIMA),
+    ],
+)
+def test_requisitar_json_ignora_retry_after_invalido_ou_abusivo(
+    cabecalhos: dict[str, str], esperado: float, _sem_espera_real: list[float]
+) -> None:
+    chamadas = 0
+
+    def abrir(request: object, timeout: float | None = None) -> RespostaFalsa:
+        nonlocal chamadas
+        chamadas += 1
+        if chamadas == 1:
+            raise HTTPError(request.full_url, 503, "indisponível", cabecalhos, None)
+        return RespostaFalsa(b'{"ok": true}')
+
+    assert modulo.requisitar_json("https://dev.azure.com/x", {}, abrir=abrir) == {"ok": True}
+    assert _sem_espera_real == [esperado]
+
+
+@pytest.mark.parametrize("erro", [TimeoutError("estourou"), ConnectionResetError("caiu")])
+def test_requisitar_json_repete_timeout_cru_fora_de_urlerror(erro: OSError) -> None:
+    """Com timeout no socket, a falha chega crua — e é tão transitória quanto via URLError."""
+    chamadas = 0
+
+    def abrir(request: object, timeout: float | None = None) -> RespostaFalsa:
+        nonlocal chamadas
+        chamadas += 1
+        if chamadas < 3:
+            raise erro
+        return RespostaFalsa(b'{"ok": true}')
+
+    assert modulo.requisitar_json("https://dev.azure.com/x", {}, abrir=abrir) == {"ok": True}
+    assert chamadas == 3
 
 
 def test_configuracao_prefere_argumento_a_arquivo_e_ambiente(tmp_path: Path) -> None:
@@ -366,6 +518,36 @@ def test_configuracao_rejeita_entrada_nao_interativa_sem_token(monkeypatch, tmp_
     assert not getpass_chamado
 
 
+@pytest.mark.parametrize(
+    ("argumentos", "trecho_esperado"),
+    [
+        (["42"], "AZURE_DEVOPS_ORGANIZACAO"),
+        (["42", "--organizacao", "org"], "AZURE_DEVOPS_PROJETO"),
+        (["42", "--organizacao", "org", "--projeto", "p"], "AZURE_DEVOPS_TOKEN"),
+    ],
+)
+def test_principal_diz_qual_configuracao_faltou(
+    argumentos: list[str], trecho_esperado: str, monkeypatch, capsys, tmp_path: Path
+) -> None:
+    """Destino e nome de variável não são segredo; sem isso o erro é irrecuperável."""
+    for chave in ("AZURE_DEVOPS_ORGANIZACAO", "AZURE_DEVOPS_PROJETO", "AZURE_DEVOPS_TOKEN"):
+        monkeypatch.delenv(chave, raising=False)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(modulo.sys.stdin, "isatty", lambda: False)
+
+    assert modulo.principal(argumentos) == 1
+
+    capturado = capsys.readouterr()
+    assert "Erro [configuração]" in capturado.err
+    assert trecho_esperado in capturado.err
+    assert capturado.out == ""
+
+
+def test_erro_de_configuracao_recusa_detalhe_fora_da_allow_list() -> None:
+    erro = modulo.ErroConfiguracao("interno", detalhe_publico="token=abc123")
+    assert erro.detalhe_publico is None
+
+
 def test_principal_nao_expoe_token_em_falha(monkeypatch, capsys) -> None:
     token = "segredo-" + "de-teste"
 
@@ -375,9 +557,10 @@ def test_principal_nao_expoe_token_em_falha(monkeypatch, capsys) -> None:
     monkeypatch.setattr(modulo, "consultar_demanda", levantar_erro_comunicavel)
     monkeypatch.setenv("AZURE_DEVOPS_TOKEN", token)
     assert modulo.principal(["42", "--organizacao", "org", "--projeto", "p"]) == 1
-    saida = capsys.readouterr().out
-    assert token not in saida
-    assert token not in json.dumps(saida)
+    capturado = capsys.readouterr()
+    assert token not in capturado.err
+    assert token not in json.dumps(capturado.err)
+    assert capturado.out == ""
 
 
 def test_principal_diagnostica_campo_ausente_com_sigilo(monkeypatch, capsys) -> None:
@@ -396,11 +579,14 @@ def test_principal_diagnostica_campo_ausente_com_sigilo(monkeypatch, capsys) -> 
 
     assert modulo.principal(["42", "--organizacao", "org", "--projeto", "p"]) == 1
 
-    saida = capsys.readouterr().out
+    capturado = capsys.readouterr()
+    saida = capturado.err
     assert "Erro [contrato]" in saida
     assert campo_ausente in saida
     assert detalhe_externo not in saida
     assert "token-super-secreto" not in saida
+    # stdout continua reservado ao JSON, para não sujar um pipe para jq.
+    assert capturado.out == ""
 
 
 def test_principal_serializa_apenas_campos_publicos(monkeypatch, capsys) -> None:
@@ -454,7 +640,7 @@ def test_requisitar_json_retries_transitorios() -> None:
         def __exit__(self, *args: object) -> None:
             pass
 
-    def abrir(request: object) -> Resposta:
+    def abrir(request: object, timeout: float | None = None) -> Resposta:
         chamadas.append(request)
         if len(chamadas) < 3:
             raise HTTPError(request.full_url, 503, "indisponível", {}, None)
@@ -476,7 +662,7 @@ def test_requisitar_json_retries_transitorios() -> None:
 def test_requisitar_json_erro_http_permanente_nao_repetido() -> None:
     chamadas = 0
 
-    def abrir(request: object) -> object:
+    def abrir(request: object, timeout: float | None = None) -> object:
         nonlocal chamadas
         chamadas += 1
         raise HTTPError(request.full_url, 400, "ruim", {}, None)
@@ -490,7 +676,7 @@ def test_requisitar_json_encapsula_erro_de_transporte_sem_detalhes() -> None:
     segredo = "token-super-secreto"
     chamadas = 0
 
-    def abrir(request: object) -> object:
+    def abrir(request: object, timeout: float | None = None) -> object:
         nonlocal chamadas
         chamadas += 1
         raise URLError(f"falha com {segredo}")
@@ -514,7 +700,7 @@ def test_requisitar_json_repete_urlerro_transitorio_ate_sucesso() -> None:
         def __exit__(self, *args: object) -> None:
             pass
 
-    def abrir(request: object) -> Resposta:
+    def abrir(request: object, timeout: float | None = None) -> Resposta:
         nonlocal chamadas
         chamadas += 1
         if chamadas < 3:
@@ -528,7 +714,7 @@ def test_requisitar_json_repete_urlerro_transitorio_ate_sucesso() -> None:
 def test_requisitar_json_limita_urlerro_transitorio_a_tres_tentativas() -> None:
     chamadas = 0
 
-    def abrir(request: object) -> object:
+    def abrir(request: object, timeout: float | None = None) -> object:
         nonlocal chamadas
         chamadas += 1
         raise URLError(TimeoutError("tempo esgotado"))
@@ -541,7 +727,7 @@ def test_requisitar_json_limita_urlerro_transitorio_a_tres_tentativas() -> None:
 def test_requisitar_json_nao_repete_oserror_puro() -> None:
     chamadas = 0
 
-    def abrir(request: object) -> object:
+    def abrir(request: object, timeout: float | None = None) -> object:
         nonlocal chamadas
         chamadas += 1
         raise OSError("falha local")

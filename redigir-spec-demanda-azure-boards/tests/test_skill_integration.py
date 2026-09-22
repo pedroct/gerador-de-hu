@@ -59,19 +59,25 @@ def test_template_preserva_rastreabilidade_e_lacunas() -> None:
 
 
 def test_fluxo_estatico_preserva_ordem_gatilhos_e_lacunas() -> None:
+    # Os marcadores são o texto do passo, não seu número: inserir um passo não é uma regressão.
     marcadores = (
-        "1. Receba o ID numérico",
-        "2. Registre a fonte",
-        "3. Converta cada valor",
-        "4. Antes de investigar",
-        "5. Preencha e salve a Spec-base",
-        "6. Chame `especificar-debitos-tecnicos`",
-        "7. Chame `especificar-telas-ux-ui`",
-        "8. Somente se houver copy",
-        "9. Salve a Spec principal",
+        "Receba o ID numérico",
+        "Destino e credencial seguem a precedência",
+        "Registre a fonte",
+        "Converta cada valor",
+        "Antes de investigar",
+        "Preencha e salve a Spec-base",
+        "Chame `especificar-debitos-tecnicos`",
+        "Chame `especificar-telas-ux-ui`",
+        "Somente se houver copy",
+        "Salve a Spec principal",
     )
     posicoes = [SKILL.index(marcador) for marcador in marcadores]
     assert posicoes == sorted(posicoes)
+
+    fluxo = SKILL[SKILL.index("## Fluxo obrigatório") : SKILL.index("## Limites de leitura")]
+    numeros = [int(numero) for numero in re.findall(r"^(\d+)\. ", fluxo, flags=re.MULTILINE)]
+    assert numeros == list(range(1, len(numeros) + 1)), "a numeração do fluxo tem furo"
 
     assert re.search(
         r"somente quando houver evidência de débito técnico ligada ao\s+escopo",
@@ -87,6 +93,62 @@ def test_fluxo_estatico_preserva_ordem_gatilhos_e_lacunas() -> None:
         flags=re.DOTALL,
     )
     assert "pergunta objetiva para cada campo null" in SKILL
+
+
+def test_skill_documenta_configuracao_sem_expor_credencial() -> None:
+    """Sem isso a CLI falha em `Erro [configuração]` e o agente não tem como se recuperar."""
+    for texto in (
+        "AZURE_DEVOPS_ORGANIZACAO",
+        "AZURE_DEVOPS_PROJETO",
+        "AZURE_DEVOPS_TOKEN",
+        "--organizacao",
+        "--projeto",
+        "--config",
+        "--env-file",
+    ):
+        assert texto in SKILL
+    assert "Nunca a passe por argumento" in SKILL
+    # Um argumento de credencial na CLI colocaria o segredo no comando registrado.
+    assert "--token" not in SKILL
+
+
+def template() -> str:
+    inicio = SKILL.index("```markdown")
+    return SKILL[inicio : SKILL.index("```", inicio + len("```markdown"))]
+
+
+def test_template_nao_carrega_instrucoes_ao_agente() -> None:
+    """Copiado literalmente, o template não deve despejar meta-instrução na Spec entregue."""
+    corpo = template()
+    for instrucao in (
+        "não são requisito confirmado",
+        "não devem ser promovidos",
+        "alimentam os atores",
+        "são os insumos desta seção",
+    ):
+        assert instrucao not in corpo
+    assert "- Registrado na Demanda: ..." in corpo
+    # A orientação continua existindo, só que fora do bloco a ser copiado.
+    assert "## Como preencher o template" in SKILL
+    assert "não são requisito confirmado" in SKILL
+
+
+def test_skill_manda_normalizar_valor_que_quebraria_a_tabela() -> None:
+    """Campos `html` do Boards podem conter marcação, `|` ou quebra de linha."""
+    for texto in ("HTML", "quebras de linha", "\\|", "fora da tabela"):
+        assert texto in SKILL
+
+
+def test_skill_nomeia_os_campos_html_confirmados_no_tipo_remoto() -> None:
+    """Confirmado por consulta real: estes três são declarados `html`, os outros são `string`."""
+    secao = SKILL[SKILL.index("## Normalização dos valores registrados") :]
+    for campo in (
+        "Custom.DemandaValorEsperado",
+        "Custom.DemandaDoraResolver",
+        "Custom.DemandaRegraseRestricoes",
+    ):
+        assert re.search(rf"`{re.escape(campo)}` \| `html`", secao)
+    assert "não precisam de conversão" in secao
 
 
 def test_referencia_delimita_investigacao_somente_leitura() -> None:
@@ -117,3 +179,21 @@ def test_projeto_documenta_a_skill_e_a_inclui_na_suite() -> None:
     ):
         assert texto in README
     assert "redigir-spec-demanda-azure-boards/tests" in PYPROJECT
+
+
+_NUMEROS_POR_EXTENSO = {
+    8: "oito",
+    9: "nove",
+    10: "dez",
+    11: "onze",
+    12: "doze",
+}
+
+
+def test_readme_conta_capacidades_de_acordo_com_a_propria_lista() -> None:
+    """A contagem e a lista divergiram antes; uma checagem de substring não pegaria isso."""
+    capacidades = re.findall(r"^- \*\*(.+?):\*\*", README, flags=re.MULTILINE)
+    declarado = re.search(r"O fluxo combina (\w+) capacidades", README)
+    assert declarado is not None
+    assert declarado.group(1) == _NUMEROS_POR_EXTENSO[len(capacidades)]
+    assert any("Demanda no Azure Boards" in capacidade for capacidade in capacidades)

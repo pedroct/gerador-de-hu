@@ -4,7 +4,7 @@ Skills para transformar especificações em histórias de usuário refinadas e e
 
 ## O que o projeto faz
 
-O fluxo combina oito capacidades complementares:
+O fluxo combina nove capacidades complementares:
 
 ```text
 Spec
@@ -92,6 +92,7 @@ Spec
 ```
 
 - **Drafting a partir de pedido de negócio:** investiga o código-fonte a partir de um pedido informal (e-mail, ticket) e produz a spec inicial, separando o que foi afirmado, evidenciado e lacunas.
+- **Drafting a partir de Demanda no Azure Boards:** lê por ID, somente com `GET`, uma Demanda de Negócio já registrada, valida o tipo e o contrato de campos, e produz a spec rastreável a cada campo remoto, orquestrando as análises de débitos técnicos, telas UX-UI e copy quando seus gatilhos existirem.
 - **Entrevista de lacunas:** fecha, por entrevista em rodadas, a seção de lacunas de uma spec já escrita, sem investigar código nem desenhar plano algum; referenciada condicionalmente por Drafting e, após a geração do backlog, como sugestão para fechar Histórias `Não pronta` — nunca obrigatória.
 - **3W — Who, What, Why:** identifica ator, capacidade/resultado e valor, separando fatos de lacunas.
 - **3C — Card, Conversation, Confirmation:** organiza o cartão, registra decisões e coordena a confirmação. É a única skill que define a prontidão geral.

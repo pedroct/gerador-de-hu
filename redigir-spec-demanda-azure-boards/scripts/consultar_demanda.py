@@ -31,6 +31,22 @@ CAMPOS_DEMANDA = (
 )
 _CATEGORIAS_ERRO_PUBLICAS = {"consulta", "contrato", "configuração"}
 
+TIMEOUT_SEGUNDOS = 30
+"""Limite de espera por requisição. Sem ele a CLI pode travar indefinidamente."""
+
+_TENTATIVAS = 3
+_ESPERAS_RETRY = (0.5, 1.0)
+_ESPERA_RETRY_AFTER_MAXIMA = 5.0
+_HTTP_TRANSITORIOS = frozenset({408, 429, 500, 502, 503, 504})
+_FALHA_CONSULTA = "Falha ao consultar o Azure DevOps."
+
+_DETALHES_HTTP_PUBLICOS = {
+    401: "credencial inválida ou ausente para o Azure DevOps",
+    403: "credencial sem permissão para ler esta Demanda de Negócio",
+    404: "Demanda de Negócio não encontrada para o ID informado",
+}
+"""Diagnósticos derivados apenas do código HTTP, que não revelam nada da credencial."""
+
 
 class ErroConsultaDemanda(RuntimeError):
     """Indica que uma Demanda não pôde ser lida ou não atende ao contrato."""
@@ -41,6 +57,7 @@ class ErroConsultaDemanda(RuntimeError):
         *,
         categoria: str = "consulta",
         campo_ausente: str | None = None,
+        codigo_http: int | None = None,
     ) -> None:
         super().__init__(mensagem)
         self.categoria = (
@@ -49,13 +66,18 @@ class ErroConsultaDemanda(RuntimeError):
         self.campo_ausente = (
             campo_ausente if campo_ausente in CAMPOS_DEMANDA else None
         )
+        self.codigo_http = (
+            codigo_http if codigo_http in _DETALHES_HTTP_PUBLICOS else None
+        )
 
     @property
     def detalhe_publico(self) -> str | None:
         """Expõe somente diagnóstico derivado de dados controlados pelo contrato."""
-        if self.campo_ausente is None:
-            return None
-        return f"campo remoto obrigatório ausente: {self.campo_ausente}"
+        if self.campo_ausente is not None:
+            return f"campo remoto obrigatório ausente: {self.campo_ausente}"
+        if self.codigo_http is not None:
+            return _DETALHES_HTTP_PUBLICOS[self.codigo_http]
+        return None
 
 
 @dataclass(frozen=True)
@@ -90,8 +112,32 @@ _ERROS_REDE_TRANSITORIOS = {
 }
 
 
+_ORGANIZACAO_AUSENTE = "informe a organização em --organizacao ou AZURE_DEVOPS_ORGANIZACAO"
+_PROJETO_AUSENTE = "informe o projeto em --projeto ou AZURE_DEVOPS_PROJETO"
+_CREDENCIAL_AUSENTE = "informe a credencial em AZURE_DEVOPS_TOKEN ou execute em terminal interativo"
+_CONFIG_ILEGIVEL = "não foi possível ler o arquivo indicado em --config"
+_CONFIG_INVALIDA = "a tabela azure_devops do arquivo de configuração é inválida"
+
+_DETALHES_CONFIGURACAO_PUBLICOS = frozenset(
+    {
+        _ORGANIZACAO_AUSENTE,
+        _PROJETO_AUSENTE,
+        _CREDENCIAL_AUSENTE,
+        _CONFIG_ILEGIVEL,
+        _CONFIG_INVALIDA,
+    }
+)
+"""Destino e caminho de arquivo não são segredo; o valor da credencial nunca aparece aqui."""
+
+
 class ErroConfiguracao(RuntimeError):
     """Indica que a configuração mínima não foi fornecida."""
+
+    def __init__(self, mensagem: str, *, detalhe_publico: str | None = None) -> None:
+        super().__init__(mensagem)
+        self.detalhe_publico = (
+            detalhe_publico if detalhe_publico in _DETALHES_CONFIGURACAO_PUBLICOS else None
+        )
 
 
 def _urlerro_transitorio(erro: URLError) -> bool:
@@ -119,6 +165,50 @@ _CHAVES_CONFIGURACAO = {
 }
 
 
+def _ler_toml(caminho: str) -> dict[str, str]:
+    """Lê a tabela `azure_devops` (ou a raiz) do arquivo indicado em `--config`."""
+    try:
+        with open(caminho, "rb") as arquivo:
+            documento = tomllib.load(arquivo)
+    except (OSError, tomllib.TOMLDecodeError):
+        raise ErroConfiguracao(
+            "Não foi possível ler o arquivo de configuração.",
+            detalhe_publico=_CONFIG_ILEGIVEL,
+        ) from None
+    tabela = documento.get("azure_devops", documento)
+    if not isinstance(tabela, dict):
+        raise ErroConfiguracao(
+            "A configuração do Azure DevOps é inválida.",
+            detalhe_publico=_CONFIG_INVALIDA,
+        )
+    valores: dict[str, str] = {}
+    for nome, chave in _CHAVES_CONFIGURACAO.items():
+        valor = tabela.get(chave, tabela.get(nome))
+        if isinstance(valor, str) and valor.strip():
+            valores[chave] = valor.strip()
+    return valores
+
+
+def _ler_env_file(caminho: str) -> dict[str, str]:
+    """Lê as chaves conhecidas de um `.env`. A ausência do arquivo não é erro."""
+    valores: dict[str, str] = {}
+    try:
+        with open(caminho, encoding="utf-8") as arquivo:
+            linhas = arquivo.readlines()
+    except OSError:
+        return valores
+    for linha in linhas:
+        texto = linha.strip()
+        if not texto or texto.startswith("#") or "=" not in texto:
+            continue
+        chave, valor = (parte.strip() for parte in texto.split("=", 1))
+        if len(valor) >= 2 and valor[0] == valor[-1] and valor[0] in "\"'":
+            valor = valor[1:-1]
+        if chave in _CHAVES_CONFIGURACAO.values() and valor:
+            valores[chave] = valor
+    return valores
+
+
 def carregar_configuracao(
     argumentos: argparse.Namespace,
     *,
@@ -126,37 +216,8 @@ def carregar_configuracao(
 ) -> ConfiguracaoAzureBoards:
     """Carrega configuração com precedência argumento, TOML, .env e ambiente."""
     ambiente = os.environ if ambiente is None else ambiente
-    valores_toml: dict[str, str] = {}
-    if argumentos.config:
-        try:
-            with open(argumentos.config, "rb") as arquivo:
-                documento = tomllib.load(arquivo)
-        except (OSError, tomllib.TOMLDecodeError):
-            raise ErroConfiguracao("Não foi possível ler o arquivo de configuração.") from None
-        tabela = documento.get("azure_devops", documento)
-        if not isinstance(tabela, dict):
-            raise ErroConfiguracao("A configuração do Azure DevOps é inválida.")
-        for nome, chave in _CHAVES_CONFIGURACAO.items():
-            valor = tabela.get(chave, tabela.get(nome))
-            if isinstance(valor, str) and valor.strip():
-                valores_toml[chave] = valor.strip()
-
-    valores_env_file: dict[str, str] = {}
-    try:
-        with open(argumentos.env_file, encoding="utf-8") as arquivo:
-            for linha in arquivo:
-                texto = linha.strip()
-                if not texto or texto.startswith("#") or "=" not in texto:
-                    continue
-                chave, valor = texto.split("=", 1)
-                chave = chave.strip()
-                valor = valor.strip()
-                if len(valor) >= 2 and valor[0] == valor[-1] and valor[0] in "\"'":
-                    valor = valor[1:-1]
-                if chave in _CHAVES_CONFIGURACAO.values() and valor:
-                    valores_env_file[chave] = valor
-    except OSError:
-        pass
+    valores_toml = _ler_toml(argumentos.config) if argumentos.config else {}
+    valores_env_file = _ler_env_file(argumentos.env_file)
 
     valores: dict[str, str | None] = {}
     for nome, chave in _CHAVES_CONFIGURACAO.items():
@@ -169,16 +230,28 @@ def carregar_configuracao(
         )
 
     if not valores["AZURE_DEVOPS_ORGANIZACAO"]:
-        raise ErroConfiguracao("A organização do Azure DevOps não foi informada.")
+        raise ErroConfiguracao(
+            "A organização do Azure DevOps não foi informada.",
+            detalhe_publico=_ORGANIZACAO_AUSENTE,
+        )
     if not valores["AZURE_DEVOPS_PROJETO"]:
-        raise ErroConfiguracao("O projeto do Azure DevOps não foi informado.")
+        raise ErroConfiguracao(
+            "O projeto do Azure DevOps não foi informado.",
+            detalhe_publico=_PROJETO_AUSENTE,
+        )
     token = valores["AZURE_DEVOPS_TOKEN"]
     if not token:
         if not sys.stdin.isatty():
-            raise ErroConfiguracao("O token do Azure DevOps não foi informado.")
+            raise ErroConfiguracao(
+                "O token do Azure DevOps não foi informado.",
+                detalhe_publico=_CREDENCIAL_AUSENTE,
+            )
         token = getpass.getpass("Credencial do Azure DevOps: ")
     if not token:
-        raise ErroConfiguracao("O token do Azure DevOps não foi informado.")
+        raise ErroConfiguracao(
+            "O token do Azure DevOps não foi informado.",
+            detalhe_publico=_CREDENCIAL_AUSENTE,
+        )
     return ConfiguracaoAzureBoards(
         organizacao=valores["AZURE_DEVOPS_ORGANIZACAO"],
         projeto=valores["AZURE_DEVOPS_PROJETO"],
@@ -191,32 +264,70 @@ def requisitar_json(
     cabecalhos: dict[str, str],
     *,
     token: str | None = None,
-    abrir: Callable[..., Any] = urlopen,
+    abrir: Callable[..., Any] | None = None,
 ) -> dict[str, object]:
     """Faz uma requisição GET e decodifica seu corpo JSON como objeto."""
+    # Resolvido na chamada, e não como default, para que o transporte seja substituível.
+    abrir = urlopen if abrir is None else abrir
     headers = dict(cabecalhos)
     if token is not None:
         headers["Authorization"] = "Basic " + base64.b64encode(f":{token}".encode()).decode()
-    for tentativa in range(3):
+    for tentativa in range(_TENTATIVAS):
         requisicao = Request(url, headers=headers, method="GET")  # noqa: S310
         try:
-            with abrir(requisicao) as resposta:  # noqa: S310 - a URL é construída pelo leitor HTTPS.
+            # A URL é construída pelo leitor e sempre HTTPS; daí o S310 suprimido.
+            with abrir(requisicao, timeout=TIMEOUT_SEGUNDOS) as resposta:  # noqa: S310
                 corpo = resposta.read()
             payload = json.loads(corpo.decode("utf-8"))
             if not isinstance(payload, dict):
                 raise ErroConsultaDemanda("A resposta JSON não é um objeto.")
             return payload
-        except HTTPError as erro:
-            if erro.code not in {408, 429, 500, 502, 503, 504} or tentativa == 2:
-                raise ErroConsultaDemanda(f"Falha HTTP {erro.code}.") from None
-        except URLError as erro:
-            if not _urlerro_transitorio(erro) or tentativa == 2:
-                raise ErroConsultaDemanda("Falha ao consultar o Azure DevOps.") from None
-        except (UnicodeDecodeError, JSONDecodeError, OSError):
-            raise ErroConsultaDemanda("Falha ao consultar o Azure DevOps.") from None
-        if tentativa < 2:
-            time.sleep(0.05 * (2**tentativa))
-    raise ErroConsultaDemanda("Falha ao consultar o Azure DevOps.")
+        except (UnicodeDecodeError, JSONDecodeError, OSError) as erro:
+            espera = _espera_apos_falha(erro, tentativa)
+        time.sleep(espera)
+    raise ErroConsultaDemanda(_FALHA_CONSULTA)
+
+
+def _espera_apos_falha(erro: Exception, tentativa: int) -> float:
+    """Decide se a falha é repetível: devolve a espera ou levanta o erro público."""
+    ultima = tentativa == _TENTATIVAS - 1
+    if isinstance(erro, HTTPError):
+        if erro.code not in _HTTP_TRANSITORIOS or ultima:
+            raise ErroConsultaDemanda(
+                f"Falha HTTP {erro.code}.", codigo_http=erro.code
+            ) from None
+        return _espera_retry(tentativa, erro)
+    if isinstance(erro, URLError):
+        if not _urlerro_transitorio(erro) or ultima:
+            raise ErroConsultaDemanda(_FALHA_CONSULTA) from None
+        return _espera_retry(tentativa)
+    # Um timeout do socket chega cru, fora de URLError, e é tão transitório quanto.
+    if isinstance(erro, (TimeoutError, ConnectionError)) and not ultima:
+        return _espera_retry(tentativa)
+    raise ErroConsultaDemanda(_FALHA_CONSULTA) from None
+
+
+def _espera_retry(tentativa: int, erro: HTTPError | None = None) -> float:
+    """Calcula a espera até a próxima tentativa, honrando Retry-After quando presente."""
+    padrao = _ESPERAS_RETRY[min(tentativa, len(_ESPERAS_RETRY) - 1)]
+    if erro is None:
+        return padrao
+    return max(padrao, _retry_after_segundos(erro) or 0.0)
+
+
+def _retry_after_segundos(erro: HTTPError) -> float | None:
+    """Lê Retry-After em segundos, ignorando o formato de data e valores fora de faixa."""
+    cabecalhos = getattr(erro, "headers", None)
+    bruto = cabecalhos.get("Retry-After") if cabecalhos is not None else None
+    if not isinstance(bruto, str):
+        return None
+    try:
+        segundos = float(bruto.strip())
+    except ValueError:
+        return None
+    if segundos <= 0:
+        return None
+    return min(segundos, _ESPERA_RETRY_AFTER_MAXIMA)
 
 
 def consultar_demanda(
@@ -236,7 +347,7 @@ def consultar_demanda(
     url_campos = f"{base_url}/_apis/wit/workitemtypes/{tipo}/fields?api-version=7.1"
     cabecalhos = {"Accept": "application/json"}
     obter = requisitar or (
-        lambda url, headers: _requisitar_json_seguro(url, headers, configuracao.token)
+        lambda url, headers: requisitar_json(url, headers, token=configuracao.token)
     )
 
     payload_item = _obter_payload(obter, url_item, cabecalhos, id_demanda)
@@ -268,15 +379,6 @@ def consultar_demanda(
     )
 
 
-def _requisitar_json_seguro(
-    url: str, cabecalhos: dict[str, str], token: str
-) -> dict[str, object]:
-    try:
-        return requisitar_json(url, cabecalhos, token=token)
-    except ErroConsultaDemanda:
-        raise
-
-
 def _obter_payload(
     requisitar: Requisitar,
     url: str,
@@ -287,9 +389,11 @@ def _obter_payload(
         payload = requisitar(url, cabecalhos)
     except HTTPError as erro:
         raise ErroConsultaDemanda(
-            f"Falha HTTP {erro.code} ao consultar a Demanda {id_demanda}."
+            f"Falha HTTP {erro.code} ao consultar a Demanda {id_demanda}.",
+            codigo_http=erro.code,
         ) from None
-    except (JSONDecodeError, UnicodeDecodeError, URLError, OSError, ValueError):
+    # URLError deriva de OSError; JSONDecodeError e UnicodeDecodeError, de ValueError.
+    except (OSError, ValueError):
         raise ErroConsultaDemanda(
             f"Falha ao consultar a Demanda {id_demanda}: erro de comunicação ou resposta inválida."
         ) from None
@@ -375,12 +479,13 @@ def principal(argv: list[str] | None = None) -> int:
         }
         print(json.dumps(saida, ensure_ascii=False))
         return 0
-    except ErroConfiguracao:
-        print("Erro [configuração]: não foi possível consultar a Demanda de Negócio.")
+    except ErroConfiguracao as erro:
+        detalhe = erro.detalhe_publico or "não foi possível consultar a Demanda de Negócio"
+        print(f"Erro [configuração]: {detalhe}.", file=sys.stderr)
         return 1
     except ErroConsultaDemanda as erro:
         detalhe = erro.detalhe_publico or "não foi possível consultar a Demanda de Negócio"
-        print(f"Erro [{erro.categoria}]: {detalhe}.")
+        print(f"Erro [{erro.categoria}]: {detalhe}.", file=sys.stderr)
         return 1
 
 
