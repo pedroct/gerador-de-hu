@@ -114,8 +114,8 @@ class SkillIntegrationTests(unittest.TestCase):
             "Em Greenfield-UI, classifique todo par como `Não encontrado`", self.skill
         )
         self.assertIn(
-            "Em Greenfield-UI (nenhum código de front-end acessível para a plataforma), classifique "
-            "sempre como",
+            "Em Greenfield-UI (nenhum código de front-end acessível para a plataforma), "
+            "classifique sempre como",
             self.reference,
         )
 

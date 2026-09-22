@@ -237,8 +237,9 @@ class SkillIntegrationTests(unittest.TestCase):
 
     def test_readme_documents_screen_spec_skill(self):
         self.assertIn(
-            "| [`especificar-telas-ux-ui`](especificar-telas-ux-ui/SKILL.md) | Um requisito da spec "
-            "pode exigir tela nova ou fluxo de tela alterado em web e/ou mobile |",
+            "| [`especificar-telas-ux-ui`](especificar-telas-ux-ui/SKILL.md) "
+            "| Um requisito da spec pode exigir tela nova ou fluxo de tela alterado "
+            "em web e/ou mobile |",
             self.readme,
         )
         self.assertIn(

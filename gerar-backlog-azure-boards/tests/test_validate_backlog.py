@@ -156,7 +156,10 @@ Origem na spec: seção 1.1.
 
     def test_accepts_backlog_without_refinement_status(self):
         slim = VALID.split("##### Refinement Status", maxsplit=1)[0].rstrip() + "\n"
-        slim = slim.replace("Regra confirmada.\n", "Regra confirmada.\nOrigem na spec: seção 2.1.1.\n")
+        slim = slim.replace(
+            "Regra confirmada.\n",
+            "Regra confirmada.\nOrigem na spec: seção 2.1.1.\n",
+        )
         self.assertEqual([], MODULE.validate_backlog(slim))
 
     def test_rejects_duplicate_key(self):
