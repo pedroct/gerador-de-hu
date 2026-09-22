@@ -6,6 +6,9 @@ SKILL = (RAIZ_SKILL / "SKILL.md").read_text(encoding="utf-8")
 REFERENCIA = (
     RAIZ_SKILL / "references" / "investigacao-demanda-azure-boards.md"
 ).read_text(encoding="utf-8")
+RAIZ_PROJETO = RAIZ_SKILL.parent
+README = (RAIZ_PROJETO / "README.md").read_text(encoding="utf-8")
+PYPROJECT = (RAIZ_PROJETO / "pyproject.toml").read_text(encoding="utf-8")
 
 
 def test_skill_exige_tipo_campos_e_leitura_sem_escrita() -> None:
@@ -69,3 +72,17 @@ def test_referencia_delimita_investigacao_somente_leitura() -> None:
         assert texto in REFERENCIA
     for acao in ("aplicação", "teste", "build", "migração"):
         assert f"Não execute {acao}" in REFERENCIA
+
+
+def test_projeto_documenta_a_skill_e_a_inclui_na_suite() -> None:
+    for texto in (
+        "redigir-spec-demanda-azure-boards",
+        "ID de uma Demanda de Negócio já criada no Azure Boards",
+        "Custom.DemandaAreaSolicitante",
+        "Custom.DemandaPublicoAlvo",
+        "Custom.DemandaValorEsperado",
+        "Custom.DemandaDoraResolver",
+        "Custom.DemandaRegraseRestricoes",
+    ):
+        assert texto in README
+    assert "redigir-spec-demanda-azure-boards/tests" in PYPROJECT

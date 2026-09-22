@@ -52,6 +52,7 @@ testpaths = [
   "revisar-textos-requisitos/tests",
   "especificar-debitos-tecnicos/tests",
   "especificar-telas-ux-ui/tests",
+  "redigir-spec-demanda-azure-boards/tests",
 ]
 addopts = "-ra --import-mode=importlib"
 

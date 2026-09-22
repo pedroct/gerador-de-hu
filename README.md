@@ -24,6 +24,20 @@ Pedido informal (e-mail, ticket) + código-fonte
      └─ Spec (com lacunas documentadas)
 ```
 
+Quando a Demanda de Negócio já existe no Azure Boards, `redigir-spec-demanda-azure-boards` a lê por
+ID e usa `System.Title`, `Custom.DemandaAreaSolicitante`, `Custom.DemandaPublicoAlvo`,
+`Custom.DemandaValorEsperado`, `Custom.DemandaDoraResolver` e `Custom.DemandaRegraseRestricoes` como
+fonte rastreável para redigir a spec:
+
+```text
+ID da Demanda de Negócio + Azure Boards + código-fonte
+ └─ redigir-spec-demanda-azure-boards
+     ├─ Spec-base rastreável
+     ├─ Spec de débitos, quando houver evidência
+     ├─ Briefing UX-UI, quando aplicável
+     └─ Parecer de copy, quando houver texto de interface
+```
+
 Se a spec resultante ainda tiver itens em `## Lacunas e perguntas abertas`, a skill
 `entrevistar-lacunas-requisito` — quando instalada — fecha o máximo possível deles por entrevista em
 rodadas, antes de a spec seguir manualmente para o backlog:
@@ -86,7 +100,7 @@ Spec
 - **Spec de débitos técnicos:** registra débitos encontrados no entendimento ou refinamento, classifica-os, prioriza-os e recomenda `User Story` ou `Bug` por item, sem criar work items no Azure Boards.
 - **Telas UX-UI:** identifica, por inspeção somente leitura do código de front-end (web e mobile), quais requisitos exigem tela nova ou fluxo alterado; produz um brief em linguagem de UX-UI e uma anotação consumida opcionalmente por `gerar-backlog-azure-boards`, que cria uma User Story de design dependente do item funcional.
 
-As dependências são acíclicas: 3W, Gherkin e a skill de débitos técnicos são folhas; a skill de backlog chama somente 3C; `redigir-spec-pedido-negocio` é uma predecessora isolada, que nunca chama nem é chamada pelas outras skills. `entrevistar-lacunas-requisito` também é folha e nunca é chamada incondicionalmente nem invocada diretamente por outra skill — é só referenciada, de forma condicional, pelo fluxo de `redigir-spec-pedido-negocio` e, após a geração do backlog, pela sugestão de fechar Histórias `Não pronta` em `gerar-backlog-azure-boards`; em ambos os casos, quem decide rodá-la é o usuário. A skill de débitos técnicos pode ser chamada opcionalmente por 3C ou Drafting quando um débito for identificado e devolve sua spec separada para a geração manual do backlog. `especificar-telas-ux-ui` também é folha e nunca é chamada incondicionalmente; é referenciada, de forma condicional, por `redigir-spec-pedido-negocio` e consumida por `gerar-backlog-azure-boards` apenas como arquivo opcional, nunca como invocação.
+As dependências são acíclicas: 3W, Gherkin e a skill de débitos técnicos são folhas; a skill de backlog chama somente 3C; `redigir-spec-pedido-negocio` é uma predecessora isolada, que nunca chama nem é chamada pelas outras skills. `redigir-spec-demanda-azure-boards` é a única predecessora que orquestra as três análises especializadas (`especificar-debitos-tecnicos`, `especificar-telas-ux-ui` e `revisar-textos-requisitos`); ela não chama geração nem publicação de backlog. `entrevistar-lacunas-requisito` também é folha e nunca é chamada incondicionalmente nem invocada diretamente por outra skill — é só referenciada, de forma condicional, pelo fluxo de `redigir-spec-pedido-negocio` e, após a geração do backlog, pela sugestão de fechar Histórias `Não pronta` em `gerar-backlog-azure-boards`; em ambos os casos, quem decide rodá-la é o usuário. A skill de débitos técnicos pode ser chamada opcionalmente por 3C ou Drafting quando um débito for identificado e devolve sua spec separada para a geração manual do backlog. `especificar-telas-ux-ui` também é folha e nunca é chamada incondicionalmente; é referenciada, de forma condicional, por `redigir-spec-pedido-negocio` e consumida por `gerar-backlog-azure-boards` apenas como arquivo opcional, nunca como invocação.
 
 ## Instalação
 
@@ -175,6 +189,7 @@ Os status comparam apenas o projeto com um requisito rastreável da spec. Códig
 
 | Skill | Use quando | Saída principal |
 |---|---|---|
+| [`redigir-spec-demanda-azure-boards`](redigir-spec-demanda-azure-boards/SKILL.md) | ID de uma Demanda de Negócio já criada no Azure Boards | Spec rastreável à Demanda e documentos companheiros |
 | [`redigir-spec-pedido-negocio`](redigir-spec-pedido-negocio/SKILL.md) | Só há um pedido informal de negócio (e-mail, ticket) e nenhuma spec escrita | Documento de spec em Markdown, com repositórios considerados, evidência de código e lacunas |
 | [`entrevistar-lacunas-requisito`](entrevistar-lacunas-requisito/SKILL.md) | Uma spec já escrita tem itens abertos em `## Lacunas e perguntas abertas` | A mesma spec, com lacunas fechadas por decisão do usuário ou registradas como adiamento explícito |
 | [`revisar-textos-requisitos`](revisar-textos-requisitos/SKILL.md) | Requisitos ou specs contêm copy voltada ao usuário | Diagnóstico de copy, sugestões de texto e decisões pendentes |
@@ -265,9 +280,10 @@ uv run python -m unittest discover -s redigir-spec-pedido-negocio/tests -v
 uv run python -m unittest discover -s entrevistar-lacunas-requisito/tests -v
 uv run python -m unittest discover -s especificar-debitos-tecnicos/tests -v
 uv run python -m unittest discover -s especificar-telas-ux-ui/tests -v
+uv run python -m unittest discover -s redigir-spec-demanda-azure-boards/tests -v
 ```
 
-Valide os oito pacotes com o utilitário oficial:
+Valide os nove pacotes com o utilitário oficial:
 
 ```bash
 for skill_dir in \
@@ -278,7 +294,8 @@ for skill_dir in \
   refinar-historias-3w \
   refinar-historias-gherkin \
   especificar-telas-ux-ui \
-  especificar-debitos-tecnicos; do
+  especificar-debitos-tecnicos \
+  redigir-spec-demanda-azure-boards; do
   uv run --with pyyaml python \
     /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
     "$skill_dir"
