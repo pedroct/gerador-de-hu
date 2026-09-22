@@ -23,6 +23,8 @@ e não depende de o usuário copiar os campos manualmente.
    `gerar-backlog-azure-boards`, investigando o código local em modo somente leitura.
 5. Preservar rastreabilidade da Spec para o ID, URL, tipo e campos de origem do Azure Boards.
 6. Converter valores ausentes em lacunas e perguntas abertas, sem preencher por plausibilidade.
+7. Orquestrar, quando houver insumo aplicável, as skills de débitos técnicos, UX-UI e revisão de copy
+   antes de encerrar a elaboração da Spec.
 
 ## Fora de escopo
 
@@ -33,7 +35,7 @@ e não depende de o usuário copiar os campos manualmente.
 - Alegar que um dado é `EXPLICITO` ou `INFERIDO` no pedido original. Esses metadados não são persistidos
   no Azure Boards e não podem ser reconstituídos com segurança.
 - Gerar Épico, Feature, História, Description, Acceptance Criteria ou publicar backlog.
-- Encadear automaticamente qualquer outra skill após salvar a Spec.
+- Encadear automaticamente geração ou publicação de backlog após salvar a Spec.
 
 ## Contrato de entrada e campos
 
@@ -85,7 +87,16 @@ registro estruturado e rastreável da Demanda
        v
 redigir-spec-demanda-azure-boards/SKILL.md
   investigação local de código somente leitura
-  redação e salvamento da Spec
+  redação da Spec-base
+       |
+       +--> especificar-debitos-tecnicos (quando houver evidência relacionada)
+       |
+       +--> especificar-telas-ux-ui (avalia a Spec; gera briefing se aplicável)
+       |
+       `--> revisar-textos-requisitos (quando houver copy de interface)
+       |
+       v
+  salvamento da Spec e dos documentos companheiros
        |
        v
 Spec Markdown (revisão manual posterior)
@@ -119,13 +130,47 @@ estruturado, sem token, contendo o ID, URL, tipo, valores mapeados e a indicaç�
    irmãos. Aplicar as regras de investigação de
    `references/investigacao-demanda-azure-boards.md`: somente leitura, evidência `caminho:linha` e
    separação entre Demanda, código e lacunas.
-5. Redigir a Spec como item único. `Dor a resolver` é o problema relatado; `Público-alvo` e `Área`
+5. Redigir a Spec-base como item único. `Dor a resolver` é o problema relatado; `Público-alvo` e `Área`
    fundamentam os atores; `Valor esperado`, `Regras e restrições` e qualquer limitação explícita formam
    o comportamento esperado. Nenhum deles deve ser promovido a requisito confirmado além do que está
    registrado na Demanda.
 6. Classificar a demanda como `Defeito`, `Melhoria` ou `Outro` a partir da comparação entre o conteúdo
    registrado e a evidência de comportamento atual, usando a mesma política da skill existente.
-7. Salvar a Spec e parar. A próxima etapa é sempre manual.
+7. Quando a investigação localizar um débito técnico ligado ao escopo, chamar
+   `especificar-debitos-tecnicos` com a evidência e a origem. Anexar ou vincular a Spec de débitos como
+   documento separado; não misturar débito ao requisito de negócio nem fabricar um débito quando a
+   investigação não o sustentar.
+8. Chamar `especificar-telas-ux-ui` sobre a Spec-base. Essa skill avalia as plataformas e anota a Spec
+   apenas quando uma tela ou fluxo exige especificação; o briefing de telas é documento companheiro e
+   não decompõe a Demanda em itens de backlog.
+9. Quando a Demanda, a Spec-base ou o briefing de telas contiverem texto exibido a usuários, chamar
+   `revisar-textos-requisitos`. Anexar o parecer de copy ou salvá-lo como documento companheiro,
+   preservando cada trecho, diagnóstico, sugestão e decisão pendente. A skill chamadora não aceita uma
+   sugestão nem reescreve requisito silenciosamente: decisão de produto sem confirmação continua sendo
+   lacuna.
+10. Salvar a Spec atualizada e todos os documentos companheiros produzidos e parar. A próxima etapa de
+    backlog é sempre manual.
+
+## Orquestração das skills especializadas
+
+As três skills especializadas entram durante a elaboração, não apenas durante o planejamento. Assim,
+quem planejar ou gerar o backlog recebe a melhor evidência disponível, sem que a orquestradora se torne
+dona de decisões de design, dívida ou copy.
+
+| Skill | Gatilho | Entrada | Saída e preservação |
+|---|---|---|---|
+| `especificar-debitos-tecnicos` | Evidência de débito ligada ao escopo da Demanda | Evidência `caminho:linha`, origem na Demanda e contexto da Spec | Spec de débitos separada, vinculada na Spec principal; ausente quando não houver débito comprovado. |
+| `especificar-telas-ux-ui` | Sempre após a Spec-base estar completa | Spec-base e repositórios acessíveis | Anotação na Spec e briefing de telas somente se a avaliação identificar necessidade aplicável. |
+| `revisar-textos-requisitos` | Copy exibida ao usuário na Demanda, Spec ou briefing de telas | Trechos e seu contexto de uso | Parecer de copy separado ou anexo; sugestões nunca viram requisito automaticamente. |
+
+Essa ordem é deliberada. A análise de telas pode revelar mensagens, CTAs, estados vazios ou bloqueios
+que a Demanda não nomeava; por isso a revisão de copy acontece depois do briefing de UX-UI. Débitos
+podem ser identificados já na investigação Brownfield e não dependem do desenho de tela, podendo ser
+produzidos em paralelo conceitual, mas são vinculados apenas após a Spec-base ter uma origem estável.
+
+Se a execução de uma skill especializada estiver indisponível, a orquestradora salva a Spec-base com a
+indisponibilidade e a respectiva lacuna registrada, em vez de alegar que a análise ocorreu. Isso não
+autoriza a substituição das saídas especializadas por texto inventado.
 
 ## Formato da Spec
 
@@ -197,7 +242,7 @@ Nenhuma skill atual será alterada: a nova skill é uma predecessora isolada, co
    garantia de que nenhuma requisição usa método diferente de `GET`.
 2. Teste estático da skill: entrada por ID, mapeamento dos seis campos, validação do tipo, proibição de
    escrita e de encadeamento automático, presença da referência de investigação e template com
-   rastreabilidade ao Azure Boards.
+   rastreabilidade ao Azure Boards e orquestração condicional das skills especializadas.
 3. Validação do `SKILL.md` pelo `quick_validate.py` executado com PyYAML disponível via `uv`.
 4. Execução da suíte completa com `uv run pytest`, sem credencial real e sem chamadas ao Azure Boards.
 
@@ -207,4 +252,6 @@ Nenhuma skill atual será alterada: a nova skill é uma predecessora isolada, co
 - Um campo sem valor aparece como lacuna, nunca como preenchimento plausível.
 - Tipo ou contrato de campos inválidos interrompem o fluxo antes da Spec.
 - O leitor não executa nenhum `POST`, `PATCH`, `PUT` ou `DELETE`.
+- Débitos, telas e copy são analisados pelas skills donas de cada assunto quando seus gatilhos existirem;
+  nenhum resultado delas é convertido silenciosamente em decisão de produto.
 - A Spec permanece utilizável como entrada manual de `gerar-backlog-azure-boards`.
