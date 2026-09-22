@@ -84,4 +84,3 @@ uv run --with pyyaml python /Users/pedroct/.codex/skills/.system/skill-creator/s
 Expected: `Skill is valid!`.
 
 ---
-

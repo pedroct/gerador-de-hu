@@ -9,14 +9,9 @@ class ReviewingCopySkillTests(unittest.TestCase):
     def setUpClass(cls):
         cls.skill = (ROOT / "revisar-textos-requisitos" / "SKILL.md").read_text()
         cls.reference = (
-            ROOT
-            / "revisar-textos-requisitos"
-            / "references"
-            / "copy-review-framework.md"
+            ROOT / "revisar-textos-requisitos" / "references" / "copy-review-framework.md"
         ).read_text()
-        cls.metadata = (
-            ROOT / "revisar-textos-requisitos" / "agents" / "openai.yaml"
-        ).read_text()
+        cls.metadata = (ROOT / "revisar-textos-requisitos" / "agents" / "openai.yaml").read_text()
 
     def test_skill_is_in_portuguese_and_has_discriminating_scope(self):
         self.assertIn("name: revisar-textos-requisitos", self.skill)

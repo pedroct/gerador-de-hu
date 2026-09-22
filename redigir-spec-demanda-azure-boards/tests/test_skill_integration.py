@@ -3,9 +3,9 @@ from pathlib import Path
 
 RAIZ_SKILL = Path(__file__).resolve().parents[1]
 SKILL = (RAIZ_SKILL / "SKILL.md").read_text(encoding="utf-8")
-REFERENCIA = (
-    RAIZ_SKILL / "references" / "investigacao-demanda-azure-boards.md"
-).read_text(encoding="utf-8")
+REFERENCIA = (RAIZ_SKILL / "references" / "investigacao-demanda-azure-boards.md").read_text(
+    encoding="utf-8"
+)
 RAIZ_PROJETO = RAIZ_SKILL.parent
 README = (RAIZ_PROJETO / "README.md").read_text(encoding="utf-8")
 PYPROJECT = (RAIZ_PROJETO / "pyproject.toml").read_text(encoding="utf-8")

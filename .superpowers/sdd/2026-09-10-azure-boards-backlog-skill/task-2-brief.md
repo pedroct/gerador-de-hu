@@ -362,4 +362,3 @@ uv run python scripts/validate_backlog.py tests/fixtures/valid-backlog.md
 Expected: `Backlog structure is valid` e exit code 0.
 
 ---
-

@@ -168,9 +168,7 @@ Origem na spec: seção 1.1.
 
     def test_rejects_wrong_parent(self):
         text = VALID.replace("`1.1.0`", "`1.2.0`")
-        self.assertIn(
-            "1.1.1 esperava o pai 1.1.0, recebeu 1.2.0", MODULE.validate_backlog(text)
-        )
+        self.assertIn("1.1.1 esperava o pai 1.1.0, recebeu 1.2.0", MODULE.validate_backlog(text))
 
     def test_rejects_acceptance_content_when_confirmation_is_not_complete(self):
         for confirmation in ("Ausente", "Parcial"):
@@ -191,9 +189,7 @@ Origem na spec: seção 1.1.
 
     def test_requires_all_refinement_status_fields(self):
         text = VALID.replace("- Card: Estruturado\n", "")
-        self.assertIn(
-            "1.1.1 não possui o campo de refinamento Card", MODULE.validate_backlog(text)
-        )
+        self.assertIn("1.1.1 não possui o campo de refinamento Card", MODULE.validate_backlog(text))
 
     def test_rejects_missing_parent_item(self):
         text = VALID.replace("### 1.1.0 [Feature]", "### 2.1.0 [Feature]")
@@ -247,9 +243,7 @@ Origem na spec: seção 1.1.
             "#### 1.1.2 [Bug] Reabertura falha sem mensagem de erro\n##### Parent\n`1.1.0`",
             "#### 1.1.2 [Bug] Reabertura falha sem mensagem de erro\n##### Parent\n`1.2.0`",
         )
-        self.assertIn(
-            "1.1.2 esperava o pai 1.1.0, recebeu 1.2.0", MODULE.validate_backlog(text)
-        )
+        self.assertIn("1.1.2 esperava o pai 1.1.0, recebeu 1.2.0", MODULE.validate_backlog(text))
 
     def test_bug_requires_refinement_status_fields(self):
         text = VALID_WITH_BUG.replace(
@@ -258,9 +252,7 @@ Origem na spec: seção 1.1.
             "- Conversation: Suficiente para o escopo\n"
             "- Confirmation: Completa\n- Prontidão: Pronta\n- Origem na spec: seção 2.1.2\n",
         )
-        self.assertIn(
-            "1.1.2 não possui o campo de refinamento Card", MODULE.validate_backlog(text)
-        )
+        self.assertIn("1.1.2 não possui o campo de refinamento Card", MODULE.validate_backlog(text))
 
     def test_bug_rejects_acceptance_content_when_confirmation_is_not_complete(self):
         text = VALID_WITH_BUG.replace(

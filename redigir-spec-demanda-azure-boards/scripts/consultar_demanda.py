@@ -69,18 +69,10 @@ class ErroConsultaDemanda(RuntimeError):
         codigo_http: int | None = None,
     ) -> None:
         super().__init__(mensagem)
-        self.categoria = (
-            categoria if categoria in _CATEGORIAS_ERRO_PUBLICAS else "consulta"
-        )
-        self.campo_ausente = (
-            campo_ausente if campo_ausente in CAMPOS_DEMANDA else None
-        )
-        self.campo_nao_textual = (
-            campo_nao_textual if campo_nao_textual in CAMPOS_DEMANDA else None
-        )
-        self.codigo_http = (
-            codigo_http if codigo_http in _DETALHES_HTTP_PUBLICOS else None
-        )
+        self.categoria = categoria if categoria in _CATEGORIAS_ERRO_PUBLICAS else "consulta"
+        self.campo_ausente = campo_ausente if campo_ausente in CAMPOS_DEMANDA else None
+        self.campo_nao_textual = campo_nao_textual if campo_nao_textual in CAMPOS_DEMANDA else None
+        self.codigo_http = codigo_http if codigo_http in _DETALHES_HTTP_PUBLICOS else None
 
     @property
     def detalhe_publico(self) -> str | None:
@@ -211,10 +203,12 @@ def construir_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# Mapeia o nome curto (argumento e chave TOML) ao nome da variável de ambiente.
+# Os valores são nomes de variável, nunca credenciais — daí o nosec em "token".
 _CHAVES_CONFIGURACAO = {
     "organizacao": "AZURE_DEVOPS_ORGANIZACAO",
     "projeto": "AZURE_DEVOPS_PROJETO",
-    "token": "AZURE_DEVOPS_TOKEN",
+    "token": "AZURE_DEVOPS_TOKEN",  # nosec B105
 }
 
 
@@ -346,9 +340,7 @@ def _espera_apos_falha(erro: Exception, tentativa: int) -> float:
     ultima = tentativa == _TENTATIVAS - 1
     if isinstance(erro, HTTPError):
         if erro.code not in _HTTP_TRANSITORIOS or ultima:
-            raise ErroConsultaDemanda(
-                f"Falha HTTP {erro.code}.", codigo_http=erro.code
-            ) from None
+            raise ErroConsultaDemanda(f"Falha HTTP {erro.code}.", codigo_http=erro.code) from None
         return _espera_retry(tentativa, erro)
     if isinstance(erro, URLError):
         if not _urlerro_transitorio(erro) or ultima:
@@ -426,9 +418,7 @@ def consultar_demanda(
         campos_item, CAMPO_TITULO, id_demanda, html=tipos[CAMPO_TITULO] == TIPO_HTML
     )
     valores = {
-        campo: _texto_opcional(
-            campos_item, campo, id_demanda, html=tipos[campo] == TIPO_HTML
-        )
+        campo: _texto_opcional(campos_item, campo, id_demanda, html=tipos[campo] == TIPO_HTML)
         for campo in CAMPOS_DEMANDA
         if campo != CAMPO_TITULO
     }

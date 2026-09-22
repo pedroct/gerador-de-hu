@@ -11,34 +11,19 @@ class InterviewingSkillIsolationTests(unittest.TestCase):
         cls.notice = (ROOT / "entrevistar-lacunas-requisito" / "NOTICE.md").read_text()
         cls.three_w = (ROOT / "refinar-historias-3w" / "SKILL.md").read_text()
         cls.three_c = (ROOT / "refinar-historias-3c" / "SKILL.md").read_text()
-        cls.gherkin = (
-            ROOT / "refinar-historias-gherkin" / "SKILL.md"
-        ).read_text()
-        cls.backlog = (
-            ROOT / "gerar-backlog-azure-boards" / "SKILL.md"
-        ).read_text()
+        cls.gherkin = (ROOT / "refinar-historias-gherkin" / "SKILL.md").read_text()
+        cls.backlog = (ROOT / "gerar-backlog-azure-boards" / "SKILL.md").read_text()
         # refinar-historias-3w has no references/ directory; the other three do.
         cls.existing_skill_references = [
+            (ROOT / "refinar-historias-3c" / "references" / "azure-boards-fields.md").read_text(),
             (
-                ROOT / "refinar-historias-3c" / "references" / "azure-boards-fields.md"
+                ROOT / "refinar-historias-gherkin" / "references" / "gherkin-practices.md"
             ).read_text(),
             (
-                ROOT
-                / "refinar-historias-gherkin"
-                / "references"
-                / "gherkin-practices.md"
+                ROOT / "gerar-backlog-azure-boards" / "references" / "backlog-markdown-contract.md"
             ).read_text(),
             (
-                ROOT
-                / "gerar-backlog-azure-boards"
-                / "references"
-                / "backlog-markdown-contract.md"
-            ).read_text(),
-            (
-                ROOT
-                / "gerar-backlog-azure-boards"
-                / "references"
-                / "brownfield-validation.md"
+                ROOT / "gerar-backlog-azure-boards" / "references" / "brownfield-validation.md"
             ).read_text(),
         ]
 
@@ -79,9 +64,7 @@ class InterviewingSkillIsolationTests(unittest.TestCase):
         # ao usuário — nunca como REQUIRED SUB-SKILL nem como invocação direta.
         self.assertNotIn("REQUIRED SUB-SKILL:** use entrevistar-lacunas-requisito", self.backlog)
         self.assert_has_no_named_skill_invocation(self.backlog, ("entrevistar-lacunas-requisito",))
-        self.assertIn(
-            "indicação ao usuário, nunca uma chamada direta a essa skill", self.backlog
-        )
+        self.assertIn("indicação ao usuário, nunca uma chamada direta a essa skill", self.backlog)
 
     def test_interviewing_skill_computes_frontier_each_round(self):
         self.assertIn("Pergunte a fronteira inteira em uma única rodada", self.interviewing)

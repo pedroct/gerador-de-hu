@@ -1,6 +1,6 @@
 # Relatório da rodada final de correções
 
-Data: 2026-09-11  
+Data: 2026-09-11
 Status: APROVADO
 
 ## Escopo executado

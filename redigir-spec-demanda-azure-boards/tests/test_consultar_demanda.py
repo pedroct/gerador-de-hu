@@ -122,8 +122,7 @@ def test_consultar_demanda_mapeia_campos_e_url_por_consulta() -> None:
     assert demanda.valores["Custom.DemandaDoraResolver"] == "Consulta é dispersa"
     assert len(chamadas) == 3
     assert chamadas[0] == (
-        "https://dev.azure.com/org/projeto/_apis/wit/workitems/42?"
-        "$expand=Fields&api-version=7.1"
+        "https://dev.azure.com/org/projeto/_apis/wit/workitems/42?$expand=Fields&api-version=7.1"
     )
     assert chamadas[1] == (
         "https://dev.azure.com/org/projeto/_apis/wit/workitemtypes/"
@@ -161,9 +160,7 @@ def test_caminho_de_producao_emite_somente_requests_get(
         "https://dev.azure.com/org/projeto/_apis/wit/fields?api-version=7.1",
     ]
     esperado = "Basic " + modulo.base64.b64encode(b":segredo").decode()
-    assert all(
-        requisicao.get_header("Authorization") == esperado for requisicao in requisicoes
-    )
+    assert all(requisicao.get_header("Authorization") == esperado for requisicao in requisicoes)
 
 
 @pytest.mark.parametrize(
@@ -793,9 +790,10 @@ def test_requisitar_json_retries_transitorios() -> None:
     ) == {"ok": True}
     assert len(chamadas) == 3
     assert chamadas[0].get_method() == "GET"
-    assert chamadas[0].get_header("Authorization") == "Basic " + modulo.base64.b64encode(
-        b":token"
-    ).decode()
+    assert (
+        chamadas[0].get_header("Authorization")
+        == "Basic " + modulo.base64.b64encode(b":token").decode()
+    )
 
 
 def test_requisitar_json_erro_http_permanente_nao_repetido() -> None:

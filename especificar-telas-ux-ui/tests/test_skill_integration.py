@@ -9,9 +9,7 @@ class SkillIntegrationTests(unittest.TestCase):
     def setUpClass(cls):
         skill_dir = ROOT / "especificar-telas-ux-ui"
         cls.skill = (skill_dir / "SKILL.md").read_text()
-        cls.reference = (
-            skill_dir / "references" / "ui-brownfield-validation.md"
-        ).read_text()
+        cls.reference = (skill_dir / "references" / "ui-brownfield-validation.md").read_text()
         cls.agent = (skill_dir / "agents" / "openai.yaml").read_text()
 
     def assert_has_no_named_skill_invocation(self, text, other_skill_names):
@@ -68,9 +66,7 @@ class SkillIntegrationTests(unittest.TestCase):
 
     def test_skill_groups_one_design_item_per_platform(self):
         self.assertIn("Sempre um item por plataforma necessária", self.skill)
-        self.assertIn(
-            "nunca agrupe web e mobile no mesmo item de design", self.skill
-        )
+        self.assertIn("nunca agrupe web e mobile no mesmo item de design", self.skill)
 
     def test_screen_script_avoids_gherkin_syntax(self):
         self.assertIn("sem sintaxe Gherkin", self.skill)
@@ -90,9 +86,7 @@ class SkillIntegrationTests(unittest.TestCase):
         )
         for status in expected_statuses:
             self.assertIn(status, self.reference)
-        self.assertIn(
-            "Ausência de evidência não significa `Implementado`", self.reference
-        )
+        self.assertIn("Ausência de evidência não significa `Implementado`", self.reference)
 
     def test_reference_inspection_is_read_only_without_authorization(self):
         for command in ("`rg`", "`find`", "`git status`"):
@@ -110,28 +104,21 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn("$especificar-telas-ux-ui", self.agent)
 
     def test_greenfield_ui_has_explicit_status_mapping(self):
-        self.assertIn(
-            "Em Greenfield-UI, classifique todo par como `Não encontrado`", self.skill
-        )
+        self.assertIn("Em Greenfield-UI, classifique todo par como `Não encontrado`", self.skill)
         self.assertIn(
             "Em Greenfield-UI (nenhum código de front-end acessível para a plataforma), "
             "classifique sempre como",
             self.reference,
         )
 
-
     def test_skill_declares_ux_audience_and_bans_process_jargon(self):
         self.assertIn("## Para quem a saída é escrita", self.skill)
         self.assertIn("Sem vocabulário de processo no briefing", self.skill)
         self.assertIn("Sem `caminho:linha` no briefing", self.skill)
-        self.assertIn(
-            "Economia de texto é requisito da saída, não estilo", self.skill
-        )
+        self.assertIn("Economia de texto é requisito da saída, não estilo", self.skill)
 
     def test_traceability_is_a_separate_section_from_the_briefing(self):
-        self.assertIn(
-            "## Rastreabilidade — não é para a equipe de UX-UI", self.skill
-        )
+        self.assertIn("## Rastreabilidade — não é para a equipe de UX-UI", self.skill)
 
     def test_item_template_has_design_sections(self):
         for secao in (
@@ -169,23 +156,16 @@ class SkillIntegrationTests(unittest.TestCase):
     def test_unconfirmed_platform_becomes_open_question_instead_of_item(self):
         self.assertIn("a necessidade **não está confirmada**", self.skill)
         self.assertIn("não gere um item vazio para a outra", self.skill)
-        self.assertIn(
-            "Necessidade de plataforma não confirmada", self.reference
-        )
+        self.assertIn("Necessidade de plataforma não confirmada", self.reference)
 
     def test_reference_separates_available_component_from_adopted_pattern(self):
         self.assertIn("## Evidência de padrão visual", self.reference)
-        self.assertIn(
-            "componente disponível de padrão adotado", self.reference
-        )
+        self.assertIn("componente disponível de padrão adotado", self.reference)
         self.assertIn("não é** referência de padrão", self.reference)
 
     def test_open_questions_declare_what_they_block(self):
         self.assertIn("| # | Pergunta | O que trava no desenho |", self.skill)
-        self.assertIn(
-            "Pergunta aberta sem consequência declarada é ruído", self.skill
-        )
-
+        self.assertIn("Pergunta aberta sem consequência declarada é ruído", self.skill)
 
     def test_flow_diagram_is_required_in_mermaid(self):
         self.assertIn("### Fluxo da tela", self.skill)
@@ -200,9 +180,7 @@ class SkillIntegrationTests(unittest.TestCase):
             "Caminho sem origem, sem volta ou sem interação definida é lacuna",
             self.skill,
         )
-        self.assertIn(
-            "Não feche um caminho no diagrama para ele parecer completo", self.skill
-        )
+        self.assertIn("Não feche um caminho no diagrama para ele parecer completo", self.skill)
 
 
 if __name__ == "__main__":

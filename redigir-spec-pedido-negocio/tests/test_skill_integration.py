@@ -7,9 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 class DraftingSkillIsolationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.drafting = (
-            ROOT / "redigir-spec-pedido-negocio" / "SKILL.md"
-        ).read_text()
+        cls.drafting = (ROOT / "redigir-spec-pedido-negocio" / "SKILL.md").read_text()
         cls.investigation = (
             ROOT
             / "redigir-spec-pedido-negocio"
@@ -18,34 +16,19 @@ class DraftingSkillIsolationTests(unittest.TestCase):
         ).read_text()
         cls.three_w = (ROOT / "refinar-historias-3w" / "SKILL.md").read_text()
         cls.three_c = (ROOT / "refinar-historias-3c" / "SKILL.md").read_text()
-        cls.gherkin = (
-            ROOT / "refinar-historias-gherkin" / "SKILL.md"
-        ).read_text()
-        cls.backlog = (
-            ROOT / "gerar-backlog-azure-boards" / "SKILL.md"
-        ).read_text()
+        cls.gherkin = (ROOT / "refinar-historias-gherkin" / "SKILL.md").read_text()
+        cls.backlog = (ROOT / "gerar-backlog-azure-boards" / "SKILL.md").read_text()
         # refinar-historias-3w has no references/ directory; the other three do.
         cls.existing_skill_references = [
+            (ROOT / "refinar-historias-3c" / "references" / "azure-boards-fields.md").read_text(),
             (
-                ROOT / "refinar-historias-3c" / "references" / "azure-boards-fields.md"
+                ROOT / "refinar-historias-gherkin" / "references" / "gherkin-practices.md"
             ).read_text(),
             (
-                ROOT
-                / "refinar-historias-gherkin"
-                / "references"
-                / "gherkin-practices.md"
+                ROOT / "gerar-backlog-azure-boards" / "references" / "backlog-markdown-contract.md"
             ).read_text(),
             (
-                ROOT
-                / "gerar-backlog-azure-boards"
-                / "references"
-                / "backlog-markdown-contract.md"
-            ).read_text(),
-            (
-                ROOT
-                / "gerar-backlog-azure-boards"
-                / "references"
-                / "brownfield-validation.md"
+                ROOT / "gerar-backlog-azure-boards" / "references" / "brownfield-validation.md"
             ).read_text(),
         ]
 
@@ -171,9 +154,7 @@ class DraftingSkillIsolationTests(unittest.TestCase):
             "instalada), sem chamá-la diretamente.",
             self.drafting,
         )
-        self.assert_has_no_named_skill_invocation(
-            self.drafting, ("especificar-telas-ux-ui",)
-        )
+        self.assert_has_no_named_skill_invocation(self.drafting, ("especificar-telas-ux-ui",))
 
 
 if __name__ == "__main__":

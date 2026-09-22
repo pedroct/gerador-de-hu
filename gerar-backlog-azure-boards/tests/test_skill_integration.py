@@ -15,16 +15,10 @@ class SkillIntegrationTests(unittest.TestCase):
         cls.three_c = (ROOT / "refinar-historias-3c" / "SKILL.md").read_text()
         cls.backlog = (ROOT / "gerar-backlog-azure-boards" / "SKILL.md").read_text()
         cls.backlog_contract = (
-            ROOT
-            / "gerar-backlog-azure-boards"
-            / "references"
-            / "backlog-markdown-contract.md"
+            ROOT / "gerar-backlog-azure-boards" / "references" / "backlog-markdown-contract.md"
         ).read_text()
         brownfield_path = (
-            ROOT
-            / "gerar-backlog-azure-boards"
-            / "references"
-            / "brownfield-validation.md"
+            ROOT / "gerar-backlog-azure-boards" / "references" / "brownfield-validation.md"
         )
         cls.brownfield = brownfield_path.read_text() if brownfield_path.exists() else ""
         cls.readme = (ROOT / "README.md").read_text()
@@ -110,9 +104,7 @@ class SkillIntegrationTests(unittest.TestCase):
     def test_backlog_calls_only_three_c(self):
         self.assertIn("REQUIRED SUB-SKILL:** use refinar-historias-3c", self.backlog)
         self.assertNotIn("REQUIRED SUB-SKILL:** use refinar-historias-3w", self.backlog)
-        self.assertNotIn(
-            "REQUIRED SUB-SKILL:** use refinar-historias-gherkin", self.backlog
-        )
+        self.assertNotIn("REQUIRED SUB-SKILL:** use refinar-historias-gherkin", self.backlog)
         self.assert_has_no_named_skill_invocation(
             self.backlog,
             ("refinar-historias-3w", "refinar-historias-gherkin"),
@@ -185,8 +177,7 @@ class SkillIntegrationTests(unittest.TestCase):
 
     def test_backlog_consumes_telas_output_as_file_not_invocation(self):
         self.assertIn(
-            "como input opcional por arquivo — nunca como invocação de "
-            "`especificar-telas-ux-ui`",
+            "como input opcional por arquivo — nunca como invocação de `especificar-telas-ux-ui`",
             self.backlog,
         )
         self.assert_has_no_named_skill_invocation(
@@ -210,9 +201,7 @@ class SkillIntegrationTests(unittest.TestCase):
             "que ela bloqueia, sob a mesma Feature",
             self.backlog,
         )
-        self.assertIn(
-            "Um item de design nascido do passo 2 é sempre `User Story`", self.backlog
-        )
+        self.assertIn("Um item de design nascido do passo 2 é sempre `User Story`", self.backlog)
         self.assertIn(
             "preencha `Depende de` no item funcional com a chave `E.F.S` do item de "
             "design, e `Bloqueia` no item de design com a chave `E.F.S` do item funcional",
@@ -227,9 +216,7 @@ class SkillIntegrationTests(unittest.TestCase):
 
     def test_contract_documents_depende_de_and_bloqueia_as_informative(self):
         self.assertIn("## Depende de e Bloqueia", self.backlog_contract)
-        self.assertIn(
-            "Não altera a prontidão calculada pela 3C", self.backlog_contract
-        )
+        self.assertIn("Não altera a prontidão calculada pela 3C", self.backlog_contract)
         self.assertIn(
             "não é um novo nível hierárquico e não substitui `Parent`",
             self.backlog_contract,
@@ -242,9 +229,7 @@ class SkillIntegrationTests(unittest.TestCase):
             "em web e/ou mobile |",
             self.readme,
         )
-        self.assertIn(
-            "- **Telas UX-UI:** identifica, por inspeção somente leitura", self.readme
-        )
+        self.assertIn("- **Telas UX-UI:** identifica, por inspeção somente leitura", self.readme)
 
 
 if __name__ == "__main__":

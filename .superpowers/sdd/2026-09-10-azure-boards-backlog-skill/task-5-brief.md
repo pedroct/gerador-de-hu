@@ -50,4 +50,3 @@ Confirmar:
 Se surgir uma falha nova, alterar somente a instrução que fecha a brecha e repetir o mesmo cenário em contexto fresco.
 
 ---
-
