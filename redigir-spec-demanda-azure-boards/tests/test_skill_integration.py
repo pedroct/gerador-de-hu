@@ -139,16 +139,36 @@ def test_skill_manda_normalizar_valor_que_quebraria_a_tabela() -> None:
         assert texto in SKILL
 
 
-def test_skill_nomeia_os_campos_html_confirmados_no_tipo_remoto() -> None:
-    """Confirmado por consulta real: estes três são declarados `html`, os outros são `string`."""
-    secao = SKILL[SKILL.index("## Normalização dos valores registrados") :]
+def sem_quebras(texto: str) -> str:
+    """Normaliza o reflow do Markdown para a asserção não quebrar ao reformatar o parágrafo."""
+    return " ".join(texto.split())
+
+
+def test_skill_delega_a_conversao_de_html_ao_leitor() -> None:
+    """A CLI converte pelo tipo declarado; a skill não deve reconverter nem presumir campos."""
+    secao = sem_quebras(SKILL[SKILL.index("## Valores já convertidos pelo leitor") :])
+    for exigencia in (
+        "Não converta HTML você mesmo",
+        "Não presuma quais campos são `html`",
+        "é conteúdo literal que o autor digitou",
+        # A responsabilidade que sobra para o agente é só a tabela.
+        "escape `|` como `\\|`",
+    ):
+        assert exigencia in secao
+
+
+def test_leitor_nao_grava_a_lista_de_campos_html_no_codigo() -> None:
+    """Fixar os campos no código gravaria a configuração atual do Boards e quebraria em silêncio."""
+    fonte = (RAIZ_SKILL / "scripts" / "consultar_demanda.py").read_text(encoding="utf-8")
+    assert "CAMPOS_HTML" not in fonte
     for campo in (
         "Custom.DemandaValorEsperado",
         "Custom.DemandaDoraResolver",
         "Custom.DemandaRegraseRestricoes",
     ):
-        assert re.search(rf"`{re.escape(campo)}` \| `html`", secao)
-    assert "não precisam de conversão" in secao
+        # Os campos aparecem só em CAMPOS_DEMANDA, nunca numa lista de "estes são html".
+        assert fonte.count(f'"{campo}"') == 1
+    assert "_apis/wit/fields?api-version" in fonte
 
 
 def test_referencia_delimita_investigacao_somente_leitura() -> None:

@@ -48,6 +48,34 @@ def modulo_fonte() -> str:
     return SCRIPT.read_text(encoding="utf-8")
 
 
+TIPOS_PADRAO = {
+    "System.Title": "string",
+    "Custom.DemandaAreaSolicitante": "string",
+    "Custom.DemandaPublicoAlvo": "string",
+    "Custom.DemandaValorEsperado": "html",
+    "Custom.DemandaDoraResolver": "html",
+    "Custom.DemandaRegraseRestricoes": "html",
+}
+
+
+def resposta_tipos(**substituicoes: str) -> dict[str, object]:
+    tipos = {**TIPOS_PADRAO, **substituicoes}
+    return {"value": [{"referenceName": n, "type": t} for n, t in tipos.items()]}
+
+
+def transporte(item: dict[str, object] | None = None, **tipos: str):
+    """Devolve um `requisitar` que responde às três consultas do leitor."""
+
+    def requisitar(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
+        if "/workitems/" in url:
+            return item if item is not None else resposta_demanda()
+        if "/workitemtypes/" in url:
+            return {"value": [{"referenceName": campo} for campo in CAMPOS]}
+        return resposta_tipos(**tipos)
+
+    return requisitar
+
+
 def requisitar_resposta_padrao(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
     if "/workitems/42?" in url:
         return resposta_demanda()
@@ -81,16 +109,18 @@ def _sem_espera_real(monkeypatch: pytest.MonkeyPatch) -> list[float]:
 def test_consultar_demanda_mapeia_campos_e_url_por_consulta() -> None:
     chamadas: list[str] = []
 
+    base = transporte()
+
     def requisitar(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
         chamadas.append(url)
-        return requisitar_resposta_padrao(url, cabecalhos)
+        return base(url, cabecalhos)
 
     demanda = modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
 
     assert demanda.id == 42
     assert demanda.titulo == "Consultar débitos do contribuinte"
     assert demanda.valores["Custom.DemandaDoraResolver"] == "Consulta é dispersa"
-    assert len(chamadas) == 2
+    assert len(chamadas) == 3
     assert chamadas[0] == (
         "https://dev.azure.com/org/projeto/_apis/wit/workitems/42?"
         "$expand=Fields&api-version=7.1"
@@ -99,6 +129,7 @@ def test_consultar_demanda_mapeia_campos_e_url_por_consulta() -> None:
         "https://dev.azure.com/org/projeto/_apis/wit/workitemtypes/"
         "Demanda%20de%20Neg%C3%B3cio/fields?api-version=7.1"
     )
+    assert chamadas[2] == "https://dev.azure.com/org/projeto/_apis/wit/fields?api-version=7.1"
     assert all("api-version=" in url for url in chamadas)
 
 
@@ -110,12 +141,8 @@ def test_caminho_de_producao_emite_somente_requests_get(
 
     def abrir(requisicao: object, timeout: float | None = None) -> RespostaFalsa:
         requisicoes.append(requisicao)
-        corpo = (
-            resposta_demanda()
-            if "/workitems/42?" in requisicao.full_url
-            else {"value": [{"referenceName": campo} for campo in CAMPOS]}
-        )
         assert timeout == modulo.TIMEOUT_SEGUNDOS
+        corpo = transporte()(requisicao.full_url, {})
         return RespostaFalsa(json.dumps(corpo).encode("utf-8"))
 
     monkeypatch.setattr(modulo, "urlopen", abrir)
@@ -123,19 +150,140 @@ def test_caminho_de_producao_emite_somente_requests_get(
     demanda = modulo.consultar_demanda(42, CONFIGURACAO)
 
     assert demanda.titulo == "Consultar débitos do contribuinte"
-    assert len(requisicoes) == 2
+    assert len(requisicoes) == 3
     # A proibição de escrita é verificada nos objetos Request reais, não na string da URL.
-    assert [requisicao.get_method() for requisicao in requisicoes] == ["GET", "GET"]
+    assert [requisicao.get_method() for requisicao in requisicoes] == ["GET", "GET", "GET"]
     assert all(requisicao.data is None for requisicao in requisicoes)
     assert [requisicao.full_url for requisicao in requisicoes] == [
         "https://dev.azure.com/org/projeto/_apis/wit/workitems/42?$expand=Fields&api-version=7.1",
         "https://dev.azure.com/org/projeto/_apis/wit/workitemtypes/"
         "Demanda%20de%20Neg%C3%B3cio/fields?api-version=7.1",
+        "https://dev.azure.com/org/projeto/_apis/wit/fields?api-version=7.1",
     ]
     esperado = "Basic " + modulo.base64.b64encode(b":segredo").decode()
     assert all(
         requisicao.get_header("Authorization") == esperado for requisicao in requisicoes
     )
+
+
+@pytest.mark.parametrize(
+    ("bruto", "esperado"),
+    [
+        ("<div>Consulta é dispersa</div>", "Consulta é dispersa"),
+        ("linha um<br>linha dois", "linha um\nlinha dois"),
+        ("linha um<br/>linha dois", "linha um\nlinha dois"),
+        ("<ul><li>um</li><li>dois</li></ul>", "- um\n- dois"),
+        ("<p>a</p><p>b</p>", "a\nb"),
+        ("A &amp; B", "A & B"),
+        ("&lt;div&gt; literal", "<div> literal"),
+        ("espaço&nbsp;protegido", "espaço protegido"),
+        ("<div><p>aninhado <b>forte</b></p></div>", "aninhado forte"),
+        ("texto simples sem marcação", "texto simples sem marcação"),
+        ("<div>   </div>", ""),
+        ("<div>a</div><div></div><div></div><div>b</div>", "a\n\nb"),
+    ],
+)
+def test_converter_html_reduz_marcacao_a_texto_legivel(bruto: str, esperado: str) -> None:
+    assert modulo.converter_html(bruto) == esperado
+
+
+def test_campo_html_e_convertido_e_campo_string_fica_intacto() -> None:
+    bruto = "<div>Restringir por <b>perfil</b>.<br>Somente auditores.</div>"
+    literal = "Texto <com> sinais &amp; preservados"
+    demanda = modulo.consultar_demanda(
+        42,
+        CONFIGURACAO,
+        transporte(
+            resposta_demanda(
+                **{
+                    "Custom.DemandaRegraseRestricoes": bruto,
+                    "Custom.DemandaAreaSolicitante": literal,
+                }
+            )
+        ),
+    )
+
+    assert demanda.valores["Custom.DemandaRegraseRestricoes"] == (
+        "Restringir por perfil.\nSomente auditores."
+    )
+    # Campo `string` não passa pelo conversor: o valor chega como foi registrado.
+    assert demanda.valores["Custom.DemandaAreaSolicitante"] == literal
+
+
+def test_campo_html_que_vira_vazio_apos_conversao_e_lacuna() -> None:
+    """`<div><br></div>` é o que o Boards grava para um campo html "vazio"."""
+    demanda = modulo.consultar_demanda(
+        42,
+        CONFIGURACAO,
+        transporte(resposta_demanda(**{"Custom.DemandaValorEsperado": "<div><br></div>"})),
+    )
+
+    assert demanda.valores["Custom.DemandaValorEsperado"] is None
+
+
+def test_titulo_declarado_html_tambem_e_convertido() -> None:
+    demanda = modulo.consultar_demanda(
+        42,
+        CONFIGURACAO,
+        transporte(
+            resposta_demanda(**{"System.Title": "<div>Título com <i>ênfase</i></div>"}),
+            **{"System.Title": "html"},
+        ),
+    )
+
+    assert demanda.titulo == "Título com ênfase"
+
+
+def test_titulo_html_que_vira_vazio_falha_como_titulo_ausente() -> None:
+    requisitar = transporte(
+        resposta_demanda(**{"System.Title": "<div><br></div>"}),
+        **{"System.Title": "html"},
+    )
+
+    with pytest.raises(modulo.ErroConsultaDemanda, match="System.Title"):
+        modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
+
+
+@pytest.mark.parametrize("tipo_remoto", ["identity", "picklistString", "integer", "dateTime"])
+def test_campo_com_tipo_remoto_nao_textual_para_antes_da_spec(tipo_remoto: str) -> None:
+    """Fecha a dívida de falhar com 'não é textual' só depois de tentar ler o valor."""
+    requisitar = transporte(**{"Custom.DemandaAreaSolicitante": tipo_remoto})
+
+    with pytest.raises(modulo.ErroConsultaDemanda) as erro:
+        modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
+
+    assert erro.value.categoria == "contrato"
+    assert erro.value.detalhe_publico == (
+        "campo remoto com tipo não textual: Custom.DemandaAreaSolicitante"
+    )
+
+
+def test_tipo_remoto_ausente_e_erro_de_contrato() -> None:
+    def requisitar(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
+        if "/workitems/" in url:
+            return resposta_demanda()
+        if "/workitemtypes/" in url:
+            return {"value": [{"referenceName": campo} for campo in CAMPOS]}
+        return {"value": [{"referenceName": "System.Title", "type": "string"}]}
+
+    with pytest.raises(modulo.ErroConsultaDemanda) as erro:
+        modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
+
+    assert erro.value.categoria == "contrato"
+    assert erro.value.campo_ausente == "Custom.DemandaAreaSolicitante"
+
+
+@pytest.mark.parametrize("resposta", [{"value": []}, {"value": "texto"}, {}])
+def test_resposta_de_tipos_invalida_e_recusada(resposta: dict[str, object]) -> None:
+    def requisitar(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
+        if "/workitems/" in url:
+            return resposta_demanda()
+        if "/workitemtypes/" in url:
+            return {"value": [{"referenceName": campo} for campo in CAMPOS]}
+        return resposta
+
+    with pytest.raises(modulo.ErroConsultaDemanda, match="tipos de campo"):
+        modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
 
 
 def test_fonte_do_leitor_nao_declara_metodo_diferente_de_get() -> None:
@@ -182,11 +330,7 @@ def test_consultar_demanda_preserva_campo_vazio_como_lacuna() -> None:
     demanda = modulo.consultar_demanda(
         42,
         CONFIGURACAO,
-        lambda url, cabecalhos: (
-            resposta_demanda(**{"Custom.DemandaAreaSolicitante": "  "})
-            if "/workitems/42?" in url
-            else {"value": [{"referenceName": campo} for campo in CAMPOS]}
-        ),
+        transporte(resposta_demanda(**{"Custom.DemandaAreaSolicitante": "  "})),
     )
 
     assert demanda.valores["Custom.DemandaAreaSolicitante"] is None
@@ -196,11 +340,7 @@ def test_consultar_demanda_mapeia_lista_vazia_como_lacuna() -> None:
     demanda = modulo.consultar_demanda(
         42,
         CONFIGURACAO,
-        lambda url, cabecalhos: (
-            resposta_demanda(**{"Custom.DemandaPublicoAlvo": []})
-            if "/workitems/42?" in url
-            else {"value": [{"referenceName": campo} for campo in CAMPOS]}
-        ),
+        transporte(resposta_demanda(**{"Custom.DemandaPublicoAlvo": []})),
     )
 
     assert demanda.valores["Custom.DemandaPublicoAlvo"] is None
@@ -210,9 +350,11 @@ def test_consultar_demanda_rejeita_campo_ausente_no_tipo() -> None:
     campos = CAMPOS - {"Custom.DemandaValorEsperado"}
 
     def requisitar(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
-        if "/workitems/42?" in url:
+        if "/workitems/" in url:
             return resposta_demanda()
-        return {"value": [{"referenceName": campo} for campo in campos]}
+        if "/workitemtypes/" in url:
+            return {"value": [{"referenceName": campo} for campo in campos]}
+        return resposta_tipos()
 
     with pytest.raises(modulo.ErroConsultaDemanda, match="Custom.DemandaValorEsperado") as erro:
         modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
@@ -224,10 +366,7 @@ def test_consultar_demanda_rejeita_campo_ausente_no_tipo() -> None:
 
 
 def test_consultar_demanda_rejeita_campo_customizado_nao_textual() -> None:
-    def requisitar(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
-        if "/workitems/42?" in url:
-            return resposta_demanda(**{"Custom.DemandaValorEsperado": 123})
-        return {"value": [{"referenceName": campo} for campo in CAMPOS]}
+    requisitar = transporte(resposta_demanda(**{"Custom.DemandaValorEsperado": 123}))
 
     with pytest.raises(modulo.ErroConsultaDemanda, match="Custom.DemandaValorEsperado"):
         modulo.consultar_demanda(42, CONFIGURACAO, requisitar)

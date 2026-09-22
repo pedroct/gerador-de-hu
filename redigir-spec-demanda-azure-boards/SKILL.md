@@ -142,27 +142,27 @@ O bloco acima é o documento a emitir: copie a estrutura, não estas explicaçõ
 - Não apresente ausência de evidência como comportamento confirmado. Quando o código e a Demanda
   divergirem, registre ambos e mantenha a decisão como lacuna.
 
-## Normalização dos valores registrados
+## Valores já convertidos pelo leitor
 
-Três campos são declarados `html` no tipo remoto e **sempre podem** voltar com marcação (`<div>`,
-`<br>`, `<li>`, `&nbsp;`), mesmo que uma Demanda específica traga texto simples:
+Alguns campos da Demanda são declarados `html` no Azure Boards e chegam da API com marcação
+(`<div>`, `<br>`, `<li>`, `&nbsp;`). **A CLI já converte esses campos em texto** antes de devolver o
+JSON: você recebe texto legível, com listas em `- ` e parágrafos separados por quebra de linha.
 
-| Campo | Tipo declarado | Consequência |
-|---|---|---|
-| `Custom.DemandaValorEsperado` | `html` | alimenta **Comportamento esperado** |
-| `Custom.DemandaDoraResolver` | `html` | alimenta **Problema relatado** |
-| `Custom.DemandaRegraseRestricoes` | `html` | alimenta **Comportamento esperado** |
+Por isso:
 
-`System.Title`, `Custom.DemandaAreaSolicitante` e `Custom.DemandaPublicoAlvo` são `string` de linha
-única e não precisam de conversão. Nunca conclua que um campo `html` é seguro porque uma Demanda veio
-sem marcação: verifique o valor recebido, não o exemplo anterior.
+- **Não converta HTML você mesmo, e não espere tags no JSON.** Se encontrar uma tag no valor recebido,
+  é conteúdo literal que o autor digitou, não marcação — preserve como está.
+- O leitor decide o que converter pelo tipo declarado no campo remoto, consultado a cada execução. Não
+  presuma quais campos são `html`: isso é configuração do Azure Boards e pode mudar.
+- Um campo cujo tipo remoto não for textual (identidade, picklist, número, data) interrompe o fluxo
+  antes da Spec, com erro de contrato. Não contorne: o contrato mudou e precisa ser revisto.
+- Um campo `html` que contenha só marcação vazia vira lacuna, como qualquer campo sem valor.
 
-HTML, quebras de linha e o caractere `|` destroem uma tabela Markdown. Antes de escrever a tabela
-**Fonte da Demanda**:
+O que **continua sendo sua responsabilidade** é a tabela **Fonte da Demanda**, porque o texto convertido
+ainda pode ter várias linhas ou o caractere `|`, que quebram uma tabela Markdown:
 
-- Converta o HTML em texto legível, preservando o sentido; não invente conteúdo que o HTML não continha.
 - Substitua quebras de linha por espaço e escape `|` como `\|` dentro de qualquer célula.
 - Quando o valor for longo ou estruturado (lista, vários parágrafos), coloque na célula um resumo fiel de
   uma linha e reproduza o valor integral em uma subseção de **Fonte da Demanda**, fora da tabela.
-- Se um campo vier em formato que você não consegue converter com fidelidade, trate-o como lacuna e
-  registre a limitação — não escreva uma paráfrase por plausibilidade.
+- O resumo na célula nunca substitui o valor integral: ele existe para a tabela caber, e o texto completo
+  precisa aparecer em algum lugar da Spec.

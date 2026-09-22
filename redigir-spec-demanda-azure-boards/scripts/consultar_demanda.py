@@ -14,6 +14,7 @@ import time
 import tomllib
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from json import JSONDecodeError
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -21,8 +22,9 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 TIPO_DEMANDA = "Demanda de Negócio"
+CAMPO_TITULO = "System.Title"
 CAMPOS_DEMANDA = (
-    "System.Title",
+    CAMPO_TITULO,
     "Custom.DemandaAreaSolicitante",
     "Custom.DemandaPublicoAlvo",
     "Custom.DemandaValorEsperado",
@@ -30,6 +32,12 @@ CAMPOS_DEMANDA = (
     "Custom.DemandaRegraseRestricoes",
 )
 _CATEGORIAS_ERRO_PUBLICAS = {"consulta", "contrato", "configuração"}
+
+TIPO_HTML = "html"
+_TIPOS_TEXTUAIS = frozenset({"string", TIPO_HTML, "plainText"})
+"""Tipos remotos que o leitor sabe converter em texto. Identidade e picklist não entram."""
+
+_TAGS_BLOCO = frozenset({"p", "div", "tr", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6"})
 
 TIMEOUT_SEGUNDOS = 30
 """Limite de espera por requisição. Sem ele a CLI pode travar indefinidamente."""
@@ -57,6 +65,7 @@ class ErroConsultaDemanda(RuntimeError):
         *,
         categoria: str = "consulta",
         campo_ausente: str | None = None,
+        campo_nao_textual: str | None = None,
         codigo_http: int | None = None,
     ) -> None:
         super().__init__(mensagem)
@@ -65,6 +74,9 @@ class ErroConsultaDemanda(RuntimeError):
         )
         self.campo_ausente = (
             campo_ausente if campo_ausente in CAMPOS_DEMANDA else None
+        )
+        self.campo_nao_textual = (
+            campo_nao_textual if campo_nao_textual in CAMPOS_DEMANDA else None
         )
         self.codigo_http = (
             codigo_http if codigo_http in _DETALHES_HTTP_PUBLICOS else None
@@ -75,6 +87,8 @@ class ErroConsultaDemanda(RuntimeError):
         """Expõe somente diagnóstico derivado de dados controlados pelo contrato."""
         if self.campo_ausente is not None:
             return f"campo remoto obrigatório ausente: {self.campo_ausente}"
+        if self.campo_nao_textual is not None:
+            return f"campo remoto com tipo não textual: {self.campo_nao_textual}"
         if self.codigo_http is not None:
             return _DETALHES_HTTP_PUBLICOS[self.codigo_http]
         return None
@@ -138,6 +152,45 @@ class ErroConfiguracao(RuntimeError):
         self.detalhe_publico = (
             detalhe_publico if detalhe_publico in _DETALHES_CONFIGURACAO_PUBLICOS else None
         )
+
+
+class _ExtratorTexto(HTMLParser):
+    """Reduz o HTML de um campo do Boards a texto legível, sem dependência externa."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._partes: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "br":
+            self._partes.append("\n")
+        elif tag == "li":
+            self._partes.append("\n- ")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in _TAGS_BLOCO:
+            self._partes.append("\n")
+
+    def handle_data(self, dados: str) -> None:
+        self._partes.append(dados)
+
+    def texto(self) -> str:
+        bruto = "".join(self._partes).replace("\xa0", " ")
+        linhas: list[str] = []
+        for linha in bruto.split("\n"):
+            limpa = " ".join(linha.split())
+            # Preserva uma linha em branco como separador, nunca duas seguidas.
+            if limpa or (linhas and linhas[-1]):
+                linhas.append(limpa)
+        return "\n".join(linhas).strip()
+
+
+def converter_html(valor: str) -> str:
+    """Converte um campo `html` em texto. Valor sem marcação atravessa inalterado."""
+    extrator = _ExtratorTexto()
+    extrator.feed(valor)
+    extrator.close()
+    return extrator.texto()
 
 
 def _urlerro_transitorio(erro: URLError) -> bool:
@@ -345,6 +398,7 @@ def consultar_demanda(
     base_url = f"https://dev.azure.com/{organizacao}/{projeto}"
     url_item = f"{base_url}/_apis/wit/workitems/{id_demanda}?$expand=Fields&api-version=7.1"
     url_campos = f"{base_url}/_apis/wit/workitemtypes/{tipo}/fields?api-version=7.1"
+    url_tipos = f"{base_url}/_apis/wit/fields?api-version=7.1"
     cabecalhos = {"Accept": "application/json"}
     obter = requisitar or (
         lambda url, headers: requisitar_json(url, headers, token=configuracao.token)
@@ -364,11 +418,19 @@ def consultar_demanda(
             campo_ausente=ausentes[0],
         )
 
-    titulo = _texto_obrigatorio(campos_item, "System.Title", id_demanda)
+    payload_tipos = _obter_payload(obter, url_tipos, cabecalhos, id_demanda)
+    tipos = _extrair_tipos(payload_tipos, id_demanda)
+    _validar_tipos(tipos, id_demanda)
+
+    titulo = _texto_obrigatorio(
+        campos_item, CAMPO_TITULO, id_demanda, html=tipos[CAMPO_TITULO] == TIPO_HTML
+    )
     valores = {
-        campo: _texto_opcional(campos_item, campo, id_demanda)
+        campo: _texto_opcional(
+            campos_item, campo, id_demanda, html=tipos[campo] == TIPO_HTML
+        )
         for campo in CAMPOS_DEMANDA
-        if campo != "System.Title"
+        if campo != CAMPO_TITULO
     }
     return DemandaNegocio(
         id=id_demanda,
@@ -443,14 +505,54 @@ def _extrair_campos(payload: Mapping[str, object], id_demanda: int) -> set[str]:
     return nomes
 
 
-def _texto_obrigatorio(campos: Mapping[str, object], nome: str, id_demanda: int) -> str:
+def _extrair_tipos(payload: Mapping[str, object], id_demanda: int) -> dict[str, str]:
+    """Mapeia cada campo remoto ao seu tipo declarado, que diz o que precisa de conversão."""
+    valor = payload.get("value")
+    if not isinstance(valor, list) or not valor:
+        raise ErroConsultaDemanda(f"ID {id_demanda}: resposta de tipos de campo inválida.")
+    tipos: dict[str, str] = {}
+    for item in valor:
+        if not isinstance(item, dict):
+            continue
+        nome, tipo = item.get("referenceName"), item.get("type")
+        if isinstance(nome, str) and isinstance(tipo, str):
+            tipos[nome] = tipo
+    return tipos
+
+
+def _validar_tipos(tipos: Mapping[str, str], id_demanda: int) -> None:
+    """Recusa antes de redigir um campo que o leitor não sabe converter em texto."""
+    for campo in CAMPOS_DEMANDA:
+        tipo = tipos.get(campo)
+        if tipo is None:
+            raise ErroConsultaDemanda(
+                f"ID {id_demanda}: o tipo remoto do campo {campo} não foi encontrado.",
+                categoria="contrato",
+                campo_ausente=campo,
+            )
+        if tipo not in _TIPOS_TEXTUAIS:
+            raise ErroConsultaDemanda(
+                f"ID {id_demanda}: campo {campo} tem tipo remoto {tipo!r}, não textual.",
+                categoria="contrato",
+                campo_nao_textual=campo,
+            )
+
+
+def _texto_obrigatorio(
+    campos: Mapping[str, object], nome: str, id_demanda: int, *, html: bool = False
+) -> str:
     valor = campos.get(nome)
     if not isinstance(valor, str) or not valor.strip():
         raise ErroConsultaDemanda(f"ID {id_demanda}: campo {nome} vazio ou não textual.")
-    return valor
+    texto = converter_html(valor) if html else valor
+    if not texto.strip():
+        raise ErroConsultaDemanda(f"ID {id_demanda}: campo {nome} vazio ou não textual.")
+    return texto
 
 
-def _texto_opcional(campos: Mapping[str, object], nome: str, id_demanda: int) -> str | None:
+def _texto_opcional(
+    campos: Mapping[str, object], nome: str, id_demanda: int, *, html: bool = False
+) -> str | None:
     valor = campos.get(nome)
     if valor is None:
         return None
@@ -458,7 +560,8 @@ def _texto_opcional(campos: Mapping[str, object], nome: str, id_demanda: int) ->
         return None
     if not isinstance(valor, str):
         raise ErroConsultaDemanda(f"ID {id_demanda}: campo {nome} não é textual.")
-    return valor if valor.strip() else None
+    texto = converter_html(valor) if html else valor
+    return texto if texto.strip() else None
 
 
 def principal(argv: list[str] | None = None) -> int:
@@ -474,7 +577,7 @@ def principal(argv: list[str] | None = None) -> int:
             "campos": {
                 campo: demanda.valores.get(campo)
                 for campo in CAMPOS_DEMANDA
-                if campo != "System.Title"
+                if campo != CAMPO_TITULO
             },
         }
         print(json.dumps(saida, ensure_ascii=False))
