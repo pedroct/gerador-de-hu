@@ -14,9 +14,12 @@ revisão manual posterior.
 
 ## Fluxo obrigatório
 
-1. Receba o ID numérico da Demanda e execute `uv run python scripts/consultar_demanda.py <id>`. Se a
-   consulta falhar, se o tipo não for `Demanda de Negócio` ou se o contrato de campos estiver inválido,
-   interrompa o fluxo e informe o erro; não redija uma Spec parcial por plausibilidade.
+1. Receba o ID numérico da Demanda e, a partir da raiz desta skill, execute
+   `uv run python scripts/consultar_demanda.py <id>`. Se o diretório atual não for essa raiz, resolva
+   explicitamente a raiz da skill antes de executar a CLI; não interprete `scripts/` em relação ao
+   repositório investigado. Se a consulta falhar, se o tipo não for `Demanda de Negócio` ou se o contrato
+   de campos estiver inválido, interrompa o fluxo e informe o erro; não redija uma Spec parcial por
+   plausibilidade.
 2. Registre a fonte como `Demanda de Negócio #ID`, sua URL, o tipo validado e uma tabela com conteúdo
    da Spec, campo remoto e valor registrado. Use `System.Title` e os campos
    `Custom.DemandaAreaSolicitante`, `Custom.DemandaPublicoAlvo`,
@@ -29,16 +32,22 @@ revisão manual posterior.
    [references/investigacao-demanda-azure-boards.md](references/investigacao-demanda-azure-boards.md).
    Descubra repositórios irmãos, investigue somente leitura e classifique a demanda em `Defeito`,
    `Melhoria` ou `Outro` pela comparação entre o registrado e a evidência de comportamento atual.
-5. Chame `especificar-debitos-tecnicos` somente quando houver evidência de débito técnico ligada ao
+5. Preencha e salve a Spec-base completa usando o **Template da Spec** antes de chamar qualquer skill
+   especializada. Use Área solicitante e Público-alvo como insumos da seção **Atores e vocabulário
+   identificados no código**; use Valor esperado e Regras e restrições como insumos de
+   **Comportamento esperado**. Registre todos como conteúdo registrado na Demanda, sem promovê-los a
+   requisito confirmado. Inclua também a fonte, o problema, a evidência de código, a classificação, os
+   repositórios considerados e as lacunas.
+6. Chame `especificar-debitos-tecnicos` somente quando houver evidência de débito técnico ligada ao
    escopo. Forneça a evidência `caminho:linha`, a origem na Demanda e o contexto da Spec; preserve a
    saída como documento separado, sem misturá-la ao requisito de negócio.
-6. Chame `especificar-telas-ux-ui` sempre depois de concluir a Spec-base completa. Preserve a anotação
+7. Chame `especificar-telas-ux-ui` sempre depois de concluir a Spec-base completa. Preserve a anotação
    da Spec e, quando aplicável, o briefing de telas como documento separado.
-7. Somente se houver copy exibida ao usuário na Demanda, na Spec-base ou no briefing de telas, chame
+8. Somente se houver copy exibida ao usuário na Demanda, na Spec-base ou no briefing de telas, chame
    `revisar-textos-requisitos` depois da análise de telas. Salve o parecer com os trechos, diagnósticos,
    sugestões e decisões pendentes; a orquestradora não aceita uma sugestão nem reescreve requisitos
    automaticamente.
-8. Salve a Spec principal e os documentos companheiros, registrando eventual indisponibilidade de uma
+9. Salve a Spec principal e os documentos companheiros, registrando eventual indisponibilidade de uma
    skill especializada como lacuna. Em seguida, pare: não chamar entrevista, geração ou publicação de backlog.
    A geração ou publicação de backlog é uma etapa manual controlada pelo usuário.
 
@@ -90,16 +99,26 @@ Registrado na Demanda: <síntese fiel de Custom.DemandaDoraResolver>.
 | ... | ... | Alta/Média/Baixa |
 
 ## Comportamento esperado
-- Registrado na Demanda: ...
+- Registrado na Demanda: Valor esperado (`Custom.DemandaValorEsperado`) e Regras e restrições
+  (`Custom.DemandaRegraseRestricoes`) são os insumos desta seção.
 - Evidenciado pelo código: ...
 - Lacuna: ...
+
+Os insumos registrados na Demanda não são requisito confirmado; preserve sua origem e não complete o
+comportamento esperado por plausibilidade.
 
 ## Classificação
 - **Tipo**: Defeito | Melhoria | Outro
 - **Justificativa**: ...
 
 ## Atores e vocabulário identificados no código
-...
+- Registrado na Demanda: Área solicitante (`Custom.DemandaAreaSolicitante`) e Público-alvo
+  (`Custom.DemandaPublicoAlvo`) alimentam os atores e o vocabulário a investigar.
+- Evidenciado pelo código: ...
+- Lacuna: ...
+
+Área solicitante e Público-alvo não comprovam atores nem vocabulário no código: são insumos registrados
+na Demanda e não devem ser promovidos a requisito confirmado.
 
 ## Lacunas e perguntas abertas
 - <pergunta objetiva para cada campo null, divergência ou limite de investigação>
