@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 import base64
+import errno
 import getpass
 import json
 import os
+import socket
 import sys
 import time
 import tomllib
@@ -53,9 +55,28 @@ class DemandaNegocio:
 
 Requisitar = Callable[[str, dict[str, str]], dict[str, object]]
 
+_ERROS_REDE_TRANSITORIOS = {
+    errno.ECONNABORTED,
+    errno.ECONNREFUSED,
+    errno.ECONNRESET,
+    errno.EHOSTUNREACH,
+    errno.ENETDOWN,
+    errno.ENETRESET,
+    errno.ENETUNREACH,
+    errno.ETIMEDOUT,
+}
+
 
 class ErroConfiguracao(RuntimeError):
     """Indica que a configuração mínima não foi fornecida."""
+
+
+def _urlerro_transitorio(erro: URLError) -> bool:
+    """Retorna se a causa de uma URLError indica uma falha de rede transitória."""
+    causa = erro.reason
+    if isinstance(causa, (TimeoutError, ConnectionError, socket.timeout)):
+        return True
+    return isinstance(causa, OSError) and causa.errno in _ERROS_REDE_TRANSITORIOS
 
 
 def construir_parser() -> argparse.ArgumentParser:
@@ -165,9 +186,11 @@ def requisitar_json(
         except HTTPError as erro:
             if erro.code not in {408, 429, 500, 502, 503, 504} or tentativa == 2:
                 raise ErroConsultaDemanda(f"Falha HTTP {erro.code}.") from None
-        except (URLError, UnicodeDecodeError, JSONDecodeError, OSError):
-            if tentativa == 2:
+        except URLError as erro:
+            if not _urlerro_transitorio(erro) or tentativa == 2:
                 raise ErroConsultaDemanda("Falha ao consultar o Azure DevOps.") from None
+        except (UnicodeDecodeError, JSONDecodeError, OSError):
+            raise ErroConsultaDemanda("Falha ao consultar o Azure DevOps.") from None
         if tentativa < 2:
             time.sleep(0.05 * (2**tentativa))
     raise ErroConsultaDemanda("Falha ao consultar o Azure DevOps.")

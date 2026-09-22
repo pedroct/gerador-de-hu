@@ -361,10 +361,14 @@ def test_requisitar_json_erro_http_permanente_nao_repetido() -> None:
 
 def test_requisitar_json_encapsula_erro_de_transporte_sem_detalhes() -> None:
     segredo = "token-super-secreto"
+    chamadas = 0
 
     def abrir(request: object) -> object:
+        nonlocal chamadas
+        chamadas += 1
         raise URLError(f"falha com {segredo}")
 
     with pytest.raises(modulo.ErroConsultaDemanda) as erro:
         modulo.requisitar_json("https://dev.azure.com/x", {}, token=segredo, abrir=abrir)
     assert segredo not in str(erro.value)
+    assert chamadas == 1
