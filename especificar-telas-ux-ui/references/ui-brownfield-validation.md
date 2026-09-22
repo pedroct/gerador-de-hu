@@ -35,6 +35,9 @@ Para cada par (requisito, plataforma) com faceta de UI:
   `src/telas/Diligencia/ReaberturaScreen.tsx:18`;
 - distinga tela/componente de produção de arquivos de teste ou storybook na síntese; um teste de
   interface existente pode aumentar confiança, mas não substitui evidência da tela implementada;
+- uma tela existente que passa a mostrar **mais** do que mostrava (mais registros, de mais origens, de
+  procedência diferente) é evidência de `Parcialmente implementado`, não de `Implementado`: a tela
+  existe, mas o estado exigido pelo requisito ainda não foi desenhado;
 - registre `Nenhuma evidência encontrada` quando a busca relevante estiver concluída, ou `Evidência
   indisponível: [motivo]` quando não foi possível validar. Nunca invente caminho ou linha.
 
@@ -66,10 +69,33 @@ Produza uma linha por par (requisito, plataforma) com faceta de UI.
 A matriz é insumo de análise; não decide sozinha o conteúdo do roteiro de tela nem substitui o Card da 3C
 do item de design gerado depois pelo backlog.
 
+## Evidência de padrão visual
+
+O que a equipe de UX-UI aproveita de um produto existente é o **padrão**, não o componente. Ao procurar
+referência de padrão para o item de design:
+
+- prefira uma **tela equivalente em produção** — um cadastro administrativo existente é referência para
+  um cadastro administrativo novo;
+- descreva o que encontrou em linguagem de design: o que aparece na tela e em que ordem, onde ficam as
+  ações, como o estado de cada registro é comunicado, onde criar e editar acontecem, como a confirmação
+  de uma ação destrutiva é pedida, qual é o texto de lista vazia, e a partir de que largura o layout
+  quebra ou rola;
+- **distinga componente disponível de padrão adotado.** Um componente instalado, importado ou registrado
+  no projeto e não usado por nenhuma tela **não é** referência de padrão: registre-o como disponível e
+  diga explicitamente que não há precedente visual, porque isso muda o esforço de design;
+- registre também a **ausência de precedente** para uma ação que o requisito pressupõe — por exemplo, um
+  produto cujas telas administrativas só ativam e inativam, nunca excluem, quando o requisito fala em
+  remover. Isso transforma uma ambiguidade do texto em pergunta objetiva;
+- não conclua que um padrão cobre o requisito só porque a tela de referência existe: ela informa
+  consistência visual, não cobertura funcional.
+
 ## Política de geração de item
 
 - `Parcialmente implementado`, `Não encontrado` e `Impossível validar` geram um item de design candidato,
   um por plataforma.
+- Necessidade de plataforma não confirmada — a spec não declara a plataforma e o produto não tem nenhum
+  precedente daquele tipo de tela nela — não gera item: gera pergunta aberta registrada no item da
+  plataforma que tem precedente.
 - `Implementado` não gera item — a tela já cobre o requisito naquela plataforma.
 - `Não aplicável` não gera item — a plataforma não existe no escopo do produto.
 

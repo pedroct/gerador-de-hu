@@ -120,5 +120,90 @@ class SkillIntegrationTests(unittest.TestCase):
         )
 
 
+    def test_skill_declares_ux_audience_and_bans_process_jargon(self):
+        self.assertIn("## Para quem a saída é escrita", self.skill)
+        self.assertIn("Sem vocabulário de processo no briefing", self.skill)
+        self.assertIn("Sem `caminho:linha` no briefing", self.skill)
+        self.assertIn(
+            "Economia de texto é requisito da saída, não estilo", self.skill
+        )
+
+    def test_traceability_is_a_separate_section_from_the_briefing(self):
+        self.assertIn(
+            "## Rastreabilidade — não é para a equipe de UX-UI", self.skill
+        )
+
+    def test_item_template_has_design_sections(self):
+        for secao in (
+            "### Por que esta tela existe",
+            "### Quem usa",
+            "### Onde fica",
+            "### O que a pessoa precisa fazer",
+            "### Regras que a tela precisa honrar",
+            "### Campos",
+            "### Estados da tela",
+            "### Volume e escala",
+            "### Referência de padrão no produto",
+            "### Textos a definir",
+            "### Perguntas abertas",
+            "### Fora do escopo desta tela, mas afetado pelo mesmo requisito",
+            "### O que se espera desta especificação",
+        ):
+            self.assertIn(secao, self.skill, msg=f"template sem {secao!r}")
+
+    def test_screen_script_covers_first_use_entry_point_and_implied_actions(self):
+        self.assertIn("o **primeiro uso**, com a base vazia", self.skill)
+        self.assertIn("o **ponto de entrada**", self.skill)
+        self.assertIn("toda ação pressuposta por alguma regra", self.skill)
+        self.assertIn("Regra sem ação correspondente é lacuna", self.skill)
+
+    def test_screen_script_is_written_in_user_voice(self):
+        self.assertIn("na voz de quem usa, nunca na voz do sistema", self.skill)
+        self.assertIn("Não escreva o briefing na voz do sistema", self.skill)
+
+    def test_changed_content_of_existing_screen_is_a_ui_facet(self):
+        self.assertIn("o que uma tela existente passa a mostrar", self.skill)
+        self.assertIn("silêncio não é cobertura", self.skill)
+        self.assertIn("Nunca conclua cobertura por omissão", self.skill)
+
+    def test_unconfirmed_platform_becomes_open_question_instead_of_item(self):
+        self.assertIn("a necessidade **não está confirmada**", self.skill)
+        self.assertIn("não gere um item vazio para a outra", self.skill)
+        self.assertIn(
+            "Necessidade de plataforma não confirmada", self.reference
+        )
+
+    def test_reference_separates_available_component_from_adopted_pattern(self):
+        self.assertIn("## Evidência de padrão visual", self.reference)
+        self.assertIn(
+            "componente disponível de padrão adotado", self.reference
+        )
+        self.assertIn("não é** referência de padrão", self.reference)
+
+    def test_open_questions_declare_what_they_block(self):
+        self.assertIn("| # | Pergunta | O que trava no desenho |", self.skill)
+        self.assertIn(
+            "Pergunta aberta sem consequência declarada é ruído", self.skill
+        )
+
+
+    def test_flow_diagram_is_required_in_mermaid(self):
+        self.assertIn("### Fluxo da tela", self.skill)
+        self.assertIn("Desenhe o fluxo em diagrama Mermaid", self.skill)
+        self.assertIn("`flowchart TD`", self.skill)
+        self.assertIn("`stateDiagram-v2`", self.skill)
+        self.assertIn("tela de caminho único não precisa de diagrama", self.skill)
+
+    def test_flow_diagram_exposes_undecided_paths(self):
+        self.assertIn("caminho ainda pendente de decisão em linha tracejada", self.skill)
+        self.assertIn(
+            "Caminho sem origem, sem volta ou sem interação definida é lacuna",
+            self.skill,
+        )
+        self.assertIn(
+            "Não feche um caminho no diagrama para ele parecer completo", self.skill
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
