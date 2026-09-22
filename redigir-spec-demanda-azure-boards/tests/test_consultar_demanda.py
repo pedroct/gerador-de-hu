@@ -372,3 +372,53 @@ def test_requisitar_json_encapsula_erro_de_transporte_sem_detalhes() -> None:
         modulo.requisitar_json("https://dev.azure.com/x", {}, token=segredo, abrir=abrir)
     assert segredo not in str(erro.value)
     assert chamadas == 1
+
+
+def test_requisitar_json_repete_urlerro_transitorio_ate_sucesso() -> None:
+    chamadas = 0
+
+    class Resposta:
+        def read(self) -> bytes:
+            return b'{"ok": true}'
+
+        def __enter__(self) -> "Resposta":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            pass
+
+    def abrir(request: object) -> Resposta:
+        nonlocal chamadas
+        chamadas += 1
+        if chamadas < 3:
+            raise URLError(TimeoutError("tempo esgotado"))
+        return Resposta()
+
+    assert modulo.requisitar_json("https://dev.azure.com/x", {}, abrir=abrir) == {"ok": True}
+    assert chamadas == 3
+
+
+def test_requisitar_json_limita_urlerro_transitorio_a_tres_tentativas() -> None:
+    chamadas = 0
+
+    def abrir(request: object) -> object:
+        nonlocal chamadas
+        chamadas += 1
+        raise URLError(TimeoutError("tempo esgotado"))
+
+    with pytest.raises(modulo.ErroConsultaDemanda):
+        modulo.requisitar_json("https://dev.azure.com/x", {}, abrir=abrir)
+    assert chamadas == 3
+
+
+def test_requisitar_json_nao_repete_oserror_puro() -> None:
+    chamadas = 0
+
+    def abrir(request: object) -> object:
+        nonlocal chamadas
+        chamadas += 1
+        raise OSError("falha local")
+
+    with pytest.raises(modulo.ErroConsultaDemanda):
+        modulo.requisitar_json("https://dev.azure.com/x", {}, abrir=abrir)
+    assert chamadas == 1
