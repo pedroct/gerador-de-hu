@@ -174,6 +174,18 @@ def test_consultar_demanda_converte_erro_http_e_json_sem_expor_token() -> None:
     assert "segredo" not in str(erro.value)
 
 
+def test_consultar_demanda_nao_expoe_detalhes_do_erro_de_transporte() -> None:
+    valor_proibido = "token-super-secreto-do-proxy"
+
+    def requisitar(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
+        raise modulo.URLError(f"proxy recusou a credencial {valor_proibido}")
+
+    with pytest.raises(modulo.ErroConsultaDemanda) as erro:
+        modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
+
+    assert valor_proibido not in str(erro.value)
+
+
 def test_requisitar_json_envia_get_e_token_no_cabecalho() -> None:
     chamadas: list[tuple[str, dict[str, str]]] = []
 

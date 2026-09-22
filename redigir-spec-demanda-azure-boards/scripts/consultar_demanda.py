@@ -118,8 +118,8 @@ def _requisitar_json_seguro(url: str, cabecalhos: dict[str, str]) -> dict[str, o
         return requisitar_json(url, cabecalhos)
     except HTTPError:
         raise
-    except (JSONDecodeError, UnicodeDecodeError, URLError, OSError, ValueError) as erro:
-        raise ErroConsultaDemanda(f"Falha ao interpretar a resposta da consulta: {erro}.") from None
+    except (JSONDecodeError, UnicodeDecodeError, URLError, OSError, ValueError):
+        raise ErroConsultaDemanda("Falha ao interpretar a resposta da consulta.") from None
 
 
 def _obter_payload(
@@ -134,9 +134,9 @@ def _obter_payload(
         raise ErroConsultaDemanda(
             f"Falha HTTP {erro.code} ao consultar a Demanda {id_demanda}."
         ) from None
-    except (JSONDecodeError, UnicodeDecodeError, URLError, OSError, ValueError) as erro:
+    except (JSONDecodeError, UnicodeDecodeError, URLError, OSError, ValueError):
         raise ErroConsultaDemanda(
-            f"Falha ao consultar a Demanda {id_demanda}: {erro}."
+            f"Falha ao consultar a Demanda {id_demanda}: erro de comunicação ou resposta inválida."
         ) from None
     if not isinstance(payload, dict):
         raise ErroConsultaDemanda(f"ID {id_demanda}: a resposta não é um objeto JSON.")
