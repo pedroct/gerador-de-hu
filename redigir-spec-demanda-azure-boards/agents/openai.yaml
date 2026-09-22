@@ -1,0 +1,6 @@
+interface:
+  display_name: "Redigir spec a partir de Demanda no Azure Boards"
+  short_description: "Lê uma Demanda no Azure e produz Spec rastreável"
+  default_prompt: "Use $redigir-spec-demanda-azure-boards para redigir a Spec da Demanda de Negócio de ID <id>."
+policy:
+  allow_implicit_invocation: true
