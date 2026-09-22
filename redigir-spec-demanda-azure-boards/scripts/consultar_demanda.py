@@ -29,10 +29,33 @@ CAMPOS_DEMANDA = (
     "Custom.DemandaDoraResolver",
     "Custom.DemandaRegraseRestricoes",
 )
+_CATEGORIAS_ERRO_PUBLICAS = {"consulta", "contrato", "configuração"}
 
 
 class ErroConsultaDemanda(RuntimeError):
     """Indica que uma Demanda não pôde ser lida ou não atende ao contrato."""
+
+    def __init__(
+        self,
+        mensagem: str,
+        *,
+        categoria: str = "consulta",
+        campo_ausente: str | None = None,
+    ) -> None:
+        super().__init__(mensagem)
+        self.categoria = (
+            categoria if categoria in _CATEGORIAS_ERRO_PUBLICAS else "consulta"
+        )
+        self.campo_ausente = (
+            campo_ausente if campo_ausente in CAMPOS_DEMANDA else None
+        )
+
+    @property
+    def detalhe_publico(self) -> str | None:
+        """Expõe somente diagnóstico derivado de dados controlados pelo contrato."""
+        if self.campo_ausente is None:
+            return None
+        return f"campo remoto obrigatório ausente: {self.campo_ausente}"
 
 
 @dataclass(frozen=True)
@@ -225,7 +248,9 @@ def consultar_demanda(
     ausentes = [campo for campo in CAMPOS_DEMANDA if campo not in campos_disponiveis]
     if ausentes:
         raise ErroConsultaDemanda(
-            f"ID {id_demanda}: o tipo {TIPO_DEMANDA!r} não define o campo {ausentes[0]}."
+            f"ID {id_demanda}: o tipo {TIPO_DEMANDA!r} não define o campo {ausentes[0]}.",
+            categoria="contrato",
+            campo_ausente=ausentes[0],
         )
 
     titulo = _texto_obrigatorio(campos_item, "System.Title", id_demanda)
@@ -325,6 +350,8 @@ def _texto_opcional(campos: Mapping[str, object], nome: str, id_demanda: int) ->
     valor = campos.get(nome)
     if valor is None:
         return None
+    if isinstance(valor, list) and not valor:
+        return None
     if not isinstance(valor, str):
         raise ErroConsultaDemanda(f"ID {id_demanda}: campo {nome} não é textual.")
     return valor if valor.strip() else None
@@ -348,8 +375,12 @@ def principal(argv: list[str] | None = None) -> int:
         }
         print(json.dumps(saida, ensure_ascii=False))
         return 0
-    except (ErroConfiguracao, ErroConsultaDemanda):
-        print("Erro: não foi possível consultar a Demanda de Negócio.")
+    except ErroConfiguracao:
+        print("Erro [configuração]: não foi possível consultar a Demanda de Negócio.")
+        return 1
+    except ErroConsultaDemanda as erro:
+        detalhe = erro.detalhe_publico or "não foi possível consultar a Demanda de Negócio"
+        print(f"Erro [{erro.categoria}]: {detalhe}.")
         return 1
 
 

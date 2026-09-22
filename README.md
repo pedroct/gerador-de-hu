@@ -275,12 +275,12 @@ Cenário: Reabertura dentro do prazo
 Execute a suíte completa das skills com teste próprio:
 
 ```bash
-uv run python -m unittest discover -s gerar-backlog-azure-boards/tests -v
-uv run python -m unittest discover -s redigir-spec-pedido-negocio/tests -v
-uv run python -m unittest discover -s entrevistar-lacunas-requisito/tests -v
-uv run python -m unittest discover -s especificar-debitos-tecnicos/tests -v
-uv run python -m unittest discover -s especificar-telas-ux-ui/tests -v
-uv run python -m unittest discover -s redigir-spec-demanda-azure-boards/tests -v
+uv run pytest gerar-backlog-azure-boards/tests -v
+uv run pytest redigir-spec-pedido-negocio/tests -v
+uv run pytest entrevistar-lacunas-requisito/tests -v
+uv run pytest especificar-debitos-tecnicos/tests -v
+uv run pytest especificar-telas-ux-ui/tests -v
+uv run pytest redigir-spec-demanda-azure-boards/tests -v
 ```
 
 Valide os nove pacotes com o utilitário oficial:

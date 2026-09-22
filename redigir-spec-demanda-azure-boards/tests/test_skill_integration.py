@@ -1,5 +1,5 @@
+import re
 from pathlib import Path
-
 
 RAIZ_SKILL = Path(__file__).resolve().parents[1]
 SKILL = (RAIZ_SKILL / "SKILL.md").read_text(encoding="utf-8")
@@ -56,6 +56,37 @@ def test_template_preserva_rastreabilidade_e_lacunas() -> None:
     assert "null" in SKILL
     assert "EXPLICITO" in SKILL
     assert "INFERIDO" in SKILL
+
+
+def test_fluxo_estatico_preserva_ordem_gatilhos_e_lacunas() -> None:
+    marcadores = (
+        "1. Receba o ID numérico",
+        "2. Registre a fonte",
+        "3. Converta cada valor",
+        "4. Antes de investigar",
+        "5. Preencha e salve a Spec-base",
+        "6. Chame `especificar-debitos-tecnicos`",
+        "7. Chame `especificar-telas-ux-ui`",
+        "8. Somente se houver copy",
+        "9. Salve a Spec principal",
+    )
+    posicoes = [SKILL.index(marcador) for marcador in marcadores]
+    assert posicoes == sorted(posicoes)
+
+    assert re.search(
+        r"somente quando houver evidência de débito técnico ligada ao\s+escopo",
+        SKILL,
+    )
+    assert "sempre depois de concluir a Spec-base completa" in SKILL
+    assert "Somente se houver copy exibida ao usuário" in SKILL
+    assert SKILL.index("depois da análise de telas") > SKILL.index("Somente se houver copy")
+
+    assert re.search(
+        r"Converta cada valor `null`, vazio ou lista vazia.*?Lacunas e perguntas abertas",
+        SKILL,
+        flags=re.DOTALL,
+    )
+    assert "pergunta objetiva para cada campo null" in SKILL
 
 
 def test_referencia_delimita_investigacao_somente_leitura() -> None:

@@ -122,6 +122,20 @@ def test_consultar_demanda_preserva_campo_vazio_como_lacuna() -> None:
     assert demanda.valores["Custom.DemandaAreaSolicitante"] is None
 
 
+def test_consultar_demanda_mapeia_lista_vazia_como_lacuna() -> None:
+    demanda = modulo.consultar_demanda(
+        42,
+        CONFIGURACAO,
+        lambda url, cabecalhos: (
+            resposta_demanda(**{"Custom.DemandaPublicoAlvo": []})
+            if "/workitems/42?" in url
+            else {"value": [{"referenceName": campo} for campo in CAMPOS]}
+        ),
+    )
+
+    assert demanda.valores["Custom.DemandaPublicoAlvo"] is None
+
+
 def test_consultar_demanda_rejeita_campo_ausente_no_tipo() -> None:
     campos = CAMPOS - {"Custom.DemandaValorEsperado"}
 
@@ -130,8 +144,13 @@ def test_consultar_demanda_rejeita_campo_ausente_no_tipo() -> None:
             return resposta_demanda()
         return {"value": [{"referenceName": campo} for campo in campos]}
 
-    with pytest.raises(modulo.ErroConsultaDemanda, match="Custom.DemandaValorEsperado"):
+    with pytest.raises(modulo.ErroConsultaDemanda, match="Custom.DemandaValorEsperado") as erro:
         modulo.consultar_demanda(42, CONFIGURACAO, requisitar)
+
+    assert erro.value.categoria == "contrato"
+    assert erro.value.detalhe_publico == (
+        "campo remoto obrigatório ausente: Custom.DemandaValorEsperado"
+    )
 
 
 def test_consultar_demanda_rejeita_campo_customizado_nao_textual() -> None:
@@ -262,6 +281,64 @@ def test_configuracao_usa_raiz_do_toml_e_ambiente(tmp_path: Path) -> None:
     assert configuracao == modulo.ConfiguracaoAzureBoards("toml-org", "toml-projeto", "token-toml")
 
 
+def test_configuracao_aplica_precedencia_completa_com_tabela_azure_devops(
+    tmp_path: Path,
+) -> None:
+    configuracao_toml = tmp_path / "config.toml"
+    configuracao_toml.write_text(
+        "[azure_devops]\n"
+        'organizacao = "toml-org"\n'
+        'projeto = "toml-projeto"\n'
+        'AZURE_DEVOPS_TOKEN = "token-toml"\n'
+    )
+    env = tmp_path / ".env"
+    env.write_text(
+        "AZURE_DEVOPS_ORGANIZACAO=env-org\n"
+        "AZURE_DEVOPS_PROJETO=env-projeto\n"
+        "AZURE_DEVOPS_TOKEN=token-env\n"
+    )
+    ambiente = {
+        "AZURE_DEVOPS_ORGANIZACAO": "ambiente-org",
+        "AZURE_DEVOPS_PROJETO": "ambiente-projeto",
+        "AZURE_DEVOPS_TOKEN": "token-ambiente",
+    }
+
+    argumentos = modulo.construir_parser().parse_args(
+        [
+            "42",
+            "--organizacao",
+            "arg-org",
+            "--projeto",
+            "arg-projeto",
+            "--config",
+            str(configuracao_toml),
+            "--env-file",
+            str(env),
+        ]
+    )
+    assert modulo.carregar_configuracao(argumentos, ambiente=ambiente) == (
+        modulo.ConfiguracaoAzureBoards("arg-org", "arg-projeto", "token-toml")
+    )
+
+    argumentos = modulo.construir_parser().parse_args(
+        ["42", "--config", str(configuracao_toml), "--env-file", str(env)]
+    )
+    assert modulo.carregar_configuracao(argumentos, ambiente=ambiente) == (
+        modulo.ConfiguracaoAzureBoards("toml-org", "toml-projeto", "token-toml")
+    )
+
+    configuracao_toml.write_text('[azure_devops]\norganizacao = "toml-org"\n')
+    assert modulo.carregar_configuracao(argumentos, ambiente=ambiente) == (
+        modulo.ConfiguracaoAzureBoards("toml-org", "env-projeto", "token-env")
+    )
+
+    configuracao_toml.write_text("[azure_devops]\n")
+    env.write_text("")
+    assert modulo.carregar_configuracao(argumentos, ambiente=ambiente) == (
+        modulo.ConfiguracaoAzureBoards("ambiente-org", "ambiente-projeto", "token-ambiente")
+    )
+
+
 def test_configuracao_rejeita_entrada_nao_interativa_sem_token(monkeypatch) -> None:
     argumentos = modulo.construir_parser().parse_args(
         ["42", "--organizacao", "org", "--projeto", "p"]
@@ -295,6 +372,29 @@ def test_principal_nao_expoe_token_em_falha(monkeypatch, capsys) -> None:
     assert token not in json.dumps(saida)
 
 
+def test_principal_diagnostica_campo_ausente_com_sigilo(monkeypatch, capsys) -> None:
+    campo_ausente = "Custom.DemandaValorEsperado"
+    detalhe_externo = "resposta externa com token-super-secreto"
+
+    def levantar_erro_com_diagnostico(*args: object, **kwargs: object) -> None:
+        raise modulo.ErroConsultaDemanda(
+            detalhe_externo,
+            categoria="contrato",
+            campo_ausente=campo_ausente,
+        )
+
+    monkeypatch.setattr(modulo, "consultar_demanda", levantar_erro_com_diagnostico)
+    monkeypatch.setenv("AZURE_DEVOPS_TOKEN", "token-super-secreto")
+
+    assert modulo.principal(["42", "--organizacao", "org", "--projeto", "p"]) == 1
+
+    saida = capsys.readouterr().out
+    assert "Erro [contrato]" in saida
+    assert campo_ausente in saida
+    assert detalhe_externo not in saida
+    assert "token-super-secreto" not in saida
+
+
 def test_principal_serializa_apenas_campos_publicos(monkeypatch, capsys) -> None:
     demanda = modulo.DemandaNegocio(
         id=42,
@@ -312,6 +412,25 @@ def test_principal_serializa_apenas_campos_publicos(monkeypatch, capsys) -> None
     assert set(saida["campos"]) == CAMPOS - {"System.Title"}
     assert "System.Title" not in saida["campos"]
     assert "segredo" not in json.dumps(saida)
+
+
+def test_principal_serializa_lista_vazia_mapeada_como_null(monkeypatch, capsys) -> None:
+    valores = {campo: f"valor-{campo}" for campo in CAMPOS if campo != "System.Title"}
+    valores["Custom.DemandaPublicoAlvo"] = None
+    demanda = modulo.DemandaNegocio(
+        id=42,
+        url="https://dev.azure.com/org/p/_apis/wit/workItems/42",
+        tipo="Demanda de Negócio",
+        titulo="Título",
+        valores=valores,
+    )
+    monkeypatch.setattr(modulo, "consultar_demanda", lambda *args, **kwargs: demanda)
+    monkeypatch.setenv("AZURE_DEVOPS_TOKEN", "segredo")
+
+    assert modulo.principal(["42", "--organizacao", "org", "--projeto", "p"]) == 0
+
+    saida = json.loads(capsys.readouterr().out)
+    assert saida["campos"]["Custom.DemandaPublicoAlvo"] is None
 
 
 def test_requisitar_json_retries_transitorios() -> None:
