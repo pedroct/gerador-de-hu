@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import argparse
 import base64
+import getpass
 import json
+import os
+import sys
+import time
+import tomllib
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from json import JSONDecodeError
@@ -48,20 +54,123 @@ class DemandaNegocio:
 Requisitar = Callable[[str, dict[str, str]], dict[str, object]]
 
 
+class ErroConfiguracao(RuntimeError):
+    """Indica que a configuração mínima não foi fornecida."""
+
+
+def construir_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("id_item", type=int, help="ID da Demanda de Negócio")
+    parser.add_argument("--organizacao")
+    parser.add_argument("--projeto")
+    parser.add_argument("--config", type=str)
+    parser.add_argument("--env-file", default=".env")
+    return parser
+
+
+_CHAVES_CONFIGURACAO = {
+    "organizacao": "AZURE_DEVOPS_ORGANIZACAO",
+    "projeto": "AZURE_DEVOPS_PROJETO",
+    "token": "AZURE_DEVOPS_TOKEN",
+}
+
+
+def carregar_configuracao(
+    argumentos: argparse.Namespace,
+    *,
+    ambiente: Mapping[str, str] | None = None,
+) -> ConfiguracaoAzureBoards:
+    """Carrega configuração com precedência argumento, TOML, .env e ambiente."""
+    ambiente = os.environ if ambiente is None else ambiente
+    valores_toml: dict[str, str] = {}
+    if argumentos.config:
+        try:
+            with open(argumentos.config, "rb") as arquivo:
+                documento = tomllib.load(arquivo)
+        except (OSError, tomllib.TOMLDecodeError):
+            raise ErroConfiguracao("Não foi possível ler o arquivo de configuração.") from None
+        tabela = documento.get("azure_devops", documento)
+        if not isinstance(tabela, dict):
+            raise ErroConfiguracao("A configuração do Azure DevOps é inválida.")
+        for nome, chave in _CHAVES_CONFIGURACAO.items():
+            valor = tabela.get(chave, tabela.get(nome))
+            if isinstance(valor, str) and valor.strip():
+                valores_toml[chave] = valor.strip()
+
+    valores_env_file: dict[str, str] = {}
+    try:
+        with open(argumentos.env_file, encoding="utf-8") as arquivo:
+            for linha in arquivo:
+                texto = linha.strip()
+                if not texto or texto.startswith("#") or "=" not in texto:
+                    continue
+                chave, valor = texto.split("=", 1)
+                chave = chave.strip()
+                valor = valor.strip()
+                if len(valor) >= 2 and valor[0] == valor[-1] and valor[0] in "\"'":
+                    valor = valor[1:-1]
+                if chave in _CHAVES_CONFIGURACAO.values() and valor:
+                    valores_env_file[chave] = valor
+    except OSError:
+        pass
+
+    valores: dict[str, str | None] = {}
+    for nome, chave in _CHAVES_CONFIGURACAO.items():
+        argumento = getattr(argumentos, nome, None)
+        valores[chave] = (
+            argumento
+            or valores_toml.get(chave)
+            or valores_env_file.get(chave)
+            or ambiente.get(chave)
+        )
+
+    if not valores["AZURE_DEVOPS_ORGANIZACAO"]:
+        raise ErroConfiguracao("A organização do Azure DevOps não foi informada.")
+    if not valores["AZURE_DEVOPS_PROJETO"]:
+        raise ErroConfiguracao("O projeto do Azure DevOps não foi informado.")
+    token = valores["AZURE_DEVOPS_TOKEN"]
+    if not token:
+        if not sys.stdin.isatty():
+            raise ErroConfiguracao("O token do Azure DevOps não foi informado.")
+        token = getpass.getpass("Credencial do Azure DevOps: ")
+    if not token:
+        raise ErroConfiguracao("O token do Azure DevOps não foi informado.")
+    return ConfiguracaoAzureBoards(
+        organizacao=valores["AZURE_DEVOPS_ORGANIZACAO"],
+        projeto=valores["AZURE_DEVOPS_PROJETO"],
+        token=token,
+    )
+
+
 def requisitar_json(
     url: str,
     cabecalhos: dict[str, str],
     *,
+    token: str | None = None,
     abrir: Callable[..., Any] = urlopen,
 ) -> dict[str, object]:
     """Faz uma requisição GET e decodifica seu corpo JSON como objeto."""
-    requisicao = Request(url, headers=cabecalhos, method="GET")  # noqa: S310
-    with abrir(requisicao) as resposta:  # noqa: S310 - a URL é construída pelo leitor HTTPS.
-        corpo = resposta.read()
-    payload = json.loads(corpo)
-    if not isinstance(payload, dict):
-        raise ValueError("a resposta JSON não é um objeto")
-    return payload
+    headers = dict(cabecalhos)
+    if token is not None:
+        headers["Authorization"] = "Basic " + base64.b64encode(f":{token}".encode()).decode()
+    for tentativa in range(3):
+        requisicao = Request(url, headers=headers, method="GET")  # noqa: S310
+        try:
+            with abrir(requisicao) as resposta:  # noqa: S310 - a URL é construída pelo leitor HTTPS.
+                corpo = resposta.read()
+            payload = json.loads(corpo.decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ErroConsultaDemanda("A resposta JSON não é um objeto.")
+            return payload
+        except HTTPError as erro:
+            if erro.code not in {408, 429, 500, 502, 503, 504} or tentativa == 2:
+                raise ErroConsultaDemanda(f"Falha HTTP {erro.code}.") from None
+        except (URLError, UnicodeDecodeError, JSONDecodeError, OSError):
+            if tentativa == 2:
+                raise ErroConsultaDemanda("Falha ao consultar o Azure DevOps.") from None
+        if tentativa < 2:
+            time.sleep(0.05 * (2**tentativa))
+    raise ErroConsultaDemanda("Falha ao consultar o Azure DevOps.")
 
 
 def consultar_demanda(
@@ -79,12 +188,10 @@ def consultar_demanda(
     base_url = f"https://dev.azure.com/{organizacao}/{projeto}"
     url_item = f"{base_url}/_apis/wit/workitems/{id_demanda}?$expand=Fields&api-version=7.1"
     url_campos = f"{base_url}/_apis/wit/workitemtypes/{tipo}/fields?api-version=7.1"
-    cabecalhos = {
-        "Authorization": "Basic "
-        + base64.b64encode(f":{configuracao.token}".encode()).decode(),
-        "Accept": "application/json",
-    }
-    obter = requisitar or _requisitar_json_seguro
+    cabecalhos = {"Accept": "application/json"}
+    obter = requisitar or (
+        lambda url, headers: _requisitar_json_seguro(url, headers, configuracao.token)
+    )
 
     payload_item = _obter_payload(obter, url_item, cabecalhos, id_demanda)
     campos_item = _objeto(payload_item.get("fields"), f"ID {id_demanda}: fields inválido")
@@ -113,13 +220,13 @@ def consultar_demanda(
     )
 
 
-def _requisitar_json_seguro(url: str, cabecalhos: dict[str, str]) -> dict[str, object]:
+def _requisitar_json_seguro(
+    url: str, cabecalhos: dict[str, str], token: str
+) -> dict[str, object]:
     try:
-        return requisitar_json(url, cabecalhos)
-    except HTTPError:
+        return requisitar_json(url, cabecalhos, token=token)
+    except ErroConsultaDemanda:
         raise
-    except (JSONDecodeError, UnicodeDecodeError, URLError, OSError, ValueError):
-        raise ErroConsultaDemanda("Falha ao interpretar a resposta da consulta.") from None
 
 
 def _obter_payload(
@@ -198,3 +305,30 @@ def _texto_opcional(campos: Mapping[str, object], nome: str, id_demanda: int) ->
     if not isinstance(valor, str):
         raise ErroConsultaDemanda(f"ID {id_demanda}: campo {nome} não é textual.")
     return valor if valor.strip() else None
+
+
+def principal(argv: list[str] | None = None) -> int:
+    try:
+        argumentos = construir_parser().parse_args(argv)
+        configuracao = carregar_configuracao(argumentos)
+        demanda = consultar_demanda(argumentos.id_item, configuracao)
+        saida = {
+            "id": demanda.id,
+            "url": demanda.url,
+            "tipo": demanda.tipo,
+            "titulo": demanda.titulo,
+            "campos": {
+                campo: demanda.valores.get(campo)
+                for campo in CAMPOS_DEMANDA
+                if campo != "System.Title"
+            },
+        }
+        print(json.dumps(saida, ensure_ascii=False))
+        return 0
+    except (ErroConfiguracao, ErroConsultaDemanda):
+        print("Erro: não foi possível consultar a Demanda de Negócio.")
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(principal())

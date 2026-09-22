@@ -2,6 +2,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 
 import pytest
 
@@ -209,3 +210,161 @@ def test_requisitar_json_envia_get_e_token_no_cabecalho() -> None:
 
     assert resultado == {"ok": True}
     assert chamadas == [("https://dev.azure.com/x", {"Authorization": "Bearer segredo"})]
+
+
+def test_configuracao_prefere_argumento_a_arquivo_e_ambiente(tmp_path: Path) -> None:
+    env = tmp_path / ".env"
+    env.write_text(
+        "AZURE_DEVOPS_ORGANIZACAO=env-org\nAZURE_DEVOPS_PROJETO=env-projeto\n"
+        "AZURE_DEVOPS_TOKEN=token-env\n"
+    )
+    argumentos = modulo.construir_parser().parse_args(
+        [
+            "42",
+            "--organizacao",
+            "arg-org",
+            "--projeto",
+            "Projeto",
+            "--env-file",
+            str(env),
+        ]
+    )
+
+    configuracao = modulo.carregar_configuracao(
+        argumentos,
+        ambiente={
+            "AZURE_DEVOPS_ORGANIZACAO": "ambiente-org",
+            "AZURE_DEVOPS_PROJETO": "ambiente-projeto",
+            "AZURE_DEVOPS_TOKEN": "token-ambiente",
+        },
+    )
+
+    assert configuracao.organizacao == "arg-org"
+    assert configuracao.projeto == "Projeto"
+    assert configuracao.token == "token-" + "env"
+
+
+def test_configuracao_usa_raiz_do_toml_e_ambiente(tmp_path: Path) -> None:
+    configuracao_toml = tmp_path / "config.toml"
+    configuracao_toml.write_text(
+        'AZURE_DEVOPS_ORGANIZACAO = "toml-org"\nAZURE_DEVOPS_PROJETO = "toml-projeto"\n'
+        'AZURE_DEVOPS_TOKEN = "token-toml"\n'
+    )
+    argumentos = modulo.construir_parser().parse_args(
+        ["42", "--config", str(configuracao_toml), "--env-file", str(tmp_path / "inexistente")]
+    )
+
+    configuracao = modulo.carregar_configuracao(
+        argumentos,
+        ambiente={"AZURE_DEVOPS_TOKEN": "token-ambiente"},
+    )
+
+    assert configuracao == modulo.ConfiguracaoAzureBoards("toml-org", "toml-projeto", "token-toml")
+
+
+def test_configuracao_rejeita_entrada_nao_interativa_sem_token(monkeypatch) -> None:
+    argumentos = modulo.construir_parser().parse_args(
+        ["42", "--organizacao", "org", "--projeto", "p"]
+    )
+    monkeypatch.setattr(modulo.sys.stdin, "isatty", lambda: False)
+    getpass_chamado = False
+
+    def nao_deve_pedir(mensagem: str) -> str:
+        nonlocal getpass_chamado
+        getpass_chamado = True
+        raise AssertionError("não deve solicitar senha em entrada não interativa")
+
+    monkeypatch.setattr(modulo.getpass, "getpass", nao_deve_pedir)
+
+    with pytest.raises(modulo.ErroConfiguracao, match="token"):
+        modulo.carregar_configuracao(argumentos, ambiente={})
+    assert not getpass_chamado
+
+
+def test_principal_nao_expoe_token_em_falha(monkeypatch, capsys) -> None:
+    token = "segredo-" + "de-teste"
+
+    def levantar_erro_comunicavel(*args: object, **kwargs: object) -> None:
+        raise modulo.ErroConsultaDemanda(f"falha: {token}")
+
+    monkeypatch.setattr(modulo, "consultar_demanda", levantar_erro_comunicavel)
+    monkeypatch.setenv("AZURE_DEVOPS_TOKEN", token)
+    assert modulo.principal(["42", "--organizacao", "org", "--projeto", "p"]) == 1
+    saida = capsys.readouterr().out
+    assert token not in saida
+    assert token not in json.dumps(saida)
+
+
+def test_principal_serializa_apenas_campos_publicos(monkeypatch, capsys) -> None:
+    demanda = modulo.DemandaNegocio(
+        id=42,
+        url="https://dev.azure.com/org/p/_apis/wit/workItems/42",
+        tipo="Demanda de Negócio",
+        titulo="Título",
+        valores={campo: f"valor-{campo}" for campo in CAMPOS if campo != "System.Title"},
+    )
+    monkeypatch.setattr(modulo, "consultar_demanda", lambda *args, **kwargs: demanda)
+    monkeypatch.setenv("AZURE_DEVOPS_TOKEN", "segredo")
+
+    assert modulo.principal(["42", "--organizacao", "org", "--projeto", "p"]) == 0
+    saida = json.loads(capsys.readouterr().out)
+    assert set(saida) == {"id", "url", "tipo", "titulo", "campos"}
+    assert set(saida["campos"]) == CAMPOS - {"System.Title"}
+    assert "System.Title" not in saida["campos"]
+    assert "segredo" not in json.dumps(saida)
+
+
+def test_requisitar_json_retries_transitorios() -> None:
+    chamadas: list[object] = []
+
+    class Resposta:
+        def read(self) -> bytes:
+            return b'{"ok": true}'
+
+        def __enter__(self) -> "Resposta":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            pass
+
+    def abrir(request: object) -> Resposta:
+        chamadas.append(request)
+        if len(chamadas) < 3:
+            raise HTTPError(request.full_url, 503, "indisponível", {}, None)
+        return Resposta()
+
+    assert modulo.requisitar_json(
+        "https://dev.azure.com/x",
+        {"Accept": "application/json", "X": "y"},
+        token="token",  # noqa: S106
+        abrir=abrir,
+    ) == {"ok": True}
+    assert len(chamadas) == 3
+    assert chamadas[0].get_method() == "GET"
+    assert chamadas[0].get_header("Authorization") == "Basic " + modulo.base64.b64encode(
+        b":token"
+    ).decode()
+
+
+def test_requisitar_json_erro_http_permanente_nao_repetido() -> None:
+    chamadas = 0
+
+    def abrir(request: object) -> object:
+        nonlocal chamadas
+        chamadas += 1
+        raise HTTPError(request.full_url, 400, "ruim", {}, None)
+
+    with pytest.raises(modulo.ErroConsultaDemanda, match="HTTP 400"):
+        modulo.requisitar_json("https://dev.azure.com/x", {}, token="token", abrir=abrir)  # noqa: S106
+    assert chamadas == 1
+
+
+def test_requisitar_json_encapsula_erro_de_transporte_sem_detalhes() -> None:
+    segredo = "token-super-secreto"
+
+    def abrir(request: object) -> object:
+        raise URLError(f"falha com {segredo}")
+
+    with pytest.raises(modulo.ErroConsultaDemanda) as erro:
+        modulo.requisitar_json("https://dev.azure.com/x", {}, token=segredo, abrir=abrir)
+    assert segredo not in str(erro.value)
