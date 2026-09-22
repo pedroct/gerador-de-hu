@@ -339,9 +339,17 @@ def test_configuracao_aplica_precedencia_completa_com_tabela_azure_devops(
     )
 
 
-def test_configuracao_rejeita_entrada_nao_interativa_sem_token(monkeypatch) -> None:
+def test_configuracao_rejeita_entrada_nao_interativa_sem_token(monkeypatch, tmp_path: Path) -> None:
     argumentos = modulo.construir_parser().parse_args(
-        ["42", "--organizacao", "org", "--projeto", "p"]
+        [
+            "42",
+            "--organizacao",
+            "org",
+            "--projeto",
+            "p",
+            "--env-file",
+            str(tmp_path / "inexistente"),
+        ]
     )
     monkeypatch.setattr(modulo.sys.stdin, "isatty", lambda: False)
     getpass_chamado = False
