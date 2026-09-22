@@ -1,0 +1,6 @@
+# Versiona apenas os relatórios .md na raiz de cada wave. Diffs de revisão,
+# snapshots intermediários e qualquer outro artefato ficam fora do repositório.
+*
+!*/
+!*/*.md
+!.gitignore

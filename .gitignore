@@ -1,4 +1,12 @@
-.superpowers/
+# Artefatos de processo do superpowers: versiona os relatórios .md de cada wave,
+# descarta os diffs de revisão e arquivos intermediários. Sem isso, cada relatório
+# precisava de `git add -f`, e o que entrava no repositório virava arbitrário.
+.superpowers/*
+!.superpowers/sdd/
+.superpowers/sdd/*
+!.superpowers/sdd/*/
+.superpowers/sdd/*/*
+!.superpowers/sdd/*/*.md
 .worktrees/
 __pycache__/
 *.py[cod]
