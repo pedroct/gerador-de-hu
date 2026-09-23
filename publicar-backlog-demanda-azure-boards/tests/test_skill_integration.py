@@ -25,7 +25,9 @@ principal = _publicar_backlog.principal
 
 ROOT = RAIZ
 BACKLOG = ROOT / "tests" / "fixtures" / "valid-backlog.md"
-CONFIGURACAO = ConfiguracaoPublicacao("organizacao", "projeto", "Projeto", r"Projeto\Sprint 18")
+CONFIGURACAO = ConfiguracaoPublicacao(
+    "organizacao", "projeto", "Projeto", r"Projeto\Sprint 18", 13959
+)
 
 
 class ClienteFalso:
@@ -86,6 +88,8 @@ def test_simulacao_sem_token_nao_instancia_cliente_http(monkeypatch, tmp_path) -
             "Projeto",
             "--iteration-path",
             r"Projeto\Sprint 18",
+            "--demanda",
+            "13959",
             "--env-file",
             str(env_vazio),
             "--manifesto",
@@ -200,6 +204,8 @@ def test_validar_apenas_valida_remotamente_com_validate_only_true_sem_criacao_pe
             "Projeto",
             "--iteration-path",
             r"Projeto\Sprint 18",
+            "--demanda",
+            "13959",
             "--env-file",
             str(env_vazio),
             "--manifesto",

@@ -110,6 +110,7 @@ def imprimir_destino(configuracao: ConfiguracaoPublicacao) -> str:
         "projeto": configuracao.projeto,
         "area_path": configuracao.area_path,
         "iteration_path": configuracao.iteration_path,
+        "demanda_id": configuracao.demanda_id,
         "mapeamento_tipos": configuracao.mapeamento_tipos.como_dict(),
     }
     return _resumir(conteudo)
@@ -194,12 +195,14 @@ def criar_frase_confirmacao(
     chaves_autorizadas: Collection[str],
     numero_lote: int | None = None,
 ) -> str:
-    """Gera a frase que vincula quantidade, destino e código do plano completo."""
+    """Gera a frase que vincula quantidade, Demanda, destino e código do plano completo."""
     configuracao = plano.configuracao
     inicio = "AUTORIZAR PUBLICAÇÃO" if numero_lote is None else f"AUTORIZAR LOTE {numero_lote}"
     return (
-        f"{inicio} {len(chaves_autorizadas)} ITENS {configuracao.projeto} "
-        f"{configuracao.area_path} {configuracao.iteration_path} {plano.hash_plano[:4].upper()}"
+        f"{inicio} {len(chaves_autorizadas)} ITENS "
+        f"DEMANDA {configuracao.demanda_id} {configuracao.projeto} "
+        f"{configuracao.area_path} {configuracao.iteration_path} "
+        f"{plano.hash_plano[:4].upper()}"
     )
 
 

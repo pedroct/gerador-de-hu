@@ -13,6 +13,7 @@ CONFIGURACAO = ConfiguracaoPublicacao(
     projeto="projeto",
     area_path="projeto",
     iteration_path="projeto\\Sprint 18",
+    demanda_id=13959,
 )
 DATA_GERACAO = "2026-09-16"
 ITENS = [

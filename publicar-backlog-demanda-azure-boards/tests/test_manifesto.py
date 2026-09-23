@@ -18,7 +18,7 @@ from publicar_backlog_demanda_azure_boards.modelos import (
     TipoItem,
 )
 
-CONFIGURACAO = ConfiguracaoPublicacao("organizacao", "projeto", "projeto", "projeto\\Sprint")
+CONFIGURACAO = ConfiguracaoPublicacao("organizacao", "projeto", "projeto", "projeto\\Sprint", 13959)
 
 
 def destino_json() -> dict[str, object]:
@@ -27,6 +27,7 @@ def destino_json() -> dict[str, object]:
         "projeto": "projeto",
         "area_path": "projeto",
         "iteration_path": "projeto\\Sprint",
+        "demanda_id": 13959,
         "mapeamento_tipos": {
             "Epic": "Epic",
             "Feature": "Feature",
@@ -114,6 +115,7 @@ def test_manifesto_preserva_reconciliacao_com_contexto_completo(tmp_path) -> Non
         "projeto": "projeto",
         "area_path": "projeto",
         "iteration_path": "projeto\\Sprint",
+        "demanda_id": 13959,
         "mapeamento_tipos": {
             "Epic": "Epic",
             "Feature": "Feature",

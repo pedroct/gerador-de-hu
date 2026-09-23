@@ -45,6 +45,7 @@ def test_token_interativo_usa_getpass_do_modulo(monkeypatch) -> None:
             "AZURE_DEVOPS_PROJETO": "Projeto",
             "AZURE_DEVOPS_AREA_PATH": "Projeto",
             "AZURE_DEVOPS_ITERATION_PATH": r"Projeto\Sprint 18",
+            "AZURE_DEVOPS_DEMANDA": "13959",
         },
         entrada=StringIO(),
         saida=StringIO(),

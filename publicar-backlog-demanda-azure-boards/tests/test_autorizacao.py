@@ -30,6 +30,7 @@ CONFIGURACAO = ConfiguracaoPublicacao(
     projeto="Projeto",
     area_path="Projeto",
     iteration_path="Projeto\\Sprint 18",
+    demanda_id=13959,
 )
 PLANO = PlanoPublicacao(
     operacoes=(
@@ -98,7 +99,7 @@ def test_frase_de_lote_identifica_numero_quantidade_e_destino() -> None:
 
     frase = criar_frase_confirmacao(PLANO, PENDENTES[lote.inicio : lote.fim], numero_lote=2)
 
-    assert frase == "AUTORIZAR LOTE 2 1 ITENS Projeto Projeto Projeto\\Sprint 18 7F3A"
+    assert frase == "AUTORIZAR LOTE 2 1 ITENS DEMANDA 13959 Projeto Projeto Projeto\\Sprint 18 7F3A"
 
 
 def test_ausencia_de_confirmacao_nao_cria_autorizacao_operacional() -> None:
@@ -218,6 +219,7 @@ token = "token-do-arquivo"
         "AZURE_DEVOPS_PROJETO": "projeto-do-ambiente",
         "AZURE_DEVOPS_AREA_PATH": "projeto-do-ambiente\\Area",
         "AZURE_DEVOPS_ITERATION_PATH": "projeto-do-ambiente\\Iteracao",
+        "AZURE_DEVOPS_DEMANDA": "13959",
         "AZURE_DEVOPS_TOKEN": "token-do-ambiente",
     }
 
@@ -241,6 +243,7 @@ def test_multiplos_area_paths_exigem_escolha_explicita() -> None:
         "AZURE_DEVOPS_TOKEN": "token",
         "AZURE_DEVOPS_AREA_PATHS": "Projeto\\Sustentacao,Projeto\\Produto",
         "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
+        "AZURE_DEVOPS_DEMANDA": "13959",
     }
 
     configuracao = carregar_configuracao(
@@ -260,6 +263,7 @@ def test_area_path_relativo_e_normalizado_com_o_projeto() -> None:
             "AZURE_DEVOPS_TOKEN": "token",
             "AZURE_DEVOPS_AREA_PATH": "Sustentacao",
             "AZURE_DEVOPS_ITERATION_PATH": "MeuProjeto\\Sprint 18",
+            "AZURE_DEVOPS_DEMANDA": "13959",
         },
         entrada=StringIO(),
         saida=StringIO(),
@@ -277,6 +281,7 @@ def test_token_interativo_usa_leitura_sem_eco() -> None:
             "AZURE_DEVOPS_PROJETO": "Projeto",
             "AZURE_DEVOPS_AREA_PATH": "Projeto",
             "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
+            "AZURE_DEVOPS_DEMANDA": "13959",
         },
         entrada=StringIO("segredo-que-nao-deve-ser-lido\n"),
         saida=StringIO(),
@@ -294,6 +299,7 @@ def test_configuracao_sem_token_e_permitida_quando_nao_ha_http() -> None:
             "AZURE_DEVOPS_PROJETO": "Projeto",
             "AZURE_DEVOPS_AREA_PATH": "Projeto",
             "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
+            "AZURE_DEVOPS_DEMANDA": "13959",
             "AZURE_DEVOPS_TOKEN": "nao-deve-ser-lido",
         },
         entrada=StringIO(),
@@ -311,6 +317,7 @@ def test_mapeamento_remoto_e_carregado_do_ambiente() -> None:
             "AZURE_DEVOPS_PROJETO": "Projeto",
             "AZURE_DEVOPS_AREA_PATH": "Projeto",
             "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
+            "AZURE_DEVOPS_DEMANDA": "13959",
             "AZURE_DEVOPS_TOKEN": "token",
             "AZURE_DEVOPS_TIPO_USER_STORY": "Product Backlog Item",
         },
@@ -329,6 +336,7 @@ def test_repr_da_configuracao_nao_expoe_token() -> None:
             "AZURE_DEVOPS_TOKEN": "token-confidencial",
             "AZURE_DEVOPS_AREA_PATH": "Projeto",
             "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
+            "AZURE_DEVOPS_DEMANDA": "13959",
         },
         entrada=StringIO(),
         saida=StringIO(),

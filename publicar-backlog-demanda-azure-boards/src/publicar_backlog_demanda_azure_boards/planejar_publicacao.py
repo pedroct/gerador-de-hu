@@ -68,6 +68,7 @@ def _calcular_hash(
             "projeto": configuracao.projeto,
             "area_path": configuracao.area_path,
             "iteration_path": configuracao.iteration_path,
+            "demanda_id": configuracao.demanda_id,
             "mapeamento_tipos": configuracao.mapeamento_tipos.como_dict(),
         },
         "data_geracao": data_geracao,

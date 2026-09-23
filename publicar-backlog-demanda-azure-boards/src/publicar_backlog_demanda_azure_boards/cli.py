@@ -106,6 +106,8 @@ def _adicionar_opcoes_configuracao(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--projeto")
     parser.add_argument("--area-path")
     parser.add_argument("--iteration-path")
+    parser.add_argument("--demanda", dest="demanda_id")
+    parser.add_argument("--tipo-demanda")
     parser.add_argument("--tipo-epic")
     parser.add_argument("--tipo-feature")
     parser.add_argument("--tipo-user-story")
@@ -207,6 +209,8 @@ def _carregar_configuracao(
         "projeto",
         "area_path",
         "iteration_path",
+        "demanda_id",
+        "tipo_demanda",
         "tipo_epic",
         "tipo_feature",
         "tipo_user_story",

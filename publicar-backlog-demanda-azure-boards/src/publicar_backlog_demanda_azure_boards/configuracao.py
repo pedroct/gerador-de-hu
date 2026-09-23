@@ -28,6 +28,8 @@ class ConfiguracaoAzureDevOps(BaseModel):
     projeto: str
     area_path: str
     iteration_path: str
+    demanda_id: int
+    tipo_demanda: str = "Demanda de Negócio"
     token: SecretStr | None = None
     tipo_epic: str = "Epic"
     tipo_feature: str = "Feature"
@@ -39,6 +41,7 @@ class ConfiguracaoAzureDevOps(BaseModel):
         "projeto",
         "area_path",
         "iteration_path",
+        "tipo_demanda",
         "tipo_epic",
         "tipo_feature",
         "tipo_user_story",
@@ -52,6 +55,14 @@ class ConfiguracaoAzureDevOps(BaseModel):
             raise ValueError("deve ser informado")
         return texto
 
+    @field_validator("demanda_id")
+    @classmethod
+    def validar_demanda(cls, valor: int) -> int:
+        """Rejeita um identificador de Demanda que não possa endereçar um work item."""
+        if valor <= 0:
+            raise ValueError("deve ser um inteiro positivo")
+        return valor
+
     @property
     def publicacao(self) -> ConfiguracaoPublicacao:
         """Expõe somente os dados de destino necessários para montar o plano."""
@@ -60,6 +71,7 @@ class ConfiguracaoAzureDevOps(BaseModel):
             projeto=self.projeto,
             area_path=_normalizar_caminho(self.projeto, self.area_path),
             iteration_path=_normalizar_caminho(self.projeto, self.iteration_path),
+            demanda_id=self.demanda_id,
             mapeamento_tipos=MapeamentoTipos(
                 epic=self.tipo_epic,
                 feature=self.tipo_feature,
@@ -86,6 +98,8 @@ _CHAVES = {
     "tipo_feature": "AZURE_DEVOPS_TIPO_FEATURE",
     "tipo_user_story": "AZURE_DEVOPS_TIPO_USER_STORY",
     "tipo_bug": "AZURE_DEVOPS_TIPO_BUG",
+    "demanda_id": "AZURE_DEVOPS_DEMANDA",
+    "tipo_demanda": "AZURE_DEVOPS_TIPO_DEMANDA",
 }
 
 
@@ -111,6 +125,8 @@ def carregar_configuracao(
         "organizacao",
         "projeto",
         "iteration_path",
+        "demanda_id",
+        "tipo_demanda",
         "tipo_epic",
         "tipo_feature",
         "tipo_user_story",
@@ -138,6 +154,7 @@ def carregar_configuracao(
         valores["token"] = leitor("Credencial do Azure DevOps: ").strip()
 
     tipos_padrao = {
+        "tipo_demanda": "Demanda de Negócio",
         "tipo_epic": "Epic",
         "tipo_feature": "Feature",
         "tipo_user_story": "User Story",
@@ -146,12 +163,22 @@ def carregar_configuracao(
     for campo, padrao in tipos_padrao.items():
         valores[campo] = valores[campo] or padrao
 
+    bruto = valores["demanda_id"]
+    if bruto is None:
+        bruto = _perguntar("demanda_id", entrada_interativa, saida_interativa)
+    try:
+        demanda_id = int(str(bruto).strip().lstrip("#"))
+    except ValueError as erro:
+        raise ErroConfiguracao("O ID da Demanda de Negócio deve ser um número inteiro.") from erro
+
     try:
         return ConfiguracaoAzureDevOps(
             organizacao=_exigir_valor(valores["organizacao"], "Organização do Azure DevOps"),
             projeto=_exigir_valor(valores["projeto"], "Projeto do Azure DevOps"),
             area_path=_exigir_valor(valores["area_path"], "Area Path"),
             iteration_path=_exigir_valor(valores["iteration_path"], "Iteration Path"),
+            demanda_id=demanda_id,
+            tipo_demanda=_exigir_valor(valores["tipo_demanda"], "Tipo remoto da Demanda"),
             token=(
                 SecretStr(_exigir_valor(valores["token"], "Credencial do Azure DevOps"))
                 if exigir_token
@@ -239,6 +266,7 @@ def _perguntar(campo: str, entrada: TextIO, saida: TextIO) -> str:
         "projeto": "Projeto do Azure DevOps",
         "area_path": "Area Path",
         "iteration_path": "Iteration Path",
+        "demanda_id": "ID da Demanda de Negócio",
     }
     rotulo = rotulos[campo]
     saida.write(f"{rotulo}: ")

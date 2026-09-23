@@ -19,7 +19,9 @@ from publicar_backlog_demanda_azure_boards.modelos import (
 )
 from publicar_backlog_demanda_azure_boards.planejar_publicacao import criar_plano
 
-CONFIGURACAO = ConfiguracaoPublicacao("organizacao", "Projeto", "Projeto", r"Projeto\Sprint 18")
+CONFIGURACAO = ConfiguracaoPublicacao(
+    "organizacao", "Projeto", "Projeto", r"Projeto\Sprint 18", 13959
+)
 
 
 @pytest.fixture

@@ -23,7 +23,7 @@ from publicar_backlog_demanda_azure_boards.modelos import (
     TipoItem,
 )
 
-CONFIGURACAO = ConfiguracaoPublicacao("org", "Projeto", "Projeto", r"Projeto\Sprint 18")
+CONFIGURACAO = ConfiguracaoPublicacao("org", "Projeto", "Projeto", r"Projeto\Sprint 18", 13959)
 OPERACAO = OperacaoCriacao("1.0.0", TipoItem.EPIC, "Épico", "<p>Descrição</p>\n", "", None, "Epic")
 CAMPOS_OBRIGATORIOS = [
     {"referenceName": "System.Title"},

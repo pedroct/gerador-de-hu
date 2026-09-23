@@ -78,13 +78,30 @@ class ItemBacklog:
 
 
 @dataclass(frozen=True)
+class Demanda:
+    """Demanda de Negócio lida do Azure Boards, usada para derivar e exibir o destino.
+
+    ``titulo`` e ``url`` existem apenas para apresentação no plano. Eles ficam de fora de
+    hash, impressão de destino e manifesto de propósito: uma edição cosmética do título no
+    Azure Boards invalidaria um manifesto válido e bloquearia uma retomada legítima.
+    """
+
+    id: int
+    titulo: str
+    area_path: str
+    iteration_path: str
+    url: str
+
+
+@dataclass(frozen=True)
 class ConfiguracaoPublicacao:
-    """Representa o destino já validado para uma publicação."""
+    """Representa o destino já validado para uma publicação vinculada a uma Demanda."""
 
     organizacao: str
     projeto: str
     area_path: str
     iteration_path: str
+    demanda_id: int
     mapeamento_tipos: MapeamentoTipos = field(default_factory=MapeamentoTipos)
 
 
@@ -154,6 +171,7 @@ def assinatura_plano(plano: PlanoPublicacao) -> str:
             "projeto": configuracao.projeto,
             "area_path": configuracao.area_path,
             "iteration_path": configuracao.iteration_path,
+            "demanda_id": configuracao.demanda_id,
             "mapeamento_tipos": configuracao.mapeamento_tipos.como_dict(),
         },
         "operacoes": [

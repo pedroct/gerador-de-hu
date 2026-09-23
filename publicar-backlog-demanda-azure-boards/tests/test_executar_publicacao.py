@@ -28,7 +28,7 @@ from publicar_backlog_demanda_azure_boards.modelos import (
     TipoItem,
 )
 
-CONFIGURACAO = ConfiguracaoPublicacao("organizacao", "projeto", "projeto", "projeto\\Sprint")
+CONFIGURACAO = ConfiguracaoPublicacao("organizacao", "projeto", "projeto", "projeto\\Sprint", 13959)
 
 
 def plano() -> PlanoPublicacao:

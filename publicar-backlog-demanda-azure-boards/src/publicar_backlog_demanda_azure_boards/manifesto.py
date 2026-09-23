@@ -213,6 +213,7 @@ def _serializar_configuracao(configuracao: ConfiguracaoPublicacao) -> dict[str, 
         "projeto": configuracao.projeto,
         "area_path": configuracao.area_path,
         "iteration_path": configuracao.iteration_path,
+        "demanda_id": configuracao.demanda_id,
         "mapeamento_tipos": configuracao.mapeamento_tipos.como_dict(),
     }
 
@@ -385,6 +386,9 @@ def _configuracao(destino: dict[str, object]) -> ConfiguracaoPublicacao:
     valores = [destino.get(campo) for campo in campos]
     if not all(isinstance(valor, str) and valor for valor in valores):
         raise ValueError("O destino do manifesto é inválido.")
+    demanda_id = destino.get("demanda_id")
+    if not isinstance(demanda_id, int) or isinstance(demanda_id, bool) or demanda_id <= 0:
+        raise ValueError("O destino do manifesto não identifica a Demanda de Negócio.")
     mapeamento_dados = destino.get("mapeamento_tipos", {})
     if not isinstance(mapeamento_dados, dict):
         raise ValueError("O mapeamento de tipos do manifesto é inválido.")
@@ -400,6 +404,7 @@ def _configuracao(destino: dict[str, object]) -> ConfiguracaoPublicacao:
         projeto=projeto,
         area_path=area_path,
         iteration_path=iteration_path,
+        demanda_id=demanda_id,
         mapeamento_tipos=mapeamento,
     )
 
