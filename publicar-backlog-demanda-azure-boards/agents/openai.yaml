@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publicar backlog autorizado no Azure Boards"
+  short_description: "Valida e conduz publicação explícita de backlog revisado"
+  default_prompt: "Use $publicar-backlog-demanda-azure-boards para validar este backlog e preparar sua publicação somente após minha autorização textual explícita."

@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "publicar-backlog-demanda-azure-boards"
+version = "0.1.0"
+description = "Publicador de backlogs Markdown vinculados a uma Demanda de Negócio no Azure Boards"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx==0.28.1",
+  "markdown-it-py==4.2.0",
+  "pydantic==2.13.5",
+  "pydantic-settings==2.15.0",
+]
+
+[project.scripts]
+publicar-backlog-demanda-azure-boards = "publicar_backlog_demanda_azure_boards:main"
+
+[dependency-groups]
+dev = [
+  "bandit==1.9.4",
+  "mypy==2.1.0",
+  "pip-audit==2.10.0",
+  "pre-commit==4.6.0",
+  "pytest==9.0.3",
+  "python-semantic-release==10.5.3",
+  "ruff==0.15.14",
+  "semgrep==1.165.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/publicar_backlog_demanda_azure_boards"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [".venv/", ".git/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+files = [
+  "src",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --import-mode=importlib"
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+
+[tool.semantic_release]
+branch = "main"
+version_toml = ["pyproject.toml:project.version"]
+allow_zero_version = true
+commit_parser = "conventional"
+build_command = ""
+
+[tool.semantic_release.changelog]
+mode = "update"
