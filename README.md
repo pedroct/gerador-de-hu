@@ -194,6 +194,67 @@ A partir daí, duas formas funcionam:
 
 ## Início rápido
 
+### Fluxo a partir de uma Demanda do Azure Boards
+
+O caminho completo, de um ID até work items criados:
+
+```text
+ID da Demanda
+ └─ 1. redigir-spec-demanda-azure-boards   → Spec rastreável + lacunas
+     └─ 2. revisar as lacunas               ← passo humano
+         └─ 3. gerar-backlog-azure-boards   → backlog.md
+             └─ 4. validar                  → "Backlog válido: N itens"
+                 └─ 5. publicar --demanda <id>
+```
+
+**1. Ler a Demanda e redigir a Spec.** Rode a partir da raiz da skill, não do repositório
+investigado — a CLI resolve `scripts/` em relação a si mesma:
+
+```bash
+cd redigir-spec-demanda-azure-boards
+uv run python scripts/consultar_demanda.py 13959 --env-file ../.env
+```
+
+A consulta é somente `GET`. Ela interrompe o fluxo se o ID não existir, se o tipo não for
+`Demanda de Negócio` ou se o contrato de campos estiver inválido. Com o JSON em mãos, a skill
+investiga o código em modo somente leitura e escreve a Spec.
+
+**2. Revisar as lacunas — este passo é humano.** A Spec sai com uma seção
+`Lacunas e perguntas abertas`, e ela existe por um motivo: gerar o backlog antes de fechá-las
+produz Histórias `Não pronta` em massa. Use `entrevistar-lacunas-requisito` para fechar o que
+der, ou leve as perguntas à área solicitante. Adiar uma lacuna é uma decisão legítima — desde
+que explícita.
+
+**3. Gerar o backlog.** A skill `gerar-backlog-azure-boards` decompõe a Spec em Épicos, Features
+e itens de folha, chamando `refinar-historias-3c` para cada História ou Bug.
+
+**4. Validar a estrutura** antes de qualquer chamada remota:
+
+```bash
+cd publicar-backlog-demanda-azure-boards
+uv run python scripts/publicar_backlog_demanda.py validar ../backlog.md
+```
+
+**5. Publicar, em escada.** Cada degrau arrisca um pouco mais que o anterior:
+
+```bash
+# offline, sem token                          → confere o documento
+uv run python scripts/publicar_backlog_demanda.py validar ../backlog.md
+
+# um GET, nenhuma escrita                     → mostra o plano e o hash
+uv run python scripts/publicar_backlog_demanda.py publicar ../backlog.md   --demanda 13959 --simulacao
+
+# valida no servidor com validateOnly=true    → exercita tipos, campos e o vínculo
+uv run python scripts/publicar_backlog_demanda.py publicar ../backlog.md   --demanda 13959 --validar-apenas
+
+# cria os work items                          → exige a frase exata de autorização
+uv run python scripts/publicar_backlog_demanda.py publicar ../backlog.md   --demanda 13959 --manifesto docs/backlog/manifesto.json
+```
+
+> **Ao republicar, apague ou renomeie o manifesto antigo.** Se os work items foram removidos do
+> board mas o manifesto continuar lá, a ferramenta compara o backlog com o que está registrado,
+> conclui que não há nada pendente e responde `Nenhum item novo para publicar.` — sem criar nada.
+
 ### Fluxo Greenfield
 
 1. Forneça uma spec à skill `gerar-backlog-azure-boards`.
@@ -209,11 +270,11 @@ A partir daí, duas formas funcionam:
 Nos dois fluxos, valide a estrutura do arquivo gerado:
 
 ```bash
-cd /Users/pedroct/skills/gerar-backlog-azure-boards
+cd gerar-backlog-azure-boards
 uv run python scripts/validate_backlog.py caminho/para/backlog.md
 ```
 
-O validador retorna `Backlog structure is valid` quando a hierarquia, as chaves, os pais e os campos obrigatórios estão corretos.
+O validador retorna `A estrutura do backlog é válida` quando a hierarquia, as chaves, os pais e os campos obrigatórios estão corretos.
 
 ### Exemplos de classificação Brownfield
 
