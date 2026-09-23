@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publicar backlog vinculado a uma Demanda de Negócio"
+  short_description: "Publica um backlog revisado como filho de uma Demanda do Azure Boards, após autorização explícita"
+  default_prompt: "Use $publicar-backlog-demanda-azure-boards para validar este backlog e prepará-lo para publicação vinculada à Demanda de Negócio que vou informar por ID, somente após minha autorização textual explícita."
