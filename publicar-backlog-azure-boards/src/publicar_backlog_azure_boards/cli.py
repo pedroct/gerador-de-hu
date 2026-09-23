@@ -58,6 +58,8 @@ class ClientePublicacao(Protocol):
 
     def validar_operacao(self, operacao: OperacaoCriacao) -> None: ...
 
+    def tipos_sem_criterios_aceitacao(self) -> frozenset[str]: ...
+
     def criar_item(
         self, operacao: OperacaoCriacao, id_pai: int | None = None
     ) -> IdentidadeCriada: ...
@@ -175,6 +177,7 @@ def principal(
             configuracao.publicacao,
             pendentes,
         )
+        _avisar_criterios_descartados(cliente_real, pendentes, saida_real)
         if argumentos_parseados.validar_apenas:
             _escrever(saida_real, "Validação preliminar concluída sem chamadas de criação.\n")
             return 0
@@ -250,6 +253,40 @@ def _verificar_preliminar(
     cliente.verificar_destino(configuracao)
     for operacao in operacoes:
         cliente.validar_operacao(operacao)
+
+
+def _avisar_criterios_descartados(
+    cliente: ClientePublicacao,
+    pendentes: Sequence[OperacaoCriacao],
+    saida: TextIO,
+) -> None:
+    """Denuncia, antes da autorização, o conteúdo que a criação vai descartar.
+
+    Quando o processo remoto não expõe o campo de critérios para um tipo, a criação
+    omite o campo em vez de falhar. Sem este aviso, quem autoriza acredita estar
+    publicando critérios que nunca chegam ao Azure Boards.
+    """
+    tipos_limitados = cliente.tipos_sem_criterios_aceitacao()
+    if not tipos_limitados:
+        return
+    afetados = [
+        operacao
+        for operacao in pendentes
+        if operacao.criterios_aceitacao.strip() and operacao.tipo_remoto in tipos_limitados
+    ]
+    if not afetados:
+        return
+    _escrever(
+        saida,
+        "\nATENÇÃO: os critérios de aceitação destes itens NÃO serão publicados, "
+        "porque o tipo remoto não expõe o campo neste projeto:\n",
+    )
+    for operacao in afetados:
+        _escrever(saida, f"  {operacao.chave} [{operacao.tipo_remoto}] {operacao.titulo}\n")
+    _escrever(
+        saida,
+        "O restante do item é publicado normalmente. Cancele se isso não for aceitável.\n\n",
+    )
 
 
 def _apresentar_plano(

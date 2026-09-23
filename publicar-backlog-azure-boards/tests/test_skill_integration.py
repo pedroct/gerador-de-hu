@@ -42,6 +42,9 @@ class ClienteFalso:
         del operacao
         self.chamadas_http.append("POST validateOnly")
 
+    def tipos_sem_criterios_aceitacao(self) -> frozenset[str]:
+        return frozenset()
+
     def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroManifesto:
         del id_pai
         chave = operacao.chave
@@ -272,3 +275,40 @@ def test_skill_nao_chama_mcp_obrigatoriamente() -> None:
 
     assert "MCP" in texto
     assert "opcional" in texto
+
+
+class _ClienteComTipoLimitado(ClienteFalso):
+    """Processo remoto que não expõe critérios no tipo do item que os carrega.
+
+    Modela o caso encontrado em publicação real: `Bug` não tem
+    `Microsoft.VSTS.Common.AcceptanceCriteria`, e o Gherkin escrito para um Bug era
+    descartado sem aviso. A fixture só tem critérios na User Story `1.1.1`.
+    """
+
+    def tipos_sem_criterios_aceitacao(self) -> frozenset[str]:
+        return frozenset({"User Story"})
+
+
+def _saida_de_validacao(cliente: ClienteFalso, tmp_path) -> str:
+    saida = StringIO()
+    principal(
+        ["publicar", str(BACKLOG), "--validar-apenas", "--manifesto", str(tmp_path / "m.json")],
+        cliente=cliente,
+        entrada=StringIO(),
+        saida=saida,
+    )
+    return saida.getvalue()
+
+
+def test_avisa_quando_criterios_nao_serao_publicados(tmp_path) -> None:
+    """A autorização vincula o conteúdo executável; o que se perde tem de ser dito antes."""
+    texto = _saida_de_validacao(_ClienteComTipoLimitado(), tmp_path)
+
+    assert "NÃO serão publicados" in texto
+    assert "1.1.1" in texto
+
+
+def test_sem_aviso_quando_o_processo_expoe_o_campo(tmp_path) -> None:
+    texto = _saida_de_validacao(ClienteFalso(), tmp_path)
+
+    assert "NÃO serão publicados" not in texto

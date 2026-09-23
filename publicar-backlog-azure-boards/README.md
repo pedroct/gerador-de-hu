@@ -92,6 +92,14 @@ uv run python scripts/publicar_backlog.py publicar backlog.md \
   --manifesto manifesto-publicacao.json
 ```
 
+Antes de pedir a autorização, a ferramenta avisa quando algum item tem critérios de aceitação e o
+tipo remoto não expõe `Microsoft.VSTS.Common.AcceptanceCriteria` — a criação omite o campo em vez de
+falhar, e o conteúdo se perderia sem aviso. O aviso nomeia os itens afetados.
+
+O `Description` do item documental vai para `Microsoft.VSTS.TCM.ReproSteps` quando o tipo remoto
+expõe esse campo — no processo Agile, só o `Bug`. É o campo que o formulário do Bug mostra; gravar em
+`System.Description` faria o conteúdo existir na API e ficar invisível no work item.
+
 A confirmação pode autorizar o backlog inteiro ou lotes. Para lotes, cada tamanho e cada conjunto
 são reapresentados e exigem uma frase própria. A frase deve ser digitada exatamente, por exemplo:
 
