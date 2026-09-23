@@ -22,6 +22,7 @@ from publicar_backlog_demanda_azure_boards.configuracao import (
 )
 from publicar_backlog_demanda_azure_boards.modelos import (
     ConfiguracaoPublicacao,
+    Demanda,
     MapeamentoTipos,
     OperacaoCriacao,
     PlanoPublicacao,
@@ -204,6 +205,20 @@ def test_criar_lotes_divide_o_total_em_sequencia() -> None:
     assert faixas == [(1, 0, 2), (2, 2, 4), (3, 4, 5)]
 
 
+def _demanda(
+    area_path: str = "Projeto\\Sustentacao",
+    iteration_path: str = "Projeto\\Sprint 18",
+) -> Demanda:
+    """Demanda mínima para derivar um destino nos testes de configuração."""
+    return Demanda(
+        id=13959,
+        titulo="PADRONIZAÇÃO",
+        area_path=area_path,
+        iteration_path=iteration_path,
+        url="https://dev.azure.com/contoso/_apis/wit/workItems/13959",
+    )
+
+
 def test_argumento_tem_precedencia_sobre_arquivo_e_ambiente(tmp_path) -> None:
     arquivo = tmp_path / "publicador.toml"
     arquivo.write_text(
@@ -234,45 +249,31 @@ token = "token-do-arquivo"
         saida=StringIO(),
     )
 
-    assert configuracao.publicacao.organizacao == "organizacao-do-arquivo"
-    assert configuracao.publicacao.projeto == "projeto-do-argumento"
+    destino = configuracao.publicacao_para(_demanda())
+    assert destino.organizacao == "organizacao-do-arquivo"
+    assert destino.projeto == "projeto-do-argumento"
     assert configuracao.obter_token() == "token-do-arquivo"
 
 
-def test_multiplos_area_paths_exigem_escolha_explicita() -> None:
-    ambiente = {
-        "AZURE_DEVOPS_ORGANIZACAO": "organizacao",
-        "AZURE_DEVOPS_PROJETO": "Projeto",
-        "AZURE_DEVOPS_TOKEN": "token",
-        "AZURE_DEVOPS_AREA_PATHS": "Projeto\\Sustentacao,Projeto\\Produto",
-        "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
-        "AZURE_DEVOPS_DEMANDA": "13959",
-    }
-
-    configuracao = carregar_configuracao(
-        ambiente=ambiente,
-        entrada=StringIO("Projeto\\Produto\n"),
-        saida=StringIO(),
-    )
-
-    assert configuracao.publicacao.area_path == "Projeto\\Produto"
-
-
-def test_area_path_relativo_e_normalizado_com_o_projeto() -> None:
+def test_area_path_da_demanda_e_normalizado_com_o_projeto() -> None:
+    """A normalização segue guardando o prefixo, agora sobre o caminho da Demanda."""
     configuracao = carregar_configuracao(
         ambiente={
             "AZURE_DEVOPS_ORGANIZACAO": "organizacao",
             "AZURE_DEVOPS_PROJETO": "MeuProjeto",
             "AZURE_DEVOPS_TOKEN": "token",
-            "AZURE_DEVOPS_AREA_PATH": "Sustentacao",
-            "AZURE_DEVOPS_ITERATION_PATH": "MeuProjeto\\Sprint 18",
             "AZURE_DEVOPS_DEMANDA": "13959",
         },
         entrada=StringIO(),
         saida=StringIO(),
     )
 
-    assert configuracao.publicacao.area_path == "MeuProjeto\\Sustentacao"
+    destino = configuracao.publicacao_para(
+        _demanda(area_path="Sustentacao", iteration_path="Sprint 18")
+    )
+
+    assert destino.area_path == "MeuProjeto\\Sustentacao"
+    assert destino.iteration_path == "MeuProjeto\\Sprint 18"
 
 
 def test_token_interativo_usa_leitura_sem_eco() -> None:
@@ -328,7 +329,8 @@ def test_mapeamento_remoto_e_carregado_do_ambiente() -> None:
         saida=StringIO(),
     )
 
-    assert configuracao.publicacao.mapeamento_tipos.historia_usuario == "Product Backlog Item"
+    destino = configuracao.publicacao_para(_demanda())
+    assert destino.mapeamento_tipos.historia_usuario == "Product Backlog Item"
 
 
 def test_repr_da_configuracao_nao_expoe_token() -> None:

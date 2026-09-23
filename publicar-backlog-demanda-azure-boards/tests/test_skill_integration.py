@@ -30,6 +30,17 @@ CONFIGURACAO = ConfiguracaoPublicacao(
 )
 
 
+def _demanda_falsa() -> object:
+    """Demanda coerente com CONFIGURACAO, para os fluxos que não falam com a rede."""
+    return _modelos.Demanda(
+        id=13959,
+        titulo="PADRONIZAÇÃO E ATUALIZAÇÃO DAS STACKS DA APLICAÇÃO",
+        area_path="Projeto",
+        iteration_path=r"Projeto\Sprint 18",
+        url="https://dev.azure.com/organizacao/_apis/wit/workItems/13959",
+    )
+
+
 class ClienteFalso:
     def __init__(self) -> None:
         self.configuracao = CONFIGURACAO
@@ -65,16 +76,51 @@ def test_simulacao_nao_chama_criacao(capsys) -> None:
     assert "Simulação" in capsys.readouterr().out
 
 
-def test_simulacao_sem_token_nao_instancia_cliente_http(monkeypatch, tmp_path) -> None:
+def test_simulacao_le_a_demanda_uma_vez_e_nao_instancia_cliente_de_escrita(
+    monkeypatch, tmp_path
+) -> None:
+    """Critério 2 da spec: a simulação faz exatamente um GET e nenhuma escrita.
+
+    A simulação deixou de ser offline quando Area Path e Iteration Path passaram a
+    vir da Demanda: não há como montar o plano — nem o hash — sem ler o work item.
+    O que ela preserva é o resto: nenhuma escrita e nenhuma autorização pedida.
+    """
     env_vazio = tmp_path / ".env"
     env_vazio.write_text("", encoding="utf-8")
+    metodos: list[str] = []
+
+    def responder(request: httpx.Request) -> httpx.Response:
+        metodos.append(request.method)
+        return httpx.Response(
+            200,
+            json={
+                "id": 13959,
+                "url": "https://dev.azure.com/organizacao/_apis/wit/workItems/13959",
+                "fields": {
+                    "System.WorkItemType": "Demanda de Negócio",
+                    "System.TeamProject": "Projeto",
+                    "System.Title": "PADRONIZAÇÃO",
+                    "System.AreaPath": "Projeto",
+                    "System.IterationPath": r"Projeto\Sprint 18",
+                },
+            },
+            request=request,
+        )
+
+    leitor_real = _publicar_backlog.ler_demanda
+    monkeypatch.setattr(
+        _publicar_backlog,
+        "ler_demanda",
+        lambda *args: leitor_real(*args, transport=httpx.MockTransport(responder)),
+    )
 
     class ClienteProibido:
         def __init__(self, *args, **kwargs) -> None:
-            raise AssertionError("simulação não pode instanciar cliente HTTP")
+            raise AssertionError("a simulação não pode instanciar o cliente de escrita")
 
     monkeypatch.setattr(_publicar_backlog, "ClienteAzureDevOps", ClienteProibido)
-    monkeypatch.delenv("AZURE_DEVOPS_TOKEN", raising=False)
+    monkeypatch.setenv("AZURE_DEVOPS_TOKEN", "credencial" + "-de-teste")
+    saida = StringIO()
 
     codigo = principal(
         [
@@ -85,10 +131,6 @@ def test_simulacao_sem_token_nao_instancia_cliente_http(monkeypatch, tmp_path) -
             "organizacao",
             "--projeto",
             "Projeto",
-            "--area-path",
-            "Projeto",
-            "--iteration-path",
-            r"Projeto\Sprint 18",
             "--demanda",
             "13959",
             "--env-file",
@@ -97,10 +139,13 @@ def test_simulacao_sem_token_nao_instancia_cliente_http(monkeypatch, tmp_path) -
             str(tmp_path / "manifesto.json"),
         ],
         entrada=StringIO(),
-        saida=StringIO(),
+        saida=saida,
     )
 
     assert codigo == 0
+    assert metodos == ["GET"]
+    assert "nenhuma autorização foi solicitada" in saida.getvalue()
+    assert not (tmp_path / "manifesto.json").exists()
 
 
 def test_validar_apenas_valida_operacoes_remotamente_sem_criar_itens() -> None:
@@ -191,6 +236,9 @@ def test_validar_apenas_valida_remotamente_com_validate_only_true_sem_criacao_pe
 
     monkeypatch.setattr("getpass.getpass", ler_sem_eco)
     monkeypatch.setattr(_publicar_backlog, "ClienteAzureDevOps", construir_cliente)
+    # A leitura da Demanda é um GET próprio, fora do cliente de publicação; este teste
+    # mede o que acontece depois dela.
+    monkeypatch.setattr(_publicar_backlog, "ler_demanda", lambda *args: _demanda_falsa())
 
     codigo = principal(
         [
@@ -201,10 +249,6 @@ def test_validar_apenas_valida_remotamente_com_validate_only_true_sem_criacao_pe
             "organizacao",
             "--projeto",
             "Projeto",
-            "--area-path",
-            "Projeto",
-            "--iteration-path",
-            r"Projeto\Sprint 18",
             "--demanda",
             "13959",
             "--env-file",
@@ -252,10 +296,6 @@ def test_validador_estrutural_existente_bloqueia_antes_do_planejamento(
             "organizacao",
             "--projeto",
             "Projeto",
-            "--area-path",
-            "Projeto",
-            "--iteration-path",
-            r"Projeto\Sprint 18",
             "--env-file",
             str(tmp_path / ".env-inexistente"),
         ],

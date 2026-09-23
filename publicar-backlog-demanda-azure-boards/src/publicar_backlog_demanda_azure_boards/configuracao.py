@@ -12,7 +12,11 @@ from typing import TextIO
 
 from pydantic import BaseModel, ConfigDict, SecretStr, field_validator
 
-from publicar_backlog_demanda_azure_boards.modelos import ConfiguracaoPublicacao, MapeamentoTipos
+from publicar_backlog_demanda_azure_boards.modelos import (
+    ConfiguracaoPublicacao,
+    Demanda,
+    MapeamentoTipos,
+)
 
 
 class ErroConfiguracao(ValueError):
@@ -26,8 +30,6 @@ class ConfiguracaoAzureDevOps(BaseModel):
 
     organizacao: str
     projeto: str
-    area_path: str
-    iteration_path: str
     demanda_id: int
     tipo_demanda: str = "Demanda de Negócio"
     token: SecretStr | None = None
@@ -39,8 +41,6 @@ class ConfiguracaoAzureDevOps(BaseModel):
     @field_validator(
         "organizacao",
         "projeto",
-        "area_path",
-        "iteration_path",
         "tipo_demanda",
         "tipo_epic",
         "tipo_feature",
@@ -63,14 +63,17 @@ class ConfiguracaoAzureDevOps(BaseModel):
             raise ValueError("deve ser um inteiro positivo")
         return valor
 
-    @property
-    def publicacao(self) -> ConfiguracaoPublicacao:
-        """Expõe somente os dados de destino necessários para montar o plano."""
+    def publicacao_para(self, demanda: Demanda) -> ConfiguracaoPublicacao:
+        """Deriva o destino a partir da Demanda, que é a dona dos caminhos.
+
+        `Area Path` e `Iteration Path` deixaram de ser configuráveis por execução:
+        publicar sob uma Demanda significa publicar onde ela está.
+        """
         return ConfiguracaoPublicacao(
             organizacao=self.organizacao,
             projeto=self.projeto,
-            area_path=_normalizar_caminho(self.projeto, self.area_path),
-            iteration_path=_normalizar_caminho(self.projeto, self.iteration_path),
+            area_path=_normalizar_caminho(self.projeto, demanda.area_path),
+            iteration_path=_normalizar_caminho(self.projeto, demanda.iteration_path),
             demanda_id=self.demanda_id,
             mapeamento_tipos=MapeamentoTipos(
                 epic=self.tipo_epic,
@@ -90,9 +93,6 @@ class ConfiguracaoAzureDevOps(BaseModel):
 _CHAVES = {
     "organizacao": "AZURE_DEVOPS_ORGANIZACAO",
     "projeto": "AZURE_DEVOPS_PROJETO",
-    "area_path": "AZURE_DEVOPS_AREA_PATH",
-    "area_paths": "AZURE_DEVOPS_AREA_PATHS",
-    "iteration_path": "AZURE_DEVOPS_ITERATION_PATH",
     "token": "AZURE_DEVOPS_" + "TOKEN",
     "tipo_epic": "AZURE_DEVOPS_TIPO_EPIC",
     "tipo_feature": "AZURE_DEVOPS_TIPO_FEATURE",
@@ -124,7 +124,6 @@ def carregar_configuracao(
     campos: tuple[str, ...] = (
         "organizacao",
         "projeto",
-        "iteration_path",
         "demanda_id",
         "tipo_demanda",
         "tipo_epic",
@@ -138,15 +137,7 @@ def carregar_configuracao(
         campo: _obter_valor(campo, argumentos_normalizados, arquivo, valores_ambiente)
         for campo in campos
     }
-    valores["area_path"] = _obter_area_path(
-        argumentos_normalizados,
-        arquivo,
-        valores_ambiente,
-        entrada_interativa,
-        saida_interativa,
-    )
-
-    for campo in ("organizacao", "projeto", "iteration_path"):
+    for campo in ("organizacao", "projeto"):
         if not valores[campo]:
             valores[campo] = _perguntar(campo, entrada_interativa, saida_interativa)
     if exigir_token and not valores["token"]:
@@ -175,8 +166,6 @@ def carregar_configuracao(
         return ConfiguracaoAzureDevOps(
             organizacao=_exigir_valor(valores["organizacao"], "Organização do Azure DevOps"),
             projeto=_exigir_valor(valores["projeto"], "Projeto do Azure DevOps"),
-            area_path=_exigir_valor(valores["area_path"], "Area Path"),
-            iteration_path=_exigir_valor(valores["iteration_path"], "Iteration Path"),
             demanda_id=demanda_id,
             tipo_demanda=_exigir_valor(valores["tipo_demanda"], "Tipo remoto da Demanda"),
             token=(
@@ -236,36 +225,10 @@ def _obter_valor(
     return None
 
 
-def _obter_area_path(
-    argumentos: Mapping[str, str | None],
-    arquivo: Mapping[str, object],
-    ambiente: Mapping[str, str],
-    entrada: TextIO,
-    saida: TextIO,
-) -> str:
-    area_path = _obter_valor("area_path", argumentos, arquivo, ambiente)
-    if area_path:
-        return area_path
-
-    area_paths = _obter_valor("area_paths", argumentos, arquivo, ambiente)
-    opcoes = tuple(opcao.strip() for opcao in (area_paths or "").split(",") if opcao.strip())
-    if len(opcoes) == 1:
-        return opcoes[0]
-    if len(opcoes) > 1:
-        saida.write("Selecione um Area Path: " + ", ".join(opcoes) + "\n")
-        escolha = _ler_entrada(entrada)
-        if escolha not in opcoes:
-            raise ErroConfiguracao("É necessário selecionar um Area Path disponível.")
-        return escolha
-    return _perguntar("area_path", entrada, saida)
-
-
 def _perguntar(campo: str, entrada: TextIO, saida: TextIO) -> str:
     rotulos = {
         "organizacao": "Organização do Azure DevOps",
         "projeto": "Projeto do Azure DevOps",
-        "area_path": "Area Path",
-        "iteration_path": "Iteration Path",
         "demanda_id": "ID da Demanda de Negócio",
     }
     rotulo = rotulos[campo]

@@ -29,9 +29,11 @@ from publicar_backlog_demanda_azure_boards.interpretar_markdown import (
     extrair_data_geracao,
     interpretar_backlog,
 )
+from publicar_backlog_demanda_azure_boards.leitor_demanda import ler_demanda
 from publicar_backlog_demanda_azure_boards.manifesto import ler_manifesto, validar_manifesto
 from publicar_backlog_demanda_azure_boards.modelos import (
     ConfiguracaoPublicacao,
+    Demanda,
     ItemBacklog,
     OperacaoCriacao,
     PlanoPublicacao,
@@ -104,8 +106,6 @@ def construir_parser() -> argparse.ArgumentParser:
 def _adicionar_opcoes_configuracao(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--organizacao")
     parser.add_argument("--projeto")
-    parser.add_argument("--area-path")
-    parser.add_argument("--iteration-path")
     parser.add_argument("--demanda", dest="demanda_id")
     parser.add_argument("--tipo-demanda")
     parser.add_argument("--tipo-epic")
@@ -136,10 +136,24 @@ def principal(
         configuracao = _carregar_configuracao(
             argumentos_parseados, cliente, entrada_real, saida_real
         )
-        plano = criar_plano(itens, configuracao.publicacao, data_geracao)
+        demanda: Demanda | None = None
+        if isinstance(configuracao, _ConfiguracaoLocal):
+            # Destino já pronto, vindo de cliente injetado: não há token para ler a
+            # Demanda, e o cliente é a autoridade sobre onde publicar.
+            destino = configuracao.publicacao
+        else:
+            demanda = ler_demanda(
+                configuracao.organizacao,
+                configuracao.projeto,
+                configuracao.obter_token(),
+                configuracao.demanda_id,
+                configuracao.tipo_demanda,
+            )
+            destino = configuracao.publicacao_para(demanda)
+        plano = criar_plano(itens, destino, data_geracao)
         if argumentos_parseados.comando == "publicar":
             manifesto = ler_manifesto(argumentos_parseados.manifesto)
-            pendentes = validar_manifesto(manifesto, plano, configuracao.publicacao)
+            pendentes = validar_manifesto(manifesto, plano, destino)
             caminho_manifesto: Path | None = argumentos_parseados.manifesto
             registrados = len(manifesto.itens)
         else:
@@ -160,21 +174,21 @@ def principal(
         if argumentos_parseados.simulacao:
             _escrever(
                 saida_real,
-                "Simulação local concluída: token não solicitado; "
-                "nenhuma chamada HTTP realizada.\n",
+                "Simulação concluída: a Demanda foi lida; "
+                "nenhuma autorização foi solicitada e nenhum item foi criado.\n",
             )
             return 0
 
         cliente_real = cliente or cast(
             ClientePublicacao,
             ClienteAzureDevOps(
-                configuracao.publicacao,
+                destino,
                 configuracao.obter_token(),
             ),
         )
         _verificar_preliminar(
             cliente_real,
-            configuracao.publicacao,
+            destino,
             pendentes,
         )
         if argumentos_parseados.validar_apenas:
@@ -207,8 +221,6 @@ def _carregar_configuracao(
     nomes = (
         "organizacao",
         "projeto",
-        "area_path",
-        "iteration_path",
         "demanda_id",
         "tipo_demanda",
         "tipo_epic",
@@ -221,11 +233,9 @@ def _carregar_configuracao(
     ):
         return _ConfiguracaoLocal(cliente.configuracao)
     valores = {nome: getattr(argumentos, nome, None) for nome in nomes}
-    exige_token = (
-        argumentos.comando == "publicar"
-        and not getattr(argumentos, "simulacao", False)
-        and cliente is None
-    )
+    # `planejar` e `--simulacao` passaram a exigir token porque ambos precisam ler a
+    # Demanda para derivar Area Path e Iteration Path; sem isso não há plano nem hash.
+    exige_token = argumentos.comando in {"planejar", "publicar"} and cliente is None
     return carregar_configuracao(
         argumentos=valores,
         caminho_arquivo=getattr(argumentos, "caminho_configuracao", None),
