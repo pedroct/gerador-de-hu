@@ -103,6 +103,18 @@ plano, do payload e do hash; não altera o rótulo documental `[User Story]`. O 
 O token deve vir de variável de ambiente ou mecanismo seguro do sistema operacional. Nunca o
 versione, não o coloque no backlog, no manifesto, no plano, em exemplos preenchidos ou em logs.
 
+## Campo de destino da narrativa
+
+O `Description` do item documental nem sempre vai para `System.Description`. Quando o tipo remoto
+expõe `Microsoft.VSTS.TCM.ReproSteps` — no processo Agile, apenas o `Bug` —, a narrativa vai para
+esse campo, porque é ele que o formulário do Bug mostra. Gravar em `System.Description` faria o
+conteúdo existir na API e ficar invisível no work item.
+
+| Tipo remoto | Campo que recebe a narrativa |
+|---|---|
+| Epic, Feature, User Story | `System.Description` |
+| Bug | `Microsoft.VSTS.TCM.ReproSteps` |
+
 ## Títulos
 
 Os títulos publicados seguem a numeração hierárquica praticada no board, sem prefixo de data:
