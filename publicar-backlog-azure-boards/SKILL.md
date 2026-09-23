@@ -59,6 +59,25 @@ Toda reconciliação de uma criação ambígua é manual: compare no Azure Board
 documental, o título, o tipo e os caminhos com o marcador do manifesto. Só corrija o manifesto e
 retome após essa conferência e uma nova confirmação vinculada ao hash e ao conjunto pendente.
 
+## Campos de destino no work item
+
+Dois campos não vão para onde o nome do item documental sugere, e a diferença já custou conteúdo em
+publicação real:
+
+| Conteúdo documental | Tipo remoto | Campo que recebe |
+|---|---|---|
+| `Description` | Epic, Feature, User Story | `System.Description` |
+| `Description` | Bug | `Microsoft.VSTS.TCM.ReproSteps` |
+| `Acceptance Criteria` | tipos que expõem o campo | `Microsoft.VSTS.Common.AcceptanceCriteria` |
+| `Acceptance Criteria` | tipos que **não** expõem | nenhum — o conteúdo é descartado, com aviso |
+
+No processo Agile, o formulário do Bug mostra Repro Steps e não Description: gravar a narrativa em
+`System.Description` faz o conteúdo existir na API e ficar invisível no work item.
+
+Quando um item tem critérios de aceitação e o tipo remoto não expõe o campo, a criação omite o campo
+em vez de falhar. **A verificação preliminar avisa, nomeando os itens afetados, antes de pedir a
+autorização** — sem isso, quem digita a frase acredita estar publicando conteúdo que nunca chega.
+
 ## Configuração por execução
 
 A precedência é linha de comando, arquivo TOML informado por `--config`, `.env` informado por
