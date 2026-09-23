@@ -39,6 +39,11 @@ Demanda de Negócio #13959
    `--validar-apenas` exercite o vínculo em vez de conferir um Épico órfão.
 6. Apresente o plano com a Demanda de origem, destino, mapeamento remoto de tipos, quantidades,
    ordem, relações, quais chaves sobem como filhas diretas da Demanda, manifesto e hash.
+   **Se algum item tiver critérios de aceitação e o tipo remoto não expuser o campo, avise antes
+   da autorização, nomeando os itens.** A criação omite o campo em vez de falhar, e sem o aviso
+   quem autoriza acredita estar publicando critérios que nunca chegam ao Azure Boards. É o caso do
+   tipo `Bug` em processos que só oferecem `Microsoft.VSTS.Common.AcceptanceCriteria` na
+   `User Story`.
 7. Pergunte se a pessoa autoriza o backlog inteiro, por lotes ou o cancelamento. Em lotes, pergunte o
    tamanho e apresente cada lote novamente.
 8. Mostre a frase completa e solicite que a pessoa a digite exatamente. A frase começa com

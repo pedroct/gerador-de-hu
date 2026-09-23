@@ -413,3 +413,28 @@ def test_validar_operacao_sem_pai_nao_envia_relacao() -> None:
     cliente_azure.validar_operacao(OPERACAO)
 
     assert not [item for item in loads(chamadas[-1].content) if item["path"] == "/relations/-"]
+
+
+def test_lista_tipos_que_nao_expoem_criterios_de_aceitacao() -> None:
+    """Bug, Feature e Epic não têm o campo em processos reais; só User Story tem."""
+    respostas = respostas_verificacao()
+    campos_sem_criterios = [
+        campo
+        for campo in CAMPOS_OBRIGATORIOS
+        if campo["referenceName"] != "Microsoft.VSTS.Common.AcceptanceCriteria"
+    ]
+    # A verificação consulta os campos de cada tipo remoto, na ordem de nomes_remotos().
+    respostas[1] = resposta(200, {"value": campos_sem_criterios})
+    cliente_azure, _ = cliente(respostas)
+
+    cliente_azure.verificar_destino(CONFIGURACAO)
+
+    assert "Epic" in cliente_azure.tipos_sem_criterios_aceitacao()
+
+
+def test_sem_tipos_limitados_quando_todos_expoem_o_campo() -> None:
+    cliente_azure, _ = cliente(respostas_verificacao())
+
+    cliente_azure.verificar_destino(CONFIGURACAO)
+
+    assert cliente_azure.tipos_sem_criterios_aceitacao() == frozenset()
