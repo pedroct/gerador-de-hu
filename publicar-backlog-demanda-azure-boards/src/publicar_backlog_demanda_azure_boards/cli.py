@@ -167,6 +167,7 @@ def principal(
             registrados,
             caminho_manifesto,
             saida_real,
+            demanda,
         )
 
         if argumentos_parseados.comando == "planejar":
@@ -277,14 +278,20 @@ def _apresentar_plano(
     registrados: int,
     caminho_manifesto: Path | None,
     saida: TextIO,
+    demanda: Demanda | None = None,
 ) -> None:
     configuracao = plano.configuracao
     contagem = Counter(operacao.tipo_remoto for operacao in pendentes)
     _escrever(saida, "Plano de publicação\n")
+    rotulo_demanda = f"#{configuracao.demanda_id}"
+    if demanda is not None:
+        rotulo_demanda = f"#{demanda.id} — {demanda.titulo}"
+    _escrever(saida, f"Demanda de Negócio: {rotulo_demanda}\n")
     _escrever(saida, f"Organização: {configuracao.organizacao}\n")
     _escrever(saida, f"Projeto: {configuracao.projeto}\n")
-    _escrever(saida, f"Area Path: {configuracao.area_path}\n")
-    _escrever(saida, f"Iteration Path: {configuracao.iteration_path}\n")
+    heranca = f" (herdado da Demanda #{configuracao.demanda_id})"
+    _escrever(saida, f"Area Path: {configuracao.area_path}{heranca}\n")
+    _escrever(saida, f"Iteration Path: {configuracao.iteration_path}{heranca}\n")
     _escrever(saida, f"Mapeamento de tipos: {configuracao.mapeamento_tipos.como_dict()}\n")
     _escrever(saida, f"Itens totais: {total}\n")
     _escrever(saida, f"Itens novos: {len(pendentes)}\n")
@@ -297,6 +304,11 @@ def _apresentar_plano(
         if operacao.chave_pai is not None
     )
     _escrever(saida, f"Relações pai-filho: {relacoes or 'nenhuma'}\n")
+    epicos = ", ".join(operacao.chave for operacao in pendentes if operacao.chave_pai is None)
+    _escrever(
+        saida,
+        f"Épicos filhos da Demanda #{configuracao.demanda_id}: {epicos or 'nenhum'}\n",
+    )
     _escrever(saida, f"Hash do plano: {plano.hash_plano}\n")
     if caminho_manifesto is not None:
         _escrever(saida, f"Manifesto: {caminho_manifesto}\n")

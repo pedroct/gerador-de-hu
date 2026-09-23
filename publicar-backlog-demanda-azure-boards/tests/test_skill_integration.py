@@ -359,3 +359,51 @@ def test_verificacao_preliminar_valida_epicos_contra_a_demanda() -> None:
     _publicar_backlog._verificar_preliminar(ClienteVerificador(), CONFIGURACAO, plano.operacoes)
 
     assert dict(validadas) == {"1.0.0": 13959, "1.1.0": None}
+
+
+def test_plano_apresenta_a_demanda_de_origem() -> None:
+    """O plano nomeia a Demanda e marca os caminhos como herdados dela."""
+    saida = StringIO()
+
+    codigo = principal(
+        ["planejar", str(BACKLOG)],
+        cliente=ClienteFalso(),
+        entrada=StringIO(),
+        saida=saida,
+    )
+
+    texto = saida.getvalue()
+    assert codigo == 0
+    assert "Demanda de Negócio: #13959" in texto
+    assert texto.count("(herdado da Demanda #13959)") == 2
+    assert "Épicos filhos da Demanda #13959: 1.0.0" in texto
+
+
+def test_plano_nomeia_a_demanda_lida_com_seu_titulo(monkeypatch, tmp_path) -> None:
+    """Quando a Demanda é lida de verdade, o plano mostra o título dela."""
+    saida = StringIO()
+    monkeypatch.setattr(_publicar_backlog, "ler_demanda", lambda *args: _demanda_falsa())
+    monkeypatch.setenv("AZURE_DEVOPS_TOKEN", "credencial" + "-de-teste")
+
+    codigo = principal(
+        [
+            "planejar",
+            str(BACKLOG),
+            "--organizacao",
+            "organizacao",
+            "--projeto",
+            "Projeto",
+            "--demanda",
+            "13959",
+            "--env-file",
+            str(tmp_path / ".env-inexistente"),
+        ],
+        entrada=StringIO(),
+        saida=saida,
+    )
+
+    assert codigo == 0
+    assert (
+        "Demanda de Negócio: #13959 — PADRONIZAÇÃO E ATUALIZAÇÃO DAS STACKS DA APLICAÇÃO"
+        in saida.getvalue()
+    )
