@@ -87,7 +87,13 @@ def executar_plano(
             raise ValueError(
                 f"O pai {operacao.chave_pai} do item {operacao.chave} não foi publicado."
             )
-        id_pai = registros[operacao.chave_pai].id if operacao.chave_pai is not None else None
+        # Item sem pai documental é um Épico, e o pai dele é a Demanda de Negócio.
+        # Depois desta skill, nenhum item publicado sobe sem pai.
+        id_pai = (
+            registros[operacao.chave_pai].id
+            if operacao.chave_pai is not None
+            else cliente.configuracao.demanda_id
+        )
         marcador = ReconciliacaoPendente(
             chave=operacao.chave,
             tipo_remoto=operacao.tipo_remoto,
