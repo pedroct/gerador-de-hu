@@ -103,7 +103,7 @@ Spec
 
 As dependências são acíclicas: 3W, Gherkin e a skill de débitos técnicos são folhas; a skill de backlog chama somente 3C; `redigir-spec-pedido-negocio` é uma predecessora isolada, que nunca chama nem é chamada pelas outras skills. `redigir-spec-demanda-azure-boards` é a única predecessora que orquestra as três análises especializadas (`especificar-debitos-tecnicos`, `especificar-telas-ux-ui` e `revisar-textos-requisitos`); ela não chama geração nem publicação de backlog. `entrevistar-lacunas-requisito` também é folha e nunca é chamada incondicionalmente nem invocada diretamente por outra skill — é só referenciada, de forma condicional, pelo fluxo de `redigir-spec-pedido-negocio` e, após a geração do backlog, pela sugestão de fechar Histórias `Não pronta` em `gerar-backlog-azure-boards`; em ambos os casos, quem decide rodá-la é o usuário. A skill de débitos técnicos pode ser chamada opcionalmente por 3C ou Drafting quando um débito for identificado e devolve sua spec separada para a geração manual do backlog. `especificar-telas-ux-ui` também é folha e nunca é chamada incondicionalmente; é referenciada, de forma condicional, por `redigir-spec-pedido-negocio` e consumida por `gerar-backlog-azure-boards` apenas como arquivo opcional, nunca como invocação.
 
-## Instalação
+## Instalação e atualização
 
 As skills seguem o formato aberto (`SKILL.md` por pasta) suportado pelo [`npx skills`](https://skills.sh), que instala diretamente a partir deste repositório do GitHub — não é necessário publicar em nenhum registro. Funciona tanto para uso com Claude (Claude Code) quanto com agentes da OpenAI (Codex):
 
@@ -134,6 +134,47 @@ npx skills add pedroct/gerador-de-hu --all -a claude-code -g
 ```
 
 Cada skill inclui `agents/openai.yaml` (metadado de exibição específico para agentes OpenAI); o `SKILL.md` é o formato portátil que tanto Claude quanto agentes OpenAI leem diretamente, sem exigir esse arquivo extra.
+
+### Atualização
+
+```bash
+# atualizar todas as skills instaladas neste projeto
+npx skills update -y
+
+# atualizar só uma
+npx skills update refinar-historias-3w -y
+
+# escopo explícito, quando houver instalação nos dois lugares
+npx skills update -p -y   # só as do projeto
+npx skills update -g -y   # só as globais
+
+# ver o que está instalado e de onde veio
+npx skills ls
+```
+
+O `add` grava um `skills-lock.json` na raiz do projeto, com a origem e um hash de cada skill:
+
+```json
+{
+  "version": 1,
+  "skills": {
+    "refinar-historias-3w": {
+      "source": "pedroct/gerador-de-hu",
+      "sourceType": "github",
+      "skillPath": "refinar-historias-3w/SKILL.md",
+      "computedHash": "f840b6b4410fd1ebbd50678cd67ed04dea8ce61feba37fa5a57f56868b190112"
+    }
+  }
+}
+```
+
+É esse arquivo que o `update` lê para saber de onde re-buscar cada skill — por isso o comando não
+repete o nome do repositório. Ele também **não** aceita `-a/--agent`, ao contrário do `add`: descobre
+sozinho para quais agentes a skill está instalada e atualiza todos.
+
+Uma ressalva: o `update` informa `✓ Updated` mesmo quando não havia nada novo a trazer. A mensagem
+confirma que a skill foi ressincronizada com a origem, não que o conteúdo mudou. Para saber se algo
+de fato mudou, compare o `computedHash` no `skills-lock.json` antes e depois.
 
 ### Como usar depois de instalado
 
