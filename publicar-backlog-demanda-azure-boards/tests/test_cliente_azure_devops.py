@@ -438,3 +438,49 @@ def test_sem_tipos_limitados_quando_todos_expoem_o_campo() -> None:
     cliente_azure.verificar_destino(CONFIGURACAO)
 
     assert cliente_azure.tipos_sem_criterios_aceitacao() == frozenset()
+
+
+def _caminhos_enviados(chamada: httpx.Request) -> set[str]:
+    return {item["path"] for item in loads(chamada.content)}
+
+
+def test_narrativa_vai_para_repro_steps_quando_o_tipo_expoe_o_campo() -> None:
+    """No processo Agile, o formulário do Bug mostra Repro Steps, não Description.
+
+    Gravar em System.Description faz o conteúdo existir na API e ficar invisível no
+    work item — foi o que aconteceu com o Bug #14039 no CESOP-DILIGENCIA.
+    """
+    respostas = respostas_verificacao()
+    campos_do_bug = [
+        *CAMPOS_OBRIGATORIOS,
+        {"referenceName": "Microsoft.VSTS.TCM.ReproSteps"},
+    ]
+    respostas[1] = resposta(200, {"value": campos_do_bug})
+    respostas.append(
+        resposta(200, {"id": 7, "url": "https://dev.azure.com/x/_apis/wit/workItems/7"})
+    )
+    cliente_azure, chamadas = cliente(respostas)
+
+    cliente_azure.verificar_destino(CONFIGURACAO)
+    cliente_azure.criar_item(OPERACAO)
+
+    caminhos = _caminhos_enviados(chamadas[-1])
+    assert "/fields/Microsoft.VSTS.TCM.ReproSteps" in caminhos
+    assert "/fields/System.Description" not in caminhos
+    enviado = {item["path"]: item["value"] for item in loads(chamadas[-1].content)}
+    assert enviado["/fields/Microsoft.VSTS.TCM.ReproSteps"] == OPERACAO.descricao
+
+
+def test_narrativa_continua_em_description_quando_nao_ha_repro_steps() -> None:
+    respostas = respostas_verificacao()
+    respostas.append(
+        resposta(200, {"id": 7, "url": "https://dev.azure.com/x/_apis/wit/workItems/7"})
+    )
+    cliente_azure, chamadas = cliente(respostas)
+
+    cliente_azure.verificar_destino(CONFIGURACAO)
+    cliente_azure.criar_item(OPERACAO)
+
+    caminhos = _caminhos_enviados(chamadas[-1])
+    assert "/fields/System.Description" in caminhos
+    assert "/fields/Microsoft.VSTS.TCM.ReproSteps" not in caminhos

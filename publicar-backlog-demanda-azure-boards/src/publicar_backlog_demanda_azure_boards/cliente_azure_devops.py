@@ -26,6 +26,10 @@ _CAMPOS_OBRIGATORIOS_COMUNS = frozenset(
     }
 )
 _CAMPO_CRITERIOS_ACEITACAO = "Microsoft.VSTS.Common.AcceptanceCriteria"
+# No processo Agile, o formulário do Bug mostra Repro Steps e não Description: gravar a
+# narrativa em System.Description faz o conteúdo existir na API e ficar invisível no work
+# item. Só o Bug expõe este campo, então sua presença identifica o tipo com segurança.
+_CAMPO_REPRO_STEPS = "Microsoft.VSTS.TCM.ReproSteps"
 _RELACAO_HIERARQUICA = "System.LinkTypes.Hierarchy-Reverse"
 # O Azure DevOps sempre insere este segmento fixo em `path` logo após o projeto,
 # mesmo quando a consulta usa o caminho curto sem ele (confirmado contra a API real).
@@ -235,9 +239,15 @@ class ClienteAzureDevOps:
     def _enviar_criacao(
         self, operacao: OperacaoCriacao, *, validar: bool, id_pai: int | None
     ) -> dict[str, Any]:
+        campos_tipo = self._campos_por_tipo.get(operacao.tipo_remoto)
+        campo_narrativa = (
+            _CAMPO_REPRO_STEPS
+            if campos_tipo is not None and _CAMPO_REPRO_STEPS in campos_tipo
+            else "System.Description"
+        )
         patch: list[dict[str, object]] = [
             {"op": "add", "path": "/fields/System.Title", "value": operacao.titulo},
-            {"op": "add", "path": "/fields/System.Description", "value": operacao.descricao},
+            {"op": "add", "path": f"/fields/{campo_narrativa}", "value": operacao.descricao},
             {"op": "add", "path": "/fields/System.AreaPath", "value": self.configuracao.area_path},
             {
                 "op": "add",
@@ -245,7 +255,6 @@ class ClienteAzureDevOps:
                 "value": self.configuracao.iteration_path,
             },
         ]
-        campos_tipo = self._campos_por_tipo.get(operacao.tipo_remoto)
         if campos_tipo is None or _CAMPO_CRITERIOS_ACEITACAO in campos_tipo:
             patch.insert(
                 2,

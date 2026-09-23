@@ -182,6 +182,13 @@ determinístico de falhas.
 O MCP do Azure DevOps é opcional e pode apoiar inspeção interativa de tipos, campos e caminhos. Sua
 ausência não impede a CLI, e ele não substitui a REST API nem autoriza publicações.
 
+## Campo de destino da narrativa
+
+Quando o tipo remoto expõe `Microsoft.VSTS.TCM.ReproSteps` — no processo Agile, só o `Bug` —, o
+`Description` do item documental é publicado nesse campo, e não em `System.Description`. É o campo
+que o formulário do Bug mostra; gravar em `System.Description` faria o conteúdo existir na API e
+ficar invisível no work item.
+
 ## Títulos publicados
 
 Os títulos seguem a numeração hierárquica praticada no board, sem prefixo de data:
