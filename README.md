@@ -256,13 +256,23 @@ Cada Feature declara `Parent` apontando para um Épico existente; cada História
 
 ### Mapeamento para Azure Boards
 
-| Documento Markdown | Campo Azure Boards | Conteúdo |
-|---|---|---|
-| `Description` da História | `System.Description` | Card 3W e síntese da Conversation, incluindo decisões, propostas não confirmadas e lacunas |
-| `Acceptance Criteria` | `Microsoft.VSTS.Common.AcceptanceCriteria` | Somente blocos Gherkin da Confirmation quando o estado for `Completa` |
-| `Implementation Evidence` | Metadado de revisão | Estado atual Brownfield com status e referências `caminho:linha`; nunca é copiado para Acceptance Criteria |
+| Documento Markdown | Tipo remoto | Campo Azure Boards | Conteúdo |
+|---|---|---|---|
+| `Description` | Epic, Feature, User Story | `System.Description` | Card 3W e síntese da Conversation, incluindo decisões, propostas não confirmadas e lacunas |
+| `Description` | Bug | `Microsoft.VSTS.TCM.ReproSteps` | o mesmo conteúdo, no campo que o formulário do Bug exibe |
+| `Acceptance Criteria` | tipos que expõem o campo | `Microsoft.VSTS.Common.AcceptanceCriteria` | Somente blocos Gherkin da Confirmation quando o estado for `Completa` |
+| `Acceptance Criteria` | tipos que **não** expõem | nenhum | o conteúdo é descartado, e a publicação avisa antes de pedir a autorização |
+| `Implementation Evidence` | todos | Metadado de revisão | Estado atual Brownfield com status e referências `caminho:linha`; nunca é copiado para Acceptance Criteria |
 
 Com Confirmation `Ausente` ou `Parcial`, `Acceptance Criteria` permanece efetivamente vazio. Regras pendentes, hipóteses e justificativas continuam em `Description`/Conversation. A geração não cria nem altera work items.
+
+**Por que o Bug é diferente.** No processo Agile, o formulário do Bug exibe *Repro Steps* e não
+*Description*: gravar a narrativa em `System.Description` faz o conteúdo existir na API e ficar
+invisível no work item. Os tipos que expõem `Microsoft.VSTS.TCM.ReproSteps` recebem a narrativa lá.
+Pelo mesmo motivo, um tipo que não expõe `Microsoft.VSTS.Common.AcceptanceCriteria` — o `Bug`, em
+muitos processos — teria seus critérios descartados em silêncio; as duas skills publicadoras
+listam os itens afetados antes de solicitar a frase de autorização. Ambos os comportamentos foram
+descobertos em publicação real, não em teste.
 
 ## Exemplo mínimo
 
