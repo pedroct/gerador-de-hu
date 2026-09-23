@@ -58,6 +58,9 @@ class ClienteSimulado:
     def validar_operacao(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> None:
         self.validadas.append((operacao.chave, id_pai))
 
+    def tipos_sem_criterios_aceitacao(self) -> frozenset[str]:
+        return frozenset()
+
 
 def test_publicacao_pela_cli_rejeita_confirmacao_invalida_sem_criacoes(
     tmp_path: Path, backlog: Path, cliente: ClienteSimulado

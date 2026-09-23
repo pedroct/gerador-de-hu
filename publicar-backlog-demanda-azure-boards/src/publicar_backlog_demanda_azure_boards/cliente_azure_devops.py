@@ -192,6 +192,21 @@ class ClienteAzureDevOps:
             iteration_path=configuracao.iteration_path,
         )
 
+    def tipos_sem_criterios_aceitacao(self) -> frozenset[str]:
+        """Tipos remotos que não expõem o campo de critérios de aceitação.
+
+        A criação omite o campo nesses tipos em vez de falhar, o que faz o conteúdo
+        autorizado desaparecer sem aviso. Quem autoriza precisa saber disso antes de
+        digitar a frase; por isso a informação é exposta aqui.
+
+        Exige ``verificar_destino`` antes: é ela que consulta os campos de cada tipo.
+        """
+        return frozenset(
+            tipo
+            for tipo, campos in self._campos_por_tipo.items()
+            if _CAMPO_CRITERIOS_ACEITACAO not in campos
+        )
+
     def validar_operacao(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> None:
         """Valida o JSON Patch no endpoint de criação, sem persistir o item.
 
