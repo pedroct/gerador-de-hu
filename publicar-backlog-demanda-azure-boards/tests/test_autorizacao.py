@@ -365,7 +365,9 @@ def test_demanda_id_nao_positivo_e_rejeitado() -> None:
             saida=StringIO(),
         )
 
-    assert "positivo" in str(excinfo.value.__cause__)
+    # A mensagem agora chega na própria exceção, e não enterrada em __cause__: quem lê
+    # o erro no terminal precisa saber que o problema é o ID, não "a configuração".
+    assert "positivo" in str(excinfo.value)
 
 
 def test_demanda_id_nao_numerico_e_rejeitado() -> None:

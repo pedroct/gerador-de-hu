@@ -157,10 +157,18 @@ def carregar_configuracao(
     bruto = valores["demanda_id"]
     if bruto is None:
         bruto = _perguntar("demanda_id", entrada_interativa, saida_interativa)
-    try:
-        demanda_id = int(str(bruto).strip().lstrip("#"))
-    except ValueError as erro:
-        raise ErroConfiguracao("O ID da Demanda de Negócio deve ser um número inteiro.") from erro
+    texto = str(bruto).strip().lstrip("#").strip()
+    negativo = texto.startswith("-")
+    digitos = texto[1:] if negativo else texto
+    # `int()` aceita separador `_` e dígitos não-ASCII: "1_3" e "١٣" viram 13, o que
+    # publicaria sob outro work item em silêncio. A checagem ASCII fecha as duas portas.
+    if not digitos.isascii() or not digitos.isdigit():
+        raise ErroConfiguracao(
+            "O ID da Demanda de Negócio deve ser um número inteiro em dígitos ASCII."
+        )
+    demanda_id = -int(digitos) if negativo else int(digitos)
+    if demanda_id <= 0:
+        raise ErroConfiguracao("O ID da Demanda de Negócio deve ser um inteiro positivo.")
 
     try:
         return ConfiguracaoAzureDevOps(

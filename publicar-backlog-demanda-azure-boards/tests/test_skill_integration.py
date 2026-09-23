@@ -407,3 +407,35 @@ def test_plano_nomeia_a_demanda_lida_com_seu_titulo(monkeypatch, tmp_path) -> No
         "Demanda de Negócio: #13959 — PADRONIZAÇÃO E ATUALIZAÇÃO DAS STACKS DA APLICAÇÃO"
         in saida.getvalue()
     )
+
+
+def test_plano_exibe_a_data_de_geracao_do_backlog() -> None:
+    """Sem a data no título, ela é o único sinal na tela de qual geração se autoriza."""
+    saida = StringIO()
+
+    codigo = principal(
+        ["planejar", str(BACKLOG)],
+        cliente=ClienteFalso(),
+        entrada=StringIO(),
+        saida=saida,
+    )
+
+    assert codigo == 0
+    assert "Backlog gerado em: 2026-09-10" in saida.getvalue()
+
+
+def test_ajuda_da_simulacao_nao_promete_execucao_offline() -> None:
+    """A simulação lê a Demanda desde que os caminhos passaram a ser herdados."""
+    parser = _publicar_backlog.construir_parser()
+    acoes = {
+        acao.dest: acao
+        for subparser in parser._subparsers._group_actions  # type: ignore[union-attr]
+        for nome, sub in subparser.choices.items()
+        if nome == "publicar"
+        for acao in sub._actions
+    }
+    ajuda_simulacao = acoes["simulacao"].help or ""
+
+    assert "sem token" not in ajuda_simulacao
+    assert "sem chamadas remotas" not in ajuda_simulacao
+    assert "Demanda" in ajuda_simulacao

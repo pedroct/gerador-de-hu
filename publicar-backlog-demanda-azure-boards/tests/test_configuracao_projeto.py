@@ -107,3 +107,38 @@ def test_a_cli_nao_oferece_mais_os_caminhos_manuais() -> None:
     for caminho_manual in ("--area-path", "--iteration-path"):
         with pytest.raises(SystemExit):
             construir_parser().parse_args(["planejar", "backlog.md", caminho_manual, "Projeto"])
+
+
+@pytest.mark.parametrize(
+    ("bruto", "trecho"),
+    [
+        ("0", "inteiro positivo"),
+        ("-5", "inteiro positivo"),
+        ("abc", "número inteiro"),
+        ("1_3", "número inteiro"),
+        ("١٣", "número inteiro"),
+        ("13.0", "número inteiro"),
+        # Valor vazio é "não informado" em toda a camada de configuração, como para
+        # organização e projeto: cai na pergunta interativa, que aqui não tem resposta.
+        ("", "entrada interativa"),
+    ],
+)
+def test_id_de_demanda_invalido_nomeia_o_problema(bruto: str, trecho: str) -> None:
+    """Colar `1_3` ou dígitos de outro locale publicaria sob outro work item."""
+    from publicar_backlog_demanda_azure_boards.configuracao import ErroConfiguracao
+
+    with pytest.raises(ErroConfiguracao) as erro:
+        carregar_configuracao(
+            argumentos={
+                "organizacao": "contoso",
+                "projeto": "CESOP-DILIGENCIA",
+                "demanda_id": bruto,
+            },
+            caminho_env=Path("arquivo-inexistente.env"),
+            ambiente={},
+            entrada=StringIO(),
+            saida=StringIO(),
+            exigir_token=False,
+        )
+
+    assert trecho in str(erro.value)

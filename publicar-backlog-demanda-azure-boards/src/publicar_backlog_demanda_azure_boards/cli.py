@@ -76,7 +76,9 @@ def construir_parser() -> argparse.ArgumentParser:
     validar = comandos.add_parser("validar", help="valida o contrato Markdown localmente")
     validar.add_argument("backlog", type=Path)
 
-    planejar = comandos.add_parser("planejar", help="apresenta o plano sem chamadas remotas")
+    planejar = comandos.add_parser(
+        "planejar", help="lê a Demanda e apresenta o plano, sem autorização nem criação"
+    )
     planejar.add_argument("backlog", type=Path)
     _adicionar_opcoes_configuracao(planejar)
 
@@ -93,7 +95,7 @@ def construir_parser() -> argparse.ArgumentParser:
     modos.add_argument(
         "--simulacao",
         action="store_true",
-        help="planeja localmente sem token, autorização ou HTTP",
+        help="lê a Demanda e planeja; não pede autorização e não cria item algum",
     )
     modos.add_argument(
         "--validar-apenas",
@@ -168,6 +170,7 @@ def principal(
             caminho_manifesto,
             saida_real,
             demanda,
+            data_geracao,
         )
 
         if argumentos_parseados.comando == "planejar":
@@ -279,6 +282,7 @@ def _apresentar_plano(
     caminho_manifesto: Path | None,
     saida: TextIO,
     demanda: Demanda | None = None,
+    data_geracao: str = "",
 ) -> None:
     configuracao = plano.configuracao
     contagem = Counter(operacao.tipo_remoto for operacao in pendentes)
@@ -292,6 +296,10 @@ def _apresentar_plano(
     heranca = f" (herdado da Demanda #{configuracao.demanda_id})"
     _escrever(saida, f"Area Path: {configuracao.area_path}{heranca}\n")
     _escrever(saida, f"Iteration Path: {configuracao.iteration_path}{heranca}\n")
+    if data_geracao:
+        # Sem a data no título, esta linha é o único sinal na tela de qual geração do
+        # backlog está sendo autorizada; o hash protege, mas não se lê.
+        _escrever(saida, f"Backlog gerado em: {data_geracao}\n")
     _escrever(saida, f"Mapeamento de tipos: {configuracao.mapeamento_tipos.como_dict()}\n")
     _escrever(saida, f"Itens totais: {total}\n")
     _escrever(saida, f"Itens novos: {len(pendentes)}\n")
