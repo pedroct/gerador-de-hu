@@ -17,6 +17,7 @@ from publicar_backlog_demanda_azure_boards.modelos import (
     PlanoPublicacao,
     TipoItem,
 )
+from publicar_backlog_demanda_azure_boards.titulo_hierarquico import montar_titulo
 
 _ORDEM_TIPOS = {
     TipoItem.EPIC: 0,
@@ -33,7 +34,7 @@ def criar_plano(
 ) -> PlanoPublicacao:
     """Cria o plano completo; a retomada só separa pendentes após validar o manifesto."""
     itens_ordenados = sorted(itens, key=_chave_ordenacao)
-    operacoes = tuple(_criar_operacao(item, configuracao, data_geracao) for item in itens_ordenados)
+    operacoes = tuple(_criar_operacao(item, configuracao) for item in itens_ordenados)
     return PlanoPublicacao(
         operacoes=operacoes,
         hash_plano=_calcular_hash(itens_ordenados, configuracao, data_geracao),
@@ -46,13 +47,11 @@ def _chave_ordenacao(item: ItemBacklog) -> tuple[int, tuple[int, int, int]]:
     return (_ORDEM_TIPOS[item.tipo], (primeiro, segundo, terceiro))
 
 
-def _criar_operacao(
-    item: ItemBacklog, configuracao: ConfiguracaoPublicacao, data_geracao: str
-) -> OperacaoCriacao:
+def _criar_operacao(item: ItemBacklog, configuracao: ConfiguracaoPublicacao) -> OperacaoCriacao:
     return OperacaoCriacao(
         chave=item.chave,
         tipo=item.tipo,
-        titulo=f"{data_geracao} {item.chave} {item.titulo_curto or item.titulo}",
+        titulo=montar_titulo(item),
         descricao=converter_descricao(item.descricao),
         criterios_aceitacao=converter_criterios(item.criterios_aceitacao),
         chave_pai=item.pai,
