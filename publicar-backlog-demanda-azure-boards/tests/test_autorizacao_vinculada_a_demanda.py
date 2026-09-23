@@ -1,5 +1,7 @@
 """A autorização e o manifesto ficam presos à Demanda para a qual foram emitidos."""
 
+from dataclasses import replace
+
 import pytest
 
 from publicar_backlog_demanda_azure_boards.autorizacao import (
@@ -86,3 +88,23 @@ def test_manifesto_de_uma_demanda_nao_retoma_sob_outra() -> None:
     )
     with pytest.raises(ValueError):
         validar_manifesto(manifesto, _plano(13970), _destino(13970))
+
+
+def test_validacao_de_manifesto_rejeita_divergencia_de_demanda_mesmo_com_hash_igual() -> None:
+    """Prova que a validação de destino do manifesto rejeita demanda_id divergente, isolada do hash.
+
+    Sem este teste, um manifesto com configuracao de demanda diferente poderia passar se o
+    hash por acaso batesse com o novo plano.
+    """
+    plano_novo = _plano(13970)
+    manifesto = replace(
+        Manifesto(
+            hash_plano=plano_novo.hash_plano,  # Hash do novo plano (passa na linha 166)
+            configuracao=_destino(13959),  # Mas configuracao da demanda antiga
+            itens={"1.0.0": RegistroManifesto(id=13969, tipo=TipoItem.EPIC, url="https://exemplo")},
+            titulos={"1.0.0": plano_novo.operacoes[0].titulo},
+        ),
+        hash_plano=plano_novo.hash_plano,
+    )
+    with pytest.raises(ValueError):
+        validar_manifesto(manifesto, plano_novo, _destino(13970))
