@@ -56,7 +56,7 @@ class ClientePublicacao(Protocol):
 
     def verificar_destino(self, configuracao: ConfiguracaoPublicacao) -> object: ...
 
-    def validar_operacao(self, operacao: OperacaoCriacao) -> None: ...
+    def validar_operacao(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> None: ...
 
     def criar_item(
         self, operacao: OperacaoCriacao, id_pai: int | None = None
@@ -253,7 +253,11 @@ def _verificar_preliminar(
 ) -> None:
     cliente.verificar_destino(configuracao)
     for operacao in operacoes:
-        cliente.validar_operacao(operacao)
+        # Item sem pai documental é um Épico, e o pai dele — a Demanda — já existe no
+        # Azure Boards. Features e Histórias validam sem pai: os seus ainda não foram
+        # criados.
+        id_pai = configuracao.demanda_id if operacao.chave_pai is None else None
+        cliente.validar_operacao(operacao, id_pai=id_pai)
 
 
 def _apresentar_plano(

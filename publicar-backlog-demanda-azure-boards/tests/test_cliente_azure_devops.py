@@ -393,3 +393,23 @@ def test_relacao_hierarquica_so_eh_enviada_com_id_do_pai() -> None:
     cliente_azure.criar_item(OPERACAO, id_pai=7)
 
     assert any(item["path"] == "/relations/-" for item in loads(chamadas[0].content))
+
+
+def test_validar_operacao_envia_a_relacao_quando_ha_pai() -> None:
+    cliente_azure, chamadas = cliente([resposta(200)])
+
+    cliente_azure.validar_operacao(OPERACAO, id_pai=13959)
+
+    assert "validateOnly=true" in str(chamadas[-1].url)
+    relacoes = [item for item in loads(chamadas[-1].content) if item["path"] == "/relations/-"]
+    assert len(relacoes) == 1
+    assert relacoes[0]["value"]["rel"] == "System.LinkTypes.Hierarchy-Reverse"
+    assert str(relacoes[0]["value"]["url"]).endswith("/13959")
+
+
+def test_validar_operacao_sem_pai_nao_envia_relacao() -> None:
+    cliente_azure, chamadas = cliente([resposta(200)])
+
+    cliente_azure.validar_operacao(OPERACAO)
+
+    assert not [item for item in loads(chamadas[-1].content) if item["path"] == "/relations/-"]

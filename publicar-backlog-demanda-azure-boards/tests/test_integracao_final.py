@@ -38,6 +38,7 @@ class ClienteSimulado:
     def __init__(self) -> None:
         self.configuracao = CONFIGURACAO
         self.chaves_criadas: list[str] = []
+        self.validadas: list[tuple[str, int | None]] = []
 
     def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroManifesto:
         if operacao.chave_pai is not None:
@@ -52,8 +53,8 @@ class ClienteSimulado:
     def verificar_destino(self, configuracao: ConfiguracaoPublicacao) -> None:
         assert configuracao == self.configuracao
 
-    def validar_operacao(self, operacao: OperacaoCriacao) -> None:
-        del operacao
+    def validar_operacao(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> None:
+        self.validadas.append((operacao.chave, id_pai))
 
 
 def test_publicacao_pela_cli_rejeita_confirmacao_invalida_sem_criacoes(

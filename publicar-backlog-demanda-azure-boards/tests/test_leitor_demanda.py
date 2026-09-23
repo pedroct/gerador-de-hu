@@ -91,3 +91,27 @@ def test_nao_expoe_o_token_na_mensagem_de_erro() -> None:
     with pytest.raises(ErroDestinoInvalido) as erro:
         _ler({"message": "não encontrado"}, status=404)
     assert "token-de-teste" not in str(erro.value)
+
+
+@pytest.mark.parametrize(
+    "url_invalida",
+    [
+        "http://dev.azure.com/contoso/_apis/wit/workItems/13959",
+        "",
+        "   ",
+        "dev.azure.com/contoso/_apis/wit/workItems/13959",
+    ],
+)
+def test_recusa_demanda_sem_url_utilizavel(url_invalida: str) -> None:
+    payload = _payload()
+    payload["url"] = url_invalida
+    with pytest.raises(ErroDestinoInvalido) as erro:
+        _ler(payload)
+    assert "13959" in str(erro.value)
+
+
+def test_recusa_demanda_com_url_de_tipo_errado() -> None:
+    payload = _payload()
+    payload["url"] = 13959
+    with pytest.raises(ErroDestinoInvalido):
+        _ler(payload)

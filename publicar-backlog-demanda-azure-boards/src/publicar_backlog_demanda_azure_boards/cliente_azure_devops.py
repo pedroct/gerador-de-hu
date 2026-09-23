@@ -192,9 +192,14 @@ class ClienteAzureDevOps:
             iteration_path=configuracao.iteration_path,
         )
 
-    def validar_operacao(self, operacao: OperacaoCriacao) -> None:
-        """Valida o JSON Patch no endpoint de criação, sem persistir o item."""
-        self._enviar_criacao(operacao, validar=True, id_pai=None)
+    def validar_operacao(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> None:
+        """Valida o JSON Patch no endpoint de criação, sem persistir o item.
+
+        O ``id_pai`` é enviado para que a validação exercite também a relação
+        hierárquica: é nela que mora o risco novo desta skill, o processo remoto
+        recusar o Épico como filho da Demanda de Negócio.
+        """
+        self._enviar_criacao(operacao, validar=True, id_pai=id_pai)
 
     def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroCriado:
         """Cria um item e inclui a relação hierárquica apenas com pai identificado."""

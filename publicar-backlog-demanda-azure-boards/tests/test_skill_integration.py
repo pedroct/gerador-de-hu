@@ -35,13 +35,14 @@ class ClienteFalso:
         self.configuracao = CONFIGURACAO
         self.chaves_criadas: list[str] = []
         self.chamadas_http: list[str] = []
+        self.validadas: list[tuple[str, int | None]] = []
 
     def verificar_destino(self, configuracao: ConfiguracaoPublicacao) -> None:
         assert configuracao == CONFIGURACAO
         self.chamadas_http.append("GET")
 
-    def validar_operacao(self, operacao: OperacaoCriacao) -> None:
-        del operacao
+    def validar_operacao(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> None:
+        self.validadas.append((operacao.chave, id_pai))
         self.chamadas_http.append("POST validateOnly")
 
     def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroManifesto:
@@ -278,3 +279,43 @@ def test_skill_nao_chama_mcp_obrigatoriamente() -> None:
 
     assert "MCP" in texto
     assert "opcional" in texto
+
+
+def test_verificacao_preliminar_valida_epicos_contra_a_demanda() -> None:
+    """Critério 3 da spec: `--validar-apenas` exercita o vínculo com a Demanda.
+
+    Um item sem ``chave_pai`` é sempre um Épico, e o pai dele — a Demanda — já existe
+    no Azure Boards. Features e Histórias seguem validando sem pai, porque os seus
+    ainda não foram criados.
+    """
+    ItemBacklog = _modelos.ItemBacklog
+    TipoItem = _modelos.TipoItem
+    criar_plano = importlib.import_module(
+        "publicar_backlog_demanda_azure_boards.planejar_publicacao"
+    ).criar_plano
+
+    plano = criar_plano(
+        [
+            ItemBacklog("1.0.0", TipoItem.EPIC, "Gestão", None, "d", ""),
+            ItemBacklog("1.1.0", TipoItem.FEATURE, "Gestão", "1.0.0", "d", ""),
+        ],
+        CONFIGURACAO,
+        "2026-09-22",
+    )
+    validadas: list[tuple[str, int | None]] = []
+
+    class ClienteVerificador:
+        configuracao = CONFIGURACAO
+
+        def verificar_destino(self, configuracao: ConfiguracaoPublicacao) -> None:
+            return None
+
+        def validar_operacao(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> None:
+            validadas.append((operacao.chave, id_pai))
+
+        def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> object:
+            raise AssertionError("A verificação preliminar não pode criar itens.")
+
+    _publicar_backlog._verificar_preliminar(ClienteVerificador(), CONFIGURACAO, plano.operacoes)
+
+    assert dict(validadas) == {"1.0.0": 13959, "1.1.0": None}
