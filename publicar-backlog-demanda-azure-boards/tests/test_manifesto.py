@@ -66,6 +66,29 @@ def test_manifesto_e_gravado_e_lido_com_seus_metadados(tmp_path) -> None:
     assert json.loads(caminho.read_text(encoding="utf-8"))["versao"] == 1
 
 
+def test_manifesto_sem_demanda_id_e_rejeitado(tmp_path) -> None:
+    destino_sem_demanda = destino_json()
+    del destino_sem_demanda["demanda_id"]
+    caminho = tmp_path / "mapa.json"
+    caminho.write_text(
+        json.dumps(
+            {
+                "versao": 1,
+                "origem": "backlog.md",
+                "hash_plano": "hash",
+                "destino": destino_sem_demanda,
+                "itens": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="é inválido") as excinfo:
+        ler_manifesto(caminho)
+    assert excinfo.value.__cause__ is not None
+    assert "Demanda de Negócio" in str(excinfo.value.__cause__)
+
+
 def test_manifesto_preserva_estado_de_reconciliacao_manual(tmp_path) -> None:
     caminho = tmp_path / "mapa.json"
     manifesto = Manifesto(

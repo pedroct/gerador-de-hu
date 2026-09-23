@@ -16,7 +16,10 @@ from publicar_backlog_demanda_azure_boards.autorizacao import (
     imprimir_operacoes,
     validar_confirmacao,
 )
-from publicar_backlog_demanda_azure_boards.configuracao import carregar_configuracao
+from publicar_backlog_demanda_azure_boards.configuracao import (
+    ErroConfiguracao,
+    carregar_configuracao,
+)
 from publicar_backlog_demanda_azure_boards.modelos import (
     ConfiguracaoPublicacao,
     MapeamentoTipos,
@@ -343,3 +346,37 @@ def test_repr_da_configuracao_nao_expoe_token() -> None:
     )
 
     assert "token-confidencial" not in repr(configuracao)
+
+
+def test_demanda_id_nao_positivo_e_rejeitado() -> None:
+    with pytest.raises(ErroConfiguracao) as excinfo:
+        carregar_configuracao(
+            ambiente={
+                "AZURE_DEVOPS_ORGANIZACAO": "organizacao",
+                "AZURE_DEVOPS_PROJETO": "Projeto",
+                "AZURE_DEVOPS_TOKEN": "token",
+                "AZURE_DEVOPS_AREA_PATH": "Projeto",
+                "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
+                "AZURE_DEVOPS_DEMANDA": "0",
+            },
+            entrada=StringIO(),
+            saida=StringIO(),
+        )
+
+    assert "positivo" in str(excinfo.value.__cause__)
+
+
+def test_demanda_id_nao_numerico_e_rejeitado() -> None:
+    with pytest.raises(ErroConfiguracao, match="número inteiro"):
+        carregar_configuracao(
+            ambiente={
+                "AZURE_DEVOPS_ORGANIZACAO": "organizacao",
+                "AZURE_DEVOPS_PROJETO": "Projeto",
+                "AZURE_DEVOPS_TOKEN": "token",
+                "AZURE_DEVOPS_AREA_PATH": "Projeto",
+                "AZURE_DEVOPS_ITERATION_PATH": "Projeto\\Sprint 18",
+                "AZURE_DEVOPS_DEMANDA": "abc",
+            },
+            entrada=StringIO(),
+            saida=StringIO(),
+        )
