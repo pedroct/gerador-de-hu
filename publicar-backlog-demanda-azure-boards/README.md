@@ -1,8 +1,21 @@
-# Publicador de backlog no Azure Boards
+# Publicador de backlog vinculado a uma Demanda de Negócio
 
-Executor Python isolável para validar, planejar e publicar um backlog Markdown no Azure Boards.
-Publicar é uma operação de escrita: a ferramenta exige uma autorização textual exata para o plano
-apresentado e não oferece confirmação implícita.
+Executor Python isolável para validar, planejar e publicar um backlog Markdown no Azure Boards
+**pendurado em uma Demanda de Negócio que já existe**, informada por ID. Publicar é uma operação de
+escrita: a ferramenta exige uma autorização textual exata para o plano apresentado e não oferece
+confirmação implícita.
+
+O resultado no board é este:
+
+```text
+Demanda de Negócio #13959
+└─ [Epic]        01 Gestão do projeto
+   └─ [Feature]  01.01 Gestão do projeto
+      └─ [Story] 01.01.01 Análise de padrões de stacks
+```
+
+A Demanda em si **nunca é escrita**: o vínculo nasce do lado do Épico, via
+`System.LinkTypes.Hierarchy-Reverse`, no mesmo POST que cria o Épico.
 
 ## Pré-requisitos
 
@@ -20,8 +33,7 @@ Segredos não devem ser versionados. Copie `.env.example` para `.env` apenas loc
 os valores necessários.
 
 O token solicitado interativamente é lido sem eco; nunca o informe em argumentos, arquivos
-versionados, planos, manifestos, logs ou mensagens de erro. A seleção entre `Sustentacao` e
-`Projeto` é sempre explícita.
+versionados, planos, manifestos, logs ou mensagens de erro.
 
 ## Configuração por execução
 
@@ -32,20 +44,20 @@ no terminal. Ele não aparece no plano, no manifesto, em logs ou em mensagens de
 ```dotenv
 AZURE_DEVOPS_ORGANIZACAO=organizacao
 AZURE_DEVOPS_PROJETO=Projeto
-AZURE_DEVOPS_AREA_PATHS=Sustentacao,Projeto
-AZURE_DEVOPS_AREA_PATH=Projeto
-AZURE_DEVOPS_ITERATION_PATH=Projeto\\Sprint 2026\\Sprint 18
+AZURE_DEVOPS_DEMANDA=13959
+AZURE_DEVOPS_TIPO_DEMANDA=Demanda de Negócio
 AZURE_DEVOPS_TIPO_USER_STORY=User Story
 AZURE_DEVOPS_TOKEN=
 ```
 
-O projeto disponibiliza os Area Paths `Sustentacao` e `Projeto`. Caminhos relativos são
-normalizados com o nome do projeto antes do plano e da validação remota. Se
-`AZURE_DEVOPS_AREA_PATH` ou
-`--area-path` não for informado quando houver mais de uma opção, a ferramenta exige uma seleção
-explícita; ela nunca escolhe silenciosamente. O `Iteration Path` muda por sprint e precisa ser
-informado em cada execução, por `--iteration-path`, `.env` atualizado ou pergunta interativa.
-Ambos os caminhos são mostrados no plano e validados remotamente antes da autorização.
+**Não existe configuração de `Area Path` nem de `Iteration Path`.** Os dois são herdados da Demanda:
+publicar sob uma Demanda significa publicar onde ela está. Caminhos relativos devolvidos pela API
+continuam sendo normalizados com o nome do projeto antes do plano e da validação remota, e ambos
+aparecem no plano marcados como herdados, validados remotamente antes da autorização.
+
+O ID da Demanda participa do hash do plano, da frase de autorização e do manifesto. Uma frase
+emitida para uma Demanda não autoriza publicar sob outra, e um manifesto de uma Demanda não retoma
+sob outra.
 
 Em projetos Scrum, mapeie o tipo documental sem alterar o backlog:
 
@@ -71,13 +83,11 @@ uv run python scripts/publicar_backlog_demanda.py validar backlog.md
 Para revisar o plano sem chamadas remotas:
 
 ```bash
-uv run python scripts/publicar_backlog_demanda.py planejar backlog.md \
-  --area-path Projeto \
-  --iteration-path 'Projeto\\Sprint 2026\\Sprint 18'
+uv run python scripts/publicar_backlog_demanda.py planejar backlog.md --demanda 13959
 ```
 
-O plano apresenta organização, projeto, `Area Path`, `Iteration Path`, mapeamento de tipos,
-quantidades, tipos, ordem
+O plano apresenta a Demanda de origem, organização, projeto, `Area Path`, `Iteration Path`,
+mapeamento de tipos, quantidades, tipos, ordem
 `Epic → Feature → User Story/Bug`, relações pai-filho, manifesto e hash. O hash vincula a
 confirmação ao backlog, ao destino e aos tipos remotos. A autorização também registra a quantidade,
 o conteúdo executável e o conjunto pendente ou a faixa do lote; qualquer divergência é recusada
@@ -85,10 +95,11 @@ novamente pelo executor antes da escrita.
 
 Antes de solicitar autorização, `publicar` faz a verificação preliminar somente leitura: credencial,
 destino, tipos, campos, relação hierárquica, Area Path, Iteration Path e consistência do manifesto.
-Use:
+Os Épicos são validados com a Demanda como pai, para que `--validar-apenas` exercite o vínculo em
+vez de conferir um Épico órfão. Use:
 
 ```bash
-uv run python scripts/publicar_backlog_demanda.py publicar backlog.md \
+uv run python scripts/publicar_backlog_demanda.py publicar backlog.md --demanda 13959 \
   --manifesto manifesto-publicacao.json
 ```
 
@@ -96,8 +107,8 @@ A confirmação pode autorizar o backlog inteiro ou lotes. Para lotes, cada tama
 são reapresentados e exigem uma frase própria. A frase deve ser digitada exatamente, por exemplo:
 
 ```text
-AUTORIZAR PUBLICAÇÃO 12 ITENS Projeto Projeto Projeto\\Sprint 2026\\Sprint 18 7F3A
-AUTORIZAR LOTE 2 4 ITENS Projeto Projeto Projeto\\Sprint 2026\\Sprint 18 B91C
+AUTORIZAR PUBLICAÇÃO 12 ITENS DEMANDA 13959 Projeto Projeto Projeto\\Sprint 18 7F3A
+AUTORIZAR LOTE 2 4 ITENS DEMANDA 13959 Projeto Projeto Projeto\\Sprint 18 B91C
 ```
 
 A comparação é exata, inclusive maiúsculas e minúsculas. Uma confirmação incorreta permite até 3
@@ -108,13 +119,18 @@ confirmação nem autorização concedida pela existência do manifesto.
 
 ## Modos sem publicação
 
-`--simulacao` interpreta, valida localmente, monta e mostra o plano sem token, sem chamadas HTTP e
-sem pedir autorização. `--validar-apenas` executa a verificação remota das operações usando
-`validateOnly=true`, sem solicitar autorização e sem criar work items.
+`--simulacao` interpreta, valida localmente, lê a Demanda, monta e mostra o plano, sem pedir
+autorização e sem criar work item algum. `--validar-apenas` executa a verificação remota das
+operações usando `validateOnly=true`, sem solicitar autorização e sem criar work items.
+
+**A simulação deixou de ser offline e exige token.** Como `Area Path` e `Iteration Path` vêm da
+Demanda, não há como montar o plano — nem o hash — sem ler o work item. O que ela preserva é o
+resto: exatamente um `GET`, nenhuma escrita e nenhuma autorização solicitada. O comando `validar`
+continua totalmente local e sem token, para quem só quer conferir o documento.
 
 `--validar-apenas` pode fazer somente as consultas remotas necessárias para verificar destino,
 tipos, campos, relações e caminhos; a validação das operações usa `validateOnly=true` e não envia
-POST persistente. A simulação continua totalmente local e não exige token.
+POST persistente.
 
 ## Manifesto, falha parcial e retomada
 
@@ -159,6 +175,22 @@ determinístico de falhas.
 
 O MCP do Azure DevOps é opcional e pode apoiar inspeção interativa de tipos, campos e caminhos. Sua
 ausência não impede a CLI, e ele não substitui a REST API nem autoriza publicações.
+
+## Títulos publicados
+
+Os títulos seguem a numeração hierárquica praticada no board, sem prefixo de data:
+
+| Tipo | Chave documental | Título publicado |
+|---|---|---|
+| Epic | `1.0.0` | `01 Gestão do projeto` |
+| Feature | `1.1.0` | `01.01 Gestão do projeto` |
+| User Story / Bug | `1.1.1` | `01.01.01 Análise de padrões de stacks` |
+
+A data de geração sai do título, mas continua sendo lida do Markdown, exibida no plano e incluída no
+hash: é ela que distingue duas gerações do mesmo backlog e impede que uma autorização antiga valha
+para um documento regerado.
+
+Não existe nível Task: a hierarquia publicada vai de Épico a História ou Bug.
 
 ## Desenvolvimento e verificações
 

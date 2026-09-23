@@ -316,20 +316,51 @@ Ao criar ou alterar uma skill, mantenha o `SKILL.md`, `agents/openai.yaml`, refe
 ## Fluxo de publicação autorizada
 
 O backlog segue o fluxo manual **geração → revisão → autorização → publicação**. A geração continua
-produzindo Markdown para revisão; a skill `publicar-backlog-azure-boards` valida esse documento,
-apresenta um plano e só chama a REST API depois de uma frase de confirmação exata. A skill não
-publica automaticamente e o manifesto de retomada não equivale a uma autorização.
+produzindo Markdown para revisão; a skill publicadora valida esse documento, apresenta um plano e só
+chama a REST API depois de uma frase de confirmação exata. Nenhuma das duas publica automaticamente,
+e o manifesto de retomada não equivale a uma autorização.
+
+Existem duas publicadoras, e a diferença entre elas é onde a hierarquia nasce:
+
+| Skill | Publica | Area Path e Iteration Path | Títulos |
+|---|---|---|---|
+| [`publicar-backlog-azure-boards`](publicar-backlog-azure-boards/SKILL.md) | Épicos soltos no projeto | configurados por execução | `<data> <chave> Título` |
+| [`publicar-backlog-demanda-azure-boards`](publicar-backlog-demanda-azure-boards/SKILL.md) | Épicos filhos de uma Demanda de Negócio existente | herdados da Demanda | `01.01.01 Título` |
 
 ```text
 gerar-backlog-azure-boards
   → backlog Markdown
   → revisão humana
-  → publicar-backlog-azure-boards validar/planejar
-  → AUTORIZAR PUBLICAÇÃO ...
-  → Azure Boards
+  ├─ publicar-backlog-azure-boards validar/planejar
+  │    → AUTORIZAR PUBLICAÇÃO 3 ITENS ...
+  │    → Azure Boards (Épicos soltos no projeto)
+  └─ publicar-backlog-demanda-azure-boards validar/planejar --demanda <id>
+       → AUTORIZAR PUBLICAÇÃO 3 ITENS DEMANDA <id> ...
+       → Azure Boards (Épicos filhos da Demanda)
 ```
 
+Quando a spec nasceu de `redigir-spec-demanda-azure-boards`, o ID da Demanda já é conhecido, e a
+segunda publicadora fecha a rastreabilidade: a Demanda que originou a spec passa a listar como
+filhos os Épicos gerados a partir dela. A Demanda em si nunca é escrita — o vínculo nasce do lado do
+Épico, no mesmo POST que o cria.
+
 ### CLI
+
+Vinculada a uma Demanda de Negócio:
+
+```bash
+cd publicar-backlog-demanda-azure-boards
+uv run python scripts/publicar_backlog_demanda.py validar ../backlog.md
+uv run python scripts/publicar_backlog_demanda.py planejar ../backlog.md --demanda 13959
+uv run python scripts/publicar_backlog_demanda.py publicar ../backlog.md --demanda 13959 --simulacao
+uv run python scripts/publicar_backlog_demanda.py publicar ../backlog.md --demanda 13959 --validar-apenas
+uv run python scripts/publicar_backlog_demanda.py publicar ../backlog.md --demanda 13959
+```
+
+Aqui `Area Path` e `Iteration Path` não são informados: vêm da Demanda. Em compensação, `planejar` e
+`--simulacao` exigem token, porque precisam lê-la; só `validar` é totalmente offline.
+
+Solta no projeto:
 
 ```bash
 cd publicar-backlog-azure-boards
@@ -369,9 +400,21 @@ explícita; a ferramenta não escolhe silenciosamente. Nunca versionar token: ma
 arquivos de exemplo e forneça-o apenas por variável de ambiente ou mecanismo seguro do sistema
 operacional.
 
+Na publicadora vinculada à Demanda, `AZURE_DEVOPS_AREA_PATH`, `AZURE_DEVOPS_AREA_PATHS` e
+`AZURE_DEVOPS_ITERATION_PATH` não existem; no lugar deles entram:
+
+```dotenv
+AZURE_DEVOPS_DEMANDA=13959
+AZURE_DEVOPS_TIPO_DEMANDA=Demanda de Negócio
+```
+
+O ID da Demanda participa do hash do plano, da frase de autorização e do manifesto: uma frase
+emitida para uma Demanda não autoriza publicar sob outra.
+
 Em processos Scrum, defina `AZURE_DEVOPS_TIPO_USER_STORY=Product Backlog Item`; esse mapeamento
-integra o plano e seu hash. O token digitado interativamente não produz eco. A simulação é
-totalmente local, não solicita token e não faz chamadas HTTP.
+integra o plano e seu hash. O token digitado interativamente não produz eco. Na publicadora solta, a
+simulação é totalmente local, não solicita token e não faz chamadas HTTP; na vinculada à Demanda,
+ela faz exatamente um `GET` e nenhuma escrita.
 
 O MCP do Azure DevOps é opcional e pode ajudar na inspeção. A publicação principal usa a REST API,
 com validador estrutural antes do planejamento, confirmação vinculada ao plano completo, ordem
