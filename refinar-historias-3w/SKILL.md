@@ -78,4 +78,23 @@ para [decisão, ação ou risco a definir].
 
 As lacunas impedem uma história completa. “Push”, “e-mail” ou “engajamento” também não viram requisitos sem confirmação.
 
+## Julgamento assistido (opcional)
+
+Para classificar muitas histórias de uma vez, ou para ter um sinal auditável ao lado do seu
+julgamento, existe uma implementação do gate por modelo de decisão:
+
+```bash
+uv run python refinar-historias-3w/scripts/avaliar_gate_3w.py
+```
+
+Ela envia a história ao modelo Jev com os critérios desta skill e devolve `Confirmado`, `Fraco` ou
+`Pendente` por W, cada um com distribuição de probabilidade e confiança. A regra do gate
+— `Completo` só quando os três Ws passam — continua em código, não no modelo. Requer
+`JEV_OPENROUTER_API` no `.env`.
+
+Isto **não substitui** o fluxo acima: o script classifica, mas não separa fato de hipótese, não
+formula as perguntas priorizadas e não escreve o mapa 3W. Use a confiança para saber onde olhar
+primeiro, nunca como prontidão. Medição e limites em
+[`references/spike-e-medicao.md`](references/spike-e-medicao.md).
+
 Base conceitual: [Atlassian — User stories](https://www.atlassian.com/agile/project-management/user-stories), que descreve histórias como persona, necessidade e propósito e recomenda manter o objetivo livre de implementação.

@@ -37,6 +37,48 @@ Brownfield em uma spec Markdown revisável. A saída deve permitir que
    ser objetivos e só podem afirmar comportamento confirmado; pendências ficam em `Lacunas`, não
    viram regras inventadas.
 
+## Priorização assistida (opcional)
+
+Para pontuar muitos débitos de uma vez com a mesma régua, existe uma implementação dos passos 3 e
+4 por modelo de decisão:
+
+```bash
+uv run python especificar-debitos-tecnicos/scripts/priorizar.py debito.md
+```
+
+Uma requisição devolve Impacto, Esforço, Probabilidade e Severidade como posições em escalas
+ordenadas de cinco níveis, mais a categoria e a indicação de `Bug` ou `User Story`. O Risco da nota
+final é a matriz probabilidade × severidade, e a fórmula `(Impacto + Risco) × (6 − Esforço)`
+permanece em código. Requer `JEV_OPENROUTER_API` no `.env`.
+
+As descrições dos níveis seguem o padrão BARS — situação observável por nível, nunca grau nem
+número — e `scripts/retranslacao.py` verifica se cada âncora ainda atrai um exemplo do próprio
+nível. Rode-o depois de editar qualquer descrição.
+
+Duas ressalvas antes de usar:
+
+- **As descrições dos cinco níveis não vêm desta skill.** O passo 3 pede notas de 1 a 5 sem dizer o
+  que cada nota significa; as situações que definem cada nível foram redigidas em
+  `scripts/priorizacao.py` e merecem revisão de quem conhece o contexto.
+- **A fórmula é uma métrica de eficiência, e itens intoleráveis não competem por eficiência.**
+  Um débito grave e caro afunda nela. Em vez de alterar a fórmula, o script classifica antes de
+  ordenar, em três faixas:
+
+  | Faixa | Quando | Como ordena |
+  |---|---|---|
+  | Restrição | severidade ≥ 4 e probabilidade ≥ 2 | por gravidade; o esforço não a adia |
+  | A confirmar | confiança na severidade < 0,60 | por gravidade; decide quem prioriza |
+  | Candidato | demais | pela fórmula da skill |
+
+  `sinalizar_inversoes()` aponta inversões entre os candidatos, sem corrigi-las.
+
+- **Descreva o que acontece quando o débito se manifesta**, não apenas o que está errado. Sem isso
+  a severidade é inferida e a confiança cai — num teste, acrescentar a consequência levou a
+  severidade de 4 com confiança 0,50 para 5 com confiança 1,00, e o item saiu de *a confirmar*
+  para *restrição*.
+
+Medição e limites em [`references/medicao-priorizacao.md`](references/medicao-priorizacao.md).
+
 ## Formato da spec
 
 ```markdown

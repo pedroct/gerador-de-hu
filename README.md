@@ -4,7 +4,7 @@ Skills para transformar especificações em histórias de usuário refinadas e e
 
 ## O que o projeto faz
 
-O fluxo combina nove capacidades complementares:
+O fluxo combina dez capacidades complementares:
 
 ```text
 Spec
@@ -13,6 +13,21 @@ Spec
          ├─ refinar-historias-3w
          └─ refinar-historias-gherkin
 ```
+
+Quando não está claro por onde começar, `orquestrar-skills-de-requisito` decide a rota a partir do
+material trazido. Ela classifica o que o material é — ID de Demanda, pedido informal, spec, backlog,
+história solta, regras acordadas ou observação técnica — e aplica o fluxo abaixo, sem executar a
+skill de destino:
+
+```text
+Material qualquer
+ └─ orquestrar-skills-de-requisito
+     ├─ rota principal (uma das skills abaixo)
+     └─ análises opcionais a considerar
+```
+
+O julgamento do tipo de material usa o modelo Jev; a tabela de rotas fica em código, transcrita
+deste README. Ela roteia e explica — nunca encadeia etapas nem roteia publicação.
 
 Quando não existe spec escrita — só um pedido informal de negócio, como um e-mail ou ticket — a skill
 `redigir-spec-pedido-negocio` investiga o código-fonte já disponível onde está instalada e
@@ -91,6 +106,7 @@ Spec
          └─ gerar-backlog-azure-boards (consome como arquivo opcional)
 ```
 
+- **Orquestração das skills:** decide, a partir do material trazido, qual skill deve tratá-lo e quais análises opcionais considerar; roteia e explica, sem executar a skill de destino.
 - **Drafting a partir de pedido de negócio:** investiga o código-fonte a partir de um pedido informal (e-mail, ticket) e produz a spec inicial, separando o que foi afirmado, evidenciado e lacunas.
 - **Drafting a partir de Demanda no Azure Boards:** lê por ID, somente com `GET`, uma Demanda de Negócio já registrada, valida o tipo e o contrato de campos, e produz a spec rastreável a cada campo remoto, orquestrando as análises de débitos técnicos, telas UX-UI e copy quando seus gatilhos existirem.
 - **Entrevista de lacunas:** fecha, por entrevista em rodadas, a seção de lacunas de uma spec já escrita, sem investigar código nem desenhar plano algum; referenciada condicionalmente por Drafting e, após a geração do backlog, como sugestão para fechar Histórias `Não pronta` — nunca obrigatória.
@@ -292,6 +308,7 @@ Os status comparam apenas o projeto com um requisito rastreável da spec. Códig
 
 | Skill | Use quando | Saída principal |
 |---|---|---|
+| [`orquestrar-skills-de-requisito`](orquestrar-skills-de-requisito/SKILL.md) | Não está claro por qual skill começar diante do material trazido | Skill a chamar, motivo e análises opcionais a considerar |
 | [`redigir-spec-demanda-azure-boards`](redigir-spec-demanda-azure-boards/SKILL.md) | ID de uma Demanda de Negócio já criada no Azure Boards | Spec rastreável à Demanda e documentos companheiros |
 | [`redigir-spec-pedido-negocio`](redigir-spec-pedido-negocio/SKILL.md) | Só há um pedido informal de negócio (e-mail, ticket) e nenhuma spec escrita | Documento de spec em Markdown, com repositórios considerados, evidência de código e lacunas |
 | [`entrevistar-lacunas-requisito`](entrevistar-lacunas-requisito/SKILL.md) | Uma spec já escrita tem itens abertos em `## Lacunas e perguntas abertas` | A mesma spec, com lacunas fechadas por decisão do usuário ou registradas como adiamento explícito |
@@ -394,9 +411,12 @@ uv run pytest entrevistar-lacunas-requisito/tests -v
 uv run pytest especificar-debitos-tecnicos/tests -v
 uv run pytest especificar-telas-ux-ui/tests -v
 uv run pytest redigir-spec-demanda-azure-boards/tests -v
+uv run pytest orquestrar-skills-de-requisito/tests -v
+uv run pytest refinar-historias-3w/tests -v
+uv run pytest especificar-debitos-tecnicos/tests -v
 ```
 
-Valide os nove pacotes com o utilitário oficial:
+Valide os dez pacotes com o utilitário oficial:
 
 ```bash
 for skill_dir in \
@@ -408,7 +428,8 @@ for skill_dir in \
   refinar-historias-gherkin \
   especificar-telas-ux-ui \
   especificar-debitos-tecnicos \
-  redigir-spec-demanda-azure-boards; do
+  redigir-spec-demanda-azure-boards \
+  orquestrar-skills-de-requisito; do
   uv run --with pyyaml python \
     /Users/pedroct/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
     "$skill_dir"
@@ -491,6 +512,13 @@ solicita a frase integral, como `AUTORIZAR PUBLICAÇÃO 3 ITENS Projeto Projeto 
 criação.
 
 ### Variáveis de ambiente
+
+O roteador, o gate 3W assistido e a priorização de débitos usam o modelo Jev pela Decisions
+API do OpenRouter:
+
+```dotenv
+JEV_OPENROUTER_API=
+```
 
 ```dotenv
 AZURE_DEVOPS_ORGANIZACAO=minha-organizacao

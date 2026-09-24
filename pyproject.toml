@@ -36,6 +36,14 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "**/tests/**/*.py" = ["S101"]
 
 [tool.mypy]
+# Cada skill é instalável avulsa (`npx skills add --skill ...`), então não pode
+# importar módulo de skill irmã: `cliente_jev.py` é cópia byte a byte nas duas.
+# O mypy recusa dois módulos de mesmo nome, então a cópia do 3W fica de fora —
+# ela é verificada em orquestrar-skills-de-requisito/scripts/cliente_jev.py.
+exclude = [
+  "refinar-historias-3w/scripts/cliente_jev\\.py$",
+  "especificar-debitos-tecnicos/scripts/cliente_jev\\.py$",
+]
 python_version = "3.12"
 strict = true
 warn_unused_ignores = true
@@ -43,6 +51,9 @@ warn_redundant_casts = true
 files = [
   "gerar-backlog-azure-boards/scripts",
   "redigir-spec-demanda-azure-boards/scripts",
+  "orquestrar-skills-de-requisito/scripts",
+  "refinar-historias-3w/scripts",
+  "especificar-debitos-tecnicos/scripts",
 ]
 
 [tool.pytest.ini_options]
@@ -54,6 +65,8 @@ testpaths = [
   "especificar-debitos-tecnicos/tests",
   "especificar-telas-ux-ui/tests",
   "redigir-spec-demanda-azure-boards/tests",
+  "orquestrar-skills-de-requisito/tests",
+  "refinar-historias-3w/tests",
 ]
 addopts = "-ra --import-mode=importlib"
 
@@ -62,6 +75,9 @@ branch = true
 source = [
   "gerar-backlog-azure-boards/scripts",
   "redigir-spec-demanda-azure-boards/scripts",
+  "orquestrar-skills-de-requisito/scripts",
+  "refinar-historias-3w/scripts",
+  "especificar-debitos-tecnicos/scripts",
 ]
 
 [tool.coverage.report]
