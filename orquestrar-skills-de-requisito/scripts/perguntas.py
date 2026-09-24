@@ -26,7 +26,10 @@ PERGUNTAS: dict[str, Any] = {
             ),
             "desempate": (
                 "Decida pela forma do documento, não pelo assunto. Um texto sobre backlog "
-                "não é um backlog; um pedido que cita uma tela continua sendo pedido informal."
+                "não é um backlog; um pedido que cita uma tela continua sendo pedido informal. "
+                "Pergunte de quem é a necessidade que o documento atende: uma spec responde a "
+                "uma demanda de negócio concreta; um documento de referência vale para qualquer "
+                "demanda; um documento companheiro nasce de uma spec e serve a outra etapa."
             ),
         },
         "criteria": {
@@ -93,6 +96,33 @@ PERGUNTAS: dict[str, Any] = {
                 ),
                 "nao_cobre": "Bug com efeito visível para o usuário, relatado pelo negócio.",
                 "exemplos": ["a camada de repositório duplica a query de saldo em três lugares"],
+            },
+            "documento_de_referencia": {
+                "o_que": (
+                    "Um documento que estabelece padrão, convenção ou diretriz para a equipe — "
+                    "padrão de stack, guia de copy, política de arquitetura. Descreve como as "
+                    "coisas devem ser feitas em geral, não uma necessidade a atender."
+                ),
+                "nao_cobre": ("Especificação de uma demanda concreta, ainda que cite padrões."),
+                "exemplos": [
+                    "documento com as versões homologadas de linguagem e framework",
+                    "guia de tom e voz para textos de interface",
+                ],
+            },
+            "documento_companheiro": {
+                "o_que": (
+                    "Um artefato derivado de uma spec, produzido por uma análise especializada "
+                    "para ser consumido por outra etapa — briefing de telas UX-UI, parecer de "
+                    "copy, spec de débitos. Não é a spec que se decompõe em backlog."
+                ),
+                "nao_cobre": (
+                    "A spec de produto que originou a análise, que descreve a necessidade de "
+                    "negócio e é o insumo da decomposição."
+                ),
+                "exemplos": [
+                    "documento intitulado 'Spec: Telas UX-UI — <contexto>' com roteiro de tela",
+                    "parecer de revisão de copy sobre os textos de um requisito",
+                ],
             },
             "outro": {
                 "o_que": "Nada acima descreve o material, ou ele não é insumo de requisito.",

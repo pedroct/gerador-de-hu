@@ -91,6 +91,32 @@ class TestRotaPrincipal(unittest.TestCase):
         r = MODULE.rotear(respostas("regras_de_negocio_confirmadas"))
         self.assertEqual(r["skill"], "refinar-historias-gherkin")
 
+    def test_documento_de_referencia_nao_roteia(self) -> None:
+        """Padrão de stack e guia de copy valem para qualquer demanda; não são requisito."""
+        r = MODULE.rotear(respostas("documento_de_referencia"))
+        self.assertIsNone(r["skill"])
+        self.assertIn("padrão", r["porque"])
+
+    def test_documento_companheiro_nao_roteia(self) -> None:
+        """Briefing de telas e parecer de copy nascem de uma spec; a spec é que segue."""
+        r = MODULE.rotear(respostas("documento_companheiro"))
+        self.assertIsNone(r["skill"])
+
+    def test_todo_tipo_de_entrada_tem_destino_definido(self) -> None:
+        """Nenhum tipo pode cair num ramo sem tratamento explícito."""
+        import importlib.util as _u
+
+        spec = _u.spec_from_file_location("perguntas", ROOT / "scripts" / "perguntas.py")
+        assert spec is not None and spec.loader is not None
+        perguntas = _u.module_from_spec(spec)
+        sys.modules["perguntas"] = perguntas
+        spec.loader.exec_module(perguntas)
+        tipos = set(perguntas.PERGUNTAS["tipo_de_entrada"]["criteria"])
+        for tipo in tipos:
+            with self.subTest(tipo=tipo):
+                r = MODULE.rotear(respostas(tipo, refinamento="ator_objetivo_ou_valor_vagos"))
+                self.assertTrue(r["porque"], f"{tipo} sem justificativa")
+
     def test_material_nao_reconhecido_nao_roteia(self) -> None:
         r = MODULE.rotear(respostas("outro"))
         self.assertIsNone(r["skill"])
