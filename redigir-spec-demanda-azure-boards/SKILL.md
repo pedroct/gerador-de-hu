@@ -45,24 +45,54 @@ revisão manual posterior.
    [references/investigacao-demanda-azure-boards.md](references/investigacao-demanda-azure-boards.md).
    Descubra repositórios irmãos, investigue somente leitura e classifique a demanda em `Defeito`,
    `Melhoria` ou `Outro` pela comparação entre o registrado e a evidência de comportamento atual.
-6. Preencha e salve a Spec-base completa usando o **Template da Spec** antes de chamar qualquer skill
-   especializada. Use Área solicitante e Público-alvo como insumos da seção **Atores e vocabulário
+6. Crie a pasta da Demanda conforme **Pasta da Demanda** e salve nela a Spec-base completa como
+   `spec.md`, usando o **Template da Spec**, antes de chamar qualquer skill especializada. Use Área
+   solicitante e Público-alvo como insumos da seção **Atores e vocabulário
    identificados no código**; use Valor esperado e Regras e restrições como insumos de
    **Comportamento esperado**. Registre todos como conteúdo registrado na Demanda, sem promovê-los a
    requisito confirmado. Inclua também a fonte, o problema, a evidência de código, a classificação, os
    repositórios considerados e as lacunas.
 7. Chame `especificar-debitos-tecnicos` somente quando houver evidência de débito técnico ligada ao
    escopo. Forneça a evidência `caminho:linha`, a origem na Demanda e o contexto da Spec; preserve a
-   saída como documento separado, sem misturá-la ao requisito de negócio.
-8. Chame `especificar-telas-ux-ui` sempre depois de concluir a Spec-base completa. Preserve a anotação
-   da Spec e, quando aplicável, o briefing de telas como documento separado.
+   saída como documento separado, sem misturá-la ao requisito de negócio. Informe a pasta da Demanda
+   como diretório de destino.
+8. Chame `especificar-telas-ux-ui` sempre depois de concluir a Spec-base completa, informando a pasta
+   da Demanda como diretório de destino. Preserve a anotação da Spec e, quando aplicável, o briefing de
+   telas como documento separado.
 9. Somente se houver copy exibida ao usuário na Demanda, na Spec-base ou no briefing de telas, chame
-   `revisar-textos-requisitos` depois da análise de telas. Salve o parecer com os trechos, diagnósticos,
-   sugestões e decisões pendentes; a orquestradora não aceita uma sugestão nem reescreve requisitos
-   automaticamente.
-10. Salve a Spec principal e os documentos companheiros, registrando eventual indisponibilidade de uma
-   skill especializada como lacuna. Em seguida, pare: não chamar entrevista, geração ou publicação de backlog.
+   `revisar-textos-requisitos` depois da análise de telas, informando a pasta da Demanda como diretório
+   de destino. Salve o parecer com os trechos, diagnósticos, sugestões e decisões pendentes; a
+   orquestradora não aceita uma sugestão nem reescreve requisitos automaticamente.
+10. Confirme que a pasta da Demanda contém `spec.md` e os companheiros gerados, registrando eventual
+   indisponibilidade de uma skill especializada como lacuna. Informe ao usuário o caminho completo da
+   pasta. Em seguida, pare: não chamar entrevista, geração ou publicação de backlog.
    A geração ou publicação de backlog é uma etapa manual controlada pelo usuário.
+
+## Pasta da Demanda
+
+Todos os documentos de uma Demanda ficam numa pasta própria:
+
+```text
+docs/specs/DN-14125-emissao-de-convites/
+├── spec.md
+├── debitos-tecnicos.md
+├── telas-ux-ui.md
+└── revisao-textos.md
+```
+
+- **Nome da pasta:** `DN-<id>-<slug>`. O `<id>` é o número do work item, sem zeros à esquerda. O
+  `<slug>` deriva de `System.Title`: minúsculas, acentos removidos, espaços e pontuação viram hífen,
+  hífens repetidos colapsam, truncado em 60 caracteres e **sem hífen final**. Se o título não produzir
+  nenhum caractere aproveitável, use apenas `DN-<id>`.
+- **Raiz:** `docs/specs/` por padrão, a partir da raiz do repositório investigado. Se o usuário indicar
+  outra raiz, use a dele. Em qualquer caso, informe ao usuário o caminho completo que você gravou.
+- **Nomes internos:** o vocabulário é fechado — `spec.md`, `debitos-tecnicos.md`, `telas-ux-ui.md` e
+  `revisao-textos.md`. Nenhum outro nome, nenhum prefixo `spec-`.
+- **Reexecução:** se a pasta já existir de uma rodada anterior, reaproveite a pasta existente e
+  substitua apenas os arquivos que você regerar; nunca crie uma segunda pasta com sufixo, e nunca
+  interrompa o fluxo por a pasta existir.
+- **O nome da pasta é rótulo, nunca fonte.** O ID da Demanda que vale é o da seção `## Fonte da
+  Demanda` dentro de `spec.md`.
 
 ## Limites de leitura e de decisão
 

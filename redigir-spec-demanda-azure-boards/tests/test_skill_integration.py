@@ -66,11 +66,11 @@ def test_fluxo_estatico_preserva_ordem_gatilhos_e_lacunas() -> None:
         "Registre a fonte",
         "Converta cada valor",
         "Antes de investigar",
-        "Preencha e salve a Spec-base",
+        "Crie a pasta da Demanda",
         "Chame `especificar-debitos-tecnicos`",
         "Chame `especificar-telas-ux-ui`",
         "Somente se houver copy",
-        "Salve a Spec principal",
+        "Confirme que a pasta da Demanda",
     )
     posicoes = [SKILL.index(marcador) for marcador in marcadores]
     assert posicoes == sorted(posicoes)
@@ -217,3 +217,33 @@ def test_readme_conta_capacidades_de_acordo_com_a_propria_lista() -> None:
     assert declarado is not None
     assert declarado.group(1) == _NUMEROS_POR_EXTENSO[len(capacidades)]
     assert any("Demanda no Azure Boards" in capacidade for capacidade in capacidades)
+
+
+def test_skill_define_a_pasta_da_demanda_e_o_vocabulario_fechado() -> None:
+    for texto in (
+        "DN-<id>-<slug>",
+        "docs/specs/",
+        "spec.md",
+        "debitos-tecnicos.md",
+        "telas-ux-ui.md",
+        "revisao-textos.md",
+    ):
+        assert texto in SKILL
+
+
+def test_pasta_existente_e_reaproveitada() -> None:
+    """Regerar a mesma Demanda não pode criar uma segunda pasta nem abortar."""
+    secao = sem_quebras(SKILL[SKILL.index("## Pasta da Demanda") :])
+    assert "reaproveite a pasta existente" in secao
+    assert "nunca crie uma segunda pasta" in secao
+
+
+def test_slug_degenerado_nao_produz_nome_quebrado() -> None:
+    """Título só com pontuação ou acentos não pode gerar `DN-14125-` nem hífen final."""
+    secao = sem_quebras(SKILL[SKILL.index("## Pasta da Demanda") :])
+    assert "sem hífen final" in secao
+    assert "use apenas `DN-<id>`" in secao
+
+
+def test_skill_informa_o_caminho_usado() -> None:
+    assert "informe ao usuário o caminho" in sem_quebras(SKILL)
