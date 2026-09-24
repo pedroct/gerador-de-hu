@@ -192,6 +192,39 @@ Uma ressalva: o `update` informa `✓ Updated` mesmo quando não havia nada novo
 confirma que a skill foi ressincronizada com a origem, não que o conteúdo mudou. Para saber se algo
 de fato mudou, compare o `computedHash` no `skills-lock.json` antes e depois.
 
+### `update` não traz skills novas
+
+**O `update` só ressincroniza o que já está no `skills-lock.json`.** Uma skill nova neste
+repositório não é instalada nem mencionada: o comando termina com `✓ Updated N skill(s)` e o
+projeto continua sem ela. Não há aviso.
+
+O comando que traz skills novas é o `add` com curinga:
+
+```bash
+npx skills add pedroct/gerador-de-hu --skill '*' -a '*' -y
+```
+
+Ele é idempotente: repõe o que falta, preserva o que já está instalado e mantém o layout canônico.
+Use-o como sincronização periódica, não o `update`.
+
+Duas armadilhas que motivam a forma exata acima:
+
+| Erro | O que acontece |
+|---|---|
+| `--skill nome1,nome2` | nomes separados por vírgula **não instalam nada**; o comando apenas lista as skills disponíveis |
+| `-a claude-code` em vez de `-a '*'` | instala como **cópia** dentro de `.claude/skills/`, em vez do diretório canônico `.agents/skills/` com symlinks por agente. A cópia fica invisível para os outros agentes e não acompanha as atualizações |
+
+Para conferir um projeto antes de sincronizar:
+
+```bash
+uv run python scripts/verificar_skills_instaladas.py /caminho/do/projeto
+uv run python scripts/verificar_skills_instaladas.py /caminho/do/projeto --aplicar
+```
+
+O script compara as skills deste repositório com as do projeto e aponta o que falta, o que sobra,
+o que está fora do `skills-lock.json` e quais viraram cópia em vez de symlink. Sai com código 1
+quando há divergência, então serve em verificação automatizada.
+
 ### Como usar depois de instalado
 
 Abra o agente (Claude Code, Codex etc.) a partir do diretório onde a skill foi instalada — se o projeto tiver múltiplos repositórios irmãos (como api, front e mobile de uma mesma aplicação), abra a partir da raiz que os agrupa, não de dentro de um deles, para que `redigir-spec-pedido-negocio` consiga descobrir os repositórios relevantes.
@@ -414,6 +447,7 @@ uv run pytest redigir-spec-demanda-azure-boards/tests -v
 uv run pytest orquestrar-skills-de-requisito/tests -v
 uv run pytest refinar-historias-3w/tests -v
 uv run pytest especificar-debitos-tecnicos/tests -v
+uv run pytest tests -v
 ```
 
 Valide os dez pacotes com o utilitário oficial:

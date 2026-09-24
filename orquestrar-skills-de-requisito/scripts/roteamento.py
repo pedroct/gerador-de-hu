@@ -58,6 +58,18 @@ def _principal(tipo: str, noul: dict[str, float], refinamento: str) -> tuple[str
         if skill:
             return skill, f"lacuna de refinamento identificada: {refinamento}"
         return None, "história individual sem lacuna de refinamento identificável"
+    if tipo == "documento_de_referencia":
+        return (
+            None,
+            "documento de padrão ou diretriz; não é requisito a decompor, e serve de contexto "
+            "para as skills que investigam",
+        )
+    if tipo == "documento_companheiro":
+        return (
+            None,
+            "artefato derivado de uma spec, consumido por outra etapa; a spec de origem é que "
+            "segue o fluxo",
+        )
     if tipo == "regras_de_negocio_confirmadas":
         return (
             "refinar-historias-gherkin",
