@@ -49,6 +49,12 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn('display_name: "Especificar débitos técnicos"', self.agent)
         self.assertIn("$especificar-debitos-tecnicos", self.agent)
 
+    def test_skill_aceita_diretorio_de_destino_opcional(self):
+        """Com diretório, grava com nome fixo; sem diretório, segue como antes."""
+        self.assertIn("debitos-tecnicos.md", self.skill)
+        self.assertIn("diretório de destino", self.skill)
+        self.assertIn("Sem diretório de destino", self.skill)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -37,6 +37,16 @@ class ReviewingCopySkillTests(unittest.TestCase):
     def test_openai_metadata_mentions_skill_explicitly(self):
         self.assertIn("$revisar-textos-requisitos", self.metadata)
 
+    def test_skill_aceita_diretorio_de_destino_opcional(self):
+        """Com diretório, grava com nome fixo; sem diretório, segue como antes."""
+        self.assertIn("revisao-textos.md", self.skill)
+        self.assertIn("diretório de destino", self.skill)
+        self.assertIn("Sem diretório de destino", self.skill)
+
+    def test_parecer_tem_titulo_de_documento(self):
+        """Sem título, o parecer não é localizável por título como os outros companheiros."""
+        self.assertIn("# Revisão de textos — <contexto>", self.skill)
+
 
 if __name__ == "__main__":
     unittest.main()

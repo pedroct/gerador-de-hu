@@ -81,6 +81,11 @@ Medição e limites em [`references/medicao-priorizacao.md`](references/medicao-
 
 ## Formato da spec
 
+Quem chama esta skill pode informar um **diretório de destino**. Nesse caso, grave a spec nele com o
+nome exato `debitos-tecnicos.md`. **Sem diretório de destino informado, salve como sempre fez** e
+relate o caminho ao usuário. O título do documento continua sendo `Spec: Débitos técnicos — <contexto>`
+nos dois casos: é ele que identifica o documento, não o nome do arquivo.
+
 ```markdown
 # Spec: Débitos técnicos — <contexto>
 

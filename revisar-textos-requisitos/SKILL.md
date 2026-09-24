@@ -49,6 +49,16 @@ essa fronteira como uma decisão pendente em vez de preencher por suposição.
 
 ## Formato da saída
 
+O parecer é um documento com título próprio:
+
+```markdown
+# Revisão de textos — <contexto>
+```
+
+Quem chama esta skill pode informar um **diretório de destino**. Nesse caso, grave o parecer nele com
+o nome exato `revisao-textos.md`. **Sem diretório de destino informado, salve como sempre fez** e
+relate o caminho ao usuário.
+
 Comece com um resumo: `Copy pronta`, `Copy pronta com ressalvas` ou `Copy não pronta`, explicando
 os principais motivos. Depois use uma tabela ou blocos com:
 

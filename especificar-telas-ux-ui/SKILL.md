@@ -133,7 +133,7 @@ com o motivo — mesmo padrão de "Repositórios considerados" de `redigir-spec-
 15. **Feche as perguntas abertas em tabela**, com o que cada uma trava no desenho e, quando houver uma
     opção segura, a recomendação provisória para a equipe não ficar parada.
     Pergunta aberta sem consequência declarada é ruído.
-16. **Anote a Spec** com a seção `## Necessidade de especificação de tela` e **salve o documento separado** `Spec: Telas UX-UI — <contexto>`, no formato de [Formato das saídas](#formato-das-saídas). Se a spec já tiver essa seção de uma rodada anterior, substitua-a por inteiro — nunca acrescente uma segunda seção duplicada.
+16. **Anote a Spec** com a seção `## Necessidade de especificação de tela` e **salve o documento separado** `Spec: Telas UX-UI — <contexto>`, no formato de [Formato das saídas](#formato-das-saídas). Se a spec já tiver essa seção de uma rodada anterior, substitua-a por inteiro — nunca acrescente uma segunda seção duplicada. Quem chama pode informar um **diretório de destino**; nesse caso grave o documento nele com o nome exato `telas-ux-ui.md`. **Sem diretório de destino informado, salve como sempre fez.** O título do documento identifica-o nos dois casos.
 17. **Pare.** Não invoque nenhuma outra skill. Reporte ao usuário os caminhos salvos e sugira
     `gerar-backlog-azure-boards` como próximo passo manual.
 
