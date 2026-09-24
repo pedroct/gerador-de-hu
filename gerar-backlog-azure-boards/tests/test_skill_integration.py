@@ -118,6 +118,20 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn("não exija uma inspeção inexistente", self.backlog)
         self.assertIn("antes de decompor ou refinar", self.backlog)
 
+    def test_backlog_carrega_a_demanda_de_origem_nos_metadados(self):
+        """O ID da Demanda existia na spec e no manifesto, mas nao no backlog.
+
+        Sem ele, quem revisa nao consegue escolher entre as duas publicadoras sem
+        voltar a spec: uma cria Epicos filhos da Demanda, a outra os cria soltos.
+        """
+        self.assertIn("Demanda de Negócio de origem", self.backlog_contract)
+        self.assertIn("Fonte da Demanda", self.backlog_contract)
+        self.assertIn("Não se aplica — a spec não nasceu de uma Demanda", self.backlog_contract)
+        self.assertIn("Demanda de Negócio de origem", self.backlog)
+
+    def test_a_demanda_de_origem_nunca_e_inferida_fora_da_spec(self):
+        self.assertIn("Nunca infira o ID de outra fonte que não a spec", self.backlog_contract)
+
     def test_brownfield_reference_defines_matrix_and_exact_statuses(self):
         self.assertTrue(self.brownfield, "brownfield-validation.md must exist")
         self.assertIn(

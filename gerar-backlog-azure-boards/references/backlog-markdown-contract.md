@@ -77,6 +77,7 @@ chaves `E.F.S`, uma por plataforma que precisa de especificação; o item de des
 ## Metadados e cobertura
 - Data de geração: `[AAAA-MM-DD]`
 - Spec de origem: [documento, versão ou localização]
+- Demanda de Negócio de origem: `#[id]` | Não se aplica — a spec não nasceu de uma Demanda
 - Escopo analisado: [seções ou limites]
 - Modo: Greenfield | Brownfield
 - Raiz analisada: [caminho | Não se aplica — nenhum código-fonte relevante disponível]
@@ -165,6 +166,8 @@ Repita os blocos nos mesmos níveis de cabeçalho: Epic em `##`, Feature em `###
 ## Metadados mínimos
 
 - `Data de geração` registra a data (formato `AAAA-MM-DD`, entre crases) em que este documento foi gerado pela primeira vez. É fixa: uma atualização do backlog (modo `--update` do validador) nunca a recalcula para a data corrente, porque o publicador usa esse valor — nunca o relógio — para prefixar o título de cada item no Azure Boards, e recalculá-la quebraria a comparação de título na retomada de uma publicação parcial. Ela também desambigua itens de backlogs diferentes que reusam a mesma numeração `E.F.S`.
+- `Demanda de Negócio de origem` copia o `#<id>` da seção `## Fonte da Demanda` da spec, quando ela tiver nascido de `redigir-spec-demanda-azure-boards`. Se a spec não tiver essa seção, registre `Não se aplica — a spec não nasceu de uma Demanda`. Nunca infira o ID de outra fonte que não a spec, e nunca consulte o Azure Boards para descobri-lo.
+- O campo existe porque as duas publicadoras diferem exatamente nisso: `publicar-backlog-demanda-azure-boards` cria os Épicos como filhos da Demanda e herda dela `Area Path` e `Iteration Path`, enquanto `publicar-backlog-azure-boards` os cria soltos no projeto com esses caminhos configurados por execução. Sem o ID aqui, quem revisa o backlog não consegue escolher a publicadora sem voltar à spec, e o elo de rastreabilidade se rompe justamente no único artefato que passa por revisão humana.
 - `Modo` contém um único valor: `Greenfield` ou `Brownfield`.
 - Em Greenfield, `Raiz analisada` e `Código-fonte relevante` registram explicitamente que não há código relevante. Não invente raiz nem evidência.
 - Em Brownfield, `Raiz analisada` identifica o caminho efetivamente inspecionado. Se a presença ou relevância do projeto era ambígua, use `Presença ambígua` e descreva a incerteza e os limites da busca.
