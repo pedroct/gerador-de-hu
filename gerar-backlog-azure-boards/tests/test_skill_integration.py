@@ -245,6 +245,21 @@ class SkillIntegrationTests(unittest.TestCase):
         )
         self.assertIn("- **Telas UX-UI:** identifica, por inspeção somente leitura", self.readme)
 
+    def test_atalho_por_pasta_nao_substitui_a_busca_por_titulo(self) -> None:
+        """A busca por título é fallback permanente: sem ela, toda spec antiga para de funcionar."""
+        self.assertIn("DN-<id>-<slug>", self.backlog)
+        self.assertIn("telas-ux-ui.md", self.backlog)
+        self.assertIn("Spec: Telas UX-UI", self.backlog)
+        self.assertIn("fallback permanente", self.backlog)
+
+    def test_contrato_proibe_o_nome_da_pasta_como_fonte_do_id(self) -> None:
+        """Depois da convenção há um `DN-14125` a um basename de distância,
+
+        e ele parece uma resposta.
+        """
+        self.assertIn("nome da pasta", self.backlog_contract)
+        self.assertIn("DN-", self.backlog_contract)
+
 
 if __name__ == "__main__":
     unittest.main()
