@@ -54,6 +54,7 @@ files = [
   "orquestrar-skills-de-requisito/scripts",
   "refinar-historias-3w/scripts",
   "especificar-debitos-tecnicos/scripts",
+  "scripts",
 ]
 
 [tool.pytest.ini_options]
@@ -67,6 +68,7 @@ testpaths = [
   "redigir-spec-demanda-azure-boards/tests",
   "orquestrar-skills-de-requisito/tests",
   "refinar-historias-3w/tests",
+  "tests",
 ]
 addopts = "-ra --import-mode=importlib"
 
@@ -78,6 +80,7 @@ source = [
   "orquestrar-skills-de-requisito/scripts",
   "refinar-historias-3w/scripts",
   "especificar-debitos-tecnicos/scripts",
+  "scripts",
 ]
 
 [tool.coverage.report]
