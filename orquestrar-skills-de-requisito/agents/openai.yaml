@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orquestrar as skills de requisito"
+  short_description: "Decide qual skill atende ao material trazido"
+  default_prompt: "Use $orquestrar-skills-de-requisito para decidir qual skill deste repositório deve tratar este material e quais análises opcionais valem a pena."
