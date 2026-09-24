@@ -56,6 +56,7 @@ Cada Demanda de Negócio ganha um diretório próprio:
 ```
 docs/specs/DN-14125-emissao-de-convites/
 ├── spec.md              ← Spec-base, sempre presente
+├── negocio.md           ← projeção para o refinamento de negócio, condicional
 ├── debitos-tecnicos.md  ← saída de especificar-debitos-tecnicos, condicional
 ├── telas-ux-ui.md       ← saída de especificar-telas-ux-ui, condicional
 └── revisao-textos.md    ← saída de revisar-textos-requisitos, condicional
@@ -77,10 +78,16 @@ Aceitamos a limitação.
 
 ### Nomes internos
 
-O vocabulário é fechado e tem exatamente quatro valores: `spec.md`, `debitos-tecnicos.md`,
-`telas-ux-ui.md` e `revisao-textos.md`. Não levam prefixo `spec-` porque o diretório já estabelece o
-escopo; `DN-14125-emissao-de-convites/telas-ux-ui.md` se lê inteiro, e `.../spec-telas-ux-ui.md`
-apenas repetiria.
+O vocabulário é fechado e tem exatamente cinco valores: `spec.md`, `negocio.md`,
+`debitos-tecnicos.md`, `telas-ux-ui.md` e `revisao-textos.md`. Não levam prefixo `spec-` porque o
+diretório já estabelece o escopo; `DN-14125-emissao-de-convites/telas-ux-ui.md` se lê inteiro, e
+`.../spec-telas-ux-ui.md` apenas repetiria.
+
+`negocio.md` não nasce deste design. Ele é definido em
+[`2026-09-24-separar-refinamento-negocio-tecnico-design.md`](2026-09-24-separar-refinamento-negocio-tecnico-design.md)
+e entra aqui apenas para ocupar seu lugar no vocabulário fechado. As duas mudanças são
+independentes: esta pode ser implementada sozinha, e nesse caso a pasta simplesmente não terá esse
+arquivo.
 
 Ser um conjunto fechado é o que importa: permite que a orquestradora e `gerar-backlog-azure-boards`
 localizem um companheiro por construção, em vez de procurá-lo.
