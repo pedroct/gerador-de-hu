@@ -112,6 +112,65 @@ class TestCopias(unittest.TestCase):
             self.assertEqual(MODULE.copias_fora_do_canonico(projeto, nossas), [])
 
 
+class TestDerivaDeConteudo(unittest.TestCase):
+    """Presenca nao basta: `update` responde "Updated" sem trazer nada.
+
+    Foi exatamente o que aconteceu num projeto real -- as 13 skills estavam
+    instaladas e o conteudo estava velho, e a primeira versao deste verificador
+    respondeu "Tudo em dia".
+    """
+
+    SKILL = "refinar-historias-3w"
+
+    def _instalar(self, base: Path) -> Path:
+        destino = base / MODULE.CANONICO / self.SKILL
+        destino.mkdir(parents=True)
+        for relativo, conteudo in MODULE._arquivos_versionados(self.SKILL).items():
+            arquivo = destino / relativo
+            arquivo.parent.mkdir(parents=True, exist_ok=True)
+            arquivo.write_bytes(conteudo)
+        return base
+
+    def test_copia_fiel_nao_e_apontada(self) -> None:
+        with TemporaryDirectory() as tmp:
+            projeto = self._instalar(Path(tmp))
+            self.assertEqual(MODULE.desatualizadas(projeto, {self.SKILL}), {})
+
+    def test_arquivo_alterado_e_apontado(self) -> None:
+        with TemporaryDirectory() as tmp:
+            projeto = self._instalar(Path(tmp))
+            alvo = projeto / MODULE.CANONICO / self.SKILL / "SKILL.md"
+            alvo.write_text("versao velha", encoding="utf-8")
+            achados = MODULE.desatualizadas(projeto, {self.SKILL})
+            self.assertIn(self.SKILL, achados)
+            self.assertTrue(any("SKILL.md: difere" in p for p in achados[self.SKILL]))
+
+    def test_arquivo_novo_ausente_na_instalacao_e_apontado(self) -> None:
+        """Uma skill que ganhou scripts/ continua "instalada", mas incompleta."""
+        with TemporaryDirectory() as tmp:
+            projeto = self._instalar(Path(tmp))
+            (projeto / MODULE.CANONICO / self.SKILL / "scripts" / "gate_3w.py").unlink()
+            achados = MODULE.desatualizadas(projeto, {self.SKILL})
+            self.assertTrue(
+                any("gate_3w.py: ausente" in p for p in achados[self.SKILL]),
+                achados,
+            )
+
+    def test_arquivo_ignorado_pelo_git_nao_conta_como_deriva(self) -> None:
+        """Um tests/.env local com token de verdade nao e distribuido, entao nao diverge."""
+        versionados = MODULE._arquivos_versionados("publicar-backlog-azure-boards")
+        self.assertTrue(versionados, "a skill deve ter arquivos versionados")
+        self.assertNotIn("tests/.env", versionados)
+
+    def test_ruido_de_execucao_na_instalacao_e_ignorado(self) -> None:
+        with TemporaryDirectory() as tmp:
+            projeto = self._instalar(Path(tmp))
+            cache = projeto / MODULE.CANONICO / self.SKILL / "scripts" / "__pycache__"
+            cache.mkdir(parents=True, exist_ok=True)
+            (cache / "gate_3w.cpython-312.pyc").write_bytes(b"\x00")
+            self.assertEqual(MODULE.desatualizadas(projeto, {self.SKILL}), {})
+
+
 class TestComandoDeSincronizacao(unittest.TestCase):
     def test_usa_add_com_curinga_e_nunca_update(self) -> None:
         """`update` so ressincroniza o que ja esta no lock; nao traz skill nova."""
