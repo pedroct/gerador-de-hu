@@ -221,9 +221,12 @@ uv run python scripts/verificar_skills_instaladas.py /caminho/do/projeto
 uv run python scripts/verificar_skills_instaladas.py /caminho/do/projeto --aplicar
 ```
 
-O script compara as skills deste repositório com as do projeto e aponta o que falta, o que sobra,
-o que está fora do `skills-lock.json` e quais viraram cópia em vez de symlink. Sai com código 1
-quando há divergência, então serve em verificação automatizada.
+O script aponta o que falta, o que sobra, o que está fora do `skills-lock.json`, quais viraram
+cópia em vez de symlink e — o caso mais silencioso — quais estão instaladas com **conteúdo
+desatualizado**. A comparação de conteúdo usa `git ls-files`, porque o que se distribui é o que
+está versionado: um arquivo local ignorado pelo git, como um `tests/.env`, não existe na instalação
+e não é divergência. Sai com código 1 quando há divergência, então serve em verificação
+automatizada.
 
 ### Como usar depois de instalado
 

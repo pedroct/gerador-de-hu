@@ -37,6 +37,9 @@ COMANDO_SYNC = ["npx", "--yes", "skills", "add", ORIGEM, "--skill", "*", "-a", "
 AGENTES = (".claude/skills", ".codex/skills")
 CANONICO = ".agents/skills"
 
+# Ruido de execucao que nunca vem do repositorio.
+IGNORAR = {"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", ".venv", ".DS_Store"}
+
 
 def skills_do_repositorio() -> set[str]:
     """Diretorios da raiz que contem um SKILL.md."""
@@ -79,6 +82,72 @@ def copias_fora_do_canonico(projeto: Path, nossas: set[str]) -> list[str]:
     return problemas
 
 
+def _arquivos_versionados(skill: str) -> dict[str, bytes]:
+    """Mapeia caminho relativo -> conteudo dos arquivos versionados da skill.
+
+    Usa `git ls-files` em vez de varrer o disco porque o que o `npx skills` distribui
+    e o que esta no GitHub. Um arquivo local ignorado pelo git -- por exemplo um
+    `tests/.env` com token de verdade -- nao existe na instalacao e nao e divergencia.
+    """
+    # Comando fixo; `skill` vem do proprio repositorio e entra depois de `--`.
+    resultado = subprocess.run(  # noqa: S603  # nosec B603 B607
+        ["git", "ls-files", "-z", "--", skill],  # noqa: S607
+        cwd=RAIZ,
+        capture_output=True,
+        check=False,
+    )
+    if resultado.returncode != 0:
+        return {}
+    saida: dict[str, bytes] = {}
+    for bruto in resultado.stdout.split(b"\0"):
+        if not bruto:
+            continue
+        relativo_ao_repo = Path(bruto.decode("utf-8"))
+        absoluto = RAIZ / relativo_ao_repo
+        if not absoluto.is_file():
+            continue
+        dentro_da_skill = relativo_ao_repo.relative_to(skill)
+        saida["/".join(dentro_da_skill.parts)] = absoluto.read_bytes()
+    return saida
+
+
+def _arquivos_instalados(raiz: Path) -> dict[str, bytes]:
+    saida: dict[str, bytes] = {}
+    for caminho in raiz.rglob("*"):
+        if not caminho.is_file():
+            continue
+        partes = caminho.relative_to(raiz).parts
+        if any(parte in IGNORAR for parte in partes):
+            continue
+        saida["/".join(partes)] = caminho.read_bytes()
+    return saida
+
+
+def desatualizadas(projeto: Path, nomes: set[str]) -> dict[str, list[str]]:
+    """Skills presentes cujo conteudo instalado difere do repositorio.
+
+    Presenca nao basta: `npx skills update` responde "Updated" mesmo sem trazer nada,
+    entao uma skill pode estar instalada e velha. A comparacao e byte a byte contra os
+    arquivos deste repositorio, que e mais direto que reproduzir o hash do lock.
+    """
+    divergentes: dict[str, list[str]] = {}
+    for nome in sorted(nomes):
+        origem = RAIZ / nome
+        destino = projeto / CANONICO / nome
+        if not origem.is_dir() or not destino.is_dir():
+            continue
+        esperados = _arquivos_versionados(nome)
+        instalados = _arquivos_instalados(destino)
+        problemas = [
+            f"{arquivo}: {'ausente' if arquivo not in instalados else 'difere'}"
+            for arquivo, conteudo in esperados.items()
+            if instalados.get(arquivo) != conteudo
+        ]
+        if problemas:
+            divergentes[nome] = problemas
+    return divergentes
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("projeto", help="raiz do projeto que consome as skills")
@@ -98,6 +167,7 @@ def main() -> int:
     lock = skills_no_lock(projeto)
     canonico = instaladas_no_canonico(projeto)
     copias = copias_fora_do_canonico(projeto, repo)
+    velhas = desatualizadas(projeto, repo & canonico)
 
     faltando = sorted(repo - canonico)
     fora_do_lock = sorted(canonico - lock)
@@ -127,8 +197,17 @@ def main() -> int:
         for nome in copias:
             print(f"  - {nome}")
         print()
+    if velhas:
+        print("DESATUALIZADAS (instaladas, mas o conteudo difere do repositorio):")
+        for nome, problemas in velhas.items():
+            print(f"  - {nome}")
+            for problema in problemas[:4]:
+                print(f"      {problema}")
+            if len(problemas) > 4:
+                print(f"      ... e mais {len(problemas) - 4} arquivo(s)")
+        print()
 
-    if not (faltando or orfas or fora_do_lock or copias):
+    if not (faltando or orfas or fora_do_lock or copias or velhas):
         print("Tudo em dia.")
         return 0
 
