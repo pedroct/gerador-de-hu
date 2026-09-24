@@ -290,6 +290,8 @@ uv run python scripts/publicar_backlog_demanda.py validar ../backlog.md
 **5. Publicar, em escada.** Cada degrau arrisca um pouco mais que o anterior:
 
 ```bash
+cd publicar-backlog-demanda-azure-boards
+
 # offline, sem token                          → confere o documento
 uv run python scripts/publicar_backlog_demanda.py validar ../backlog.md
 
@@ -356,6 +358,61 @@ Os status comparam apenas o projeto com um requisito rastreável da spec. Códig
 | [`especificar-telas-ux-ui`](especificar-telas-ux-ui/SKILL.md) | Um requisito da spec pode exigir tela nova ou fluxo de tela alterado em web e/ou mobile | Anotação de necessidade de tela na spec + `Spec: Telas UX-UI` com Card, roteiro de tela e evidência de código, por plataforma |
 | [`especificar-debitos-tecnicos`](especificar-debitos-tecnicos/SKILL.md) | Débitos técnicos foram identificados durante entendimento ou refinamento | Spec priorizada, rastreável e pronta para geração de backlog |
 
+## Julgamentos assistidos pelo modelo Jev
+
+Três pontos do fluxo aceitam apoio do **Jev**, modelo de decisão da TypeSafe, chamado pela
+Decisions API do OpenRouter. Ele não gera texto: recebe um estado e perguntas tipadas e devolve
+respostas com distribuição de probabilidade e confiança.
+
+O princípio de desenho é o mesmo nos três: **o modelo julga o que o código não consegue julgar, e a
+política permanece em código.** A tabela de rotas, a regra do gate 3W e a fórmula de prioridade não
+estão no modelo — mudá-las é editar código, sem recalibrar nem reexecutar inferência.
+
+| Onde | O que o modelo julga | O que o código decide |
+|---|---|---|
+| [`orquestrar-skills-de-requisito`](orquestrar-skills-de-requisito/SKILL.md) | o que o material é e em que estado está | qual skill atende, pela tabela do fluxo acima |
+| [`refinar-historias-3w`](refinar-historias-3w/SKILL.md) | cada W como `Confirmado`, `Fraco` ou `Pendente` | `Completo` só quando os três passam |
+| [`especificar-debitos-tecnicos`](especificar-debitos-tecnicos/SKILL.md) | Impacto, Probabilidade, Severidade, Esforço, categoria e tipo | `(Impacto + Risco) × (6 − Esforço)` e a faixa do item |
+
+Todos são **opcionais**: nenhuma skill depende deles para funcionar, e o fluxo em prosa continua
+sendo o contrato. Requerem `JEV_OPENROUTER_API` no `.env`.
+
+```bash
+uv run python orquestrar-skills-de-requisito/scripts/rotear.py material.md
+uv run python refinar-historias-3w/scripts/avaliar_gate_3w.py
+uv run python especificar-debitos-tecnicos/scripts/priorizar.py debito.md
+```
+
+### Como a confiança é usada
+
+A confiança diz **quem decide**, nunca se a resposta está certa. O roteador devolve a decisão à
+pessoa abaixo de 0,60, em vez de escolher; a priorização de débitos manda para uma faixa
+`a confirmar` quando a severidade foi julgada com confiança insuficiente. Uma história ruim pode ser
+classificada com confiança 1,00 — são coisas diferentes.
+
+Há um caso que a confiança **não** protege: quando falta uma opção na lista, o modelo escolhe a
+vizinha mais próxima com confiança alta. Foi o que aconteceu com briefings de tela e guias de
+padrão, classificados como spec com confiança 1,00 até ganharem tipo próprio.
+
+### O que foi medido
+
+| Capacidade | Resultado | Custo |
+|---|---|---|
+| Roteador, conjunto hold-out sintético | 8/8 rotas | US$ 0,000093 por roteamento |
+| Roteador, material real de um projeto | **9/10** | US$ 0,0003 por documento |
+| Gate 3W | 15/15 julgamentos | US$ 0,000053 por história |
+| Priorização de débitos | 18/18 notas dentro de ±1; 6/6 categoria e tipo | US$ 0,000065 por débito |
+
+As medições, o método e os limites de cada uma ficam nos `references/` das skills correspondentes —
+incluindo o que **não** funcionou, como a tentativa de trocar a fórmula de prioridade por WSJF.
+
+### Escrevendo os níveis de um `score`
+
+A priorização de débitos usa escalas ordinais, e as descrições de nível seguem o padrão **BARS**:
+cada nível descreve uma situação observável, nunca um grau ("moderado", "alto") nem um número.
+`especificar-debitos-tecnicos/scripts/retranslacao.py` verifica se cada âncora ainda atrai um
+exemplo do próprio nível — rode-o depois de editar qualquer descrição.
+
 ## Formato do backlog
 
 As chaves são localizadores documentais, não IDs do Azure Boards:
@@ -395,6 +452,7 @@ descobertos em publicação real, não em teste.
 
 ## Metadados e cobertura
 - Spec de origem: seção 2 da spec de diligências
+- Demanda de Negócio de origem: Não se aplica — a spec não nasceu de uma Demanda
 - Escopo analisado: seção 2
 - Modo: Greenfield
 - Raiz analisada: Não se aplica — nenhum código-fonte relevante disponível
@@ -449,7 +507,6 @@ uv run pytest especificar-telas-ux-ui/tests -v
 uv run pytest redigir-spec-demanda-azure-boards/tests -v
 uv run pytest orquestrar-skills-de-requisito/tests -v
 uv run pytest refinar-historias-3w/tests -v
-uv run pytest especificar-debitos-tecnicos/tests -v
 uv run pytest tests -v
 ```
 
@@ -472,6 +529,42 @@ for skill_dir in \
     "$skill_dir"
 done
 ```
+
+Ou rode tudo de uma vez, já com os caminhos configurados no `pyproject.toml`:
+
+```bash
+uv run pytest
+```
+
+### Dois regimes de teste
+
+A suíte do `pytest` é **offline por completo**, inclusive nas skills apoiadas pelo Jev: os testes
+exercitam a política em código — tabela de rotas, regra do gate, fórmula de prioridade, conversão
+de notas — com respostas do modelo montadas à mão. Isso é deliberado: a suíte não exige chave nem
+rede, e roda igual em qualquer máquina.
+
+A **qualidade do julgamento** é medida à parte, por harnesses que chamam a API de verdade e ficam
+fora dos `testpaths`:
+
+```bash
+uv run python orquestrar-skills-de-requisito/scripts/avaliar_roteador.py
+uv run python refinar-historias-3w/scripts/avaliar_gate_3w.py
+uv run python especificar-debitos-tecnicos/scripts/avaliar_priorizacao.py
+uv run python especificar-debitos-tecnicos/scripts/retranslacao.py
+```
+
+Cada um imprime acertos e custo, e sai com código diferente de zero quando o resultado piora — são
+medições, não testes de regressão binários. Rode-os ao mexer em perguntas, critérios ou níveis.
+
+### Skills instaladas em outro projeto
+
+```bash
+uv run python scripts/verificar_skills_instaladas.py /caminho/do/projeto
+```
+
+Compara este repositório com um projeto que consome as skills e aponta o que falta, o que está
+desatualizado e o que virou cópia em vez de symlink. Detalhes e armadilhas na seção
+[`update` não traz skills novas](#update-não-traz-skills-novas).
 
 Ao criar ou alterar uma skill, mantenha o `SKILL.md`, `agents/openai.yaml`, referências e testes correspondentes. Não adicione credenciais, IDs de work items ou metadados Azure sem fonte explícita.
 
