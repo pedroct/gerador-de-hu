@@ -188,6 +188,12 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn("diretório de destino", self.skill)
         self.assertIn("Sem diretório de destino", self.skill)
 
+    def test_titulo_do_documento_e_o_que_o_gerador_de_backlog_procura(self):
+        """O título é a identidade do documento fora da pasta; se divergir, o fallback
+        permanente por título de `gerar-backlog-azure-boards` nunca acha o companheiro."""
+        self.assertIn("# Spec: Telas UX-UI — <contexto>", self.skill)
+        self.assertNotIn("# Telas — <contexto>", self.skill)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -157,7 +157,7 @@ O documento tem duas partes e a ordem importa: primeiro o briefing, escrito para
 depois a rastreabilidade, escrita para quem mantém a spec.
 
 ```markdown
-# Telas — <contexto>
+# Spec: Telas UX-UI — <contexto>
 
 **Para:** equipe de UX-UI · **Plataforma:** <Web | Mobile> · **Origem:** <spec, seção>
 
