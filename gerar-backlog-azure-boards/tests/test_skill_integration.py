@@ -260,6 +260,14 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn("nome da pasta", self.backlog_contract)
         self.assertIn("DN-", self.backlog_contract)
 
+    def test_sugestao_de_entrevista_nomeia_o_escopo(self) -> None:
+        self.assertIn("escopo `negócio`", self.backlog)
+        self.assertIn("escopo `técnico`", self.backlog)
+
+    def test_readme_descreve_as_duas_rodadas(self) -> None:
+        self.assertIn("duas rodadas", self.readme)
+        self.assertIn("negocio.md", self.readme)
+
 
 if __name__ == "__main__":
     unittest.main()
