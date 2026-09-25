@@ -93,7 +93,7 @@ def test_fluxo_estatico_preserva_ordem_gatilhos_e_lacunas() -> None:
         SKILL,
         flags=re.DOTALL,
     )
-    assert "em uma pergunta objetiva em" in SKILL
+    assert "classificada por audiência conforme **Audiência das lacunas**" in SKILL
 
 
 def test_skill_documenta_configuracao_sem_expor_credencial() -> None:
