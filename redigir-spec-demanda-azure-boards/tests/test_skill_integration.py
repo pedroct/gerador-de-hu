@@ -276,3 +276,27 @@ def test_slug_degenerado_nao_produz_nome_quebrado() -> None:
 
 def test_skill_informa_o_caminho_usado() -> None:
     assert "informe ao usuário o caminho" in sem_quebras(SKILL)
+
+
+def test_pasta_inclui_negocio_md() -> None:
+    assert "negocio.md" in SKILL
+
+
+def test_negocio_md_nao_carrega_evidencia_de_codigo() -> None:
+    secao = sem_quebras(SKILL[SKILL.index("## Template de negocio.md") :])
+    assert "nunca entra em `negocio.md`" in secao
+    assert "fato observado" in secao
+
+
+def test_negocio_md_e_gerado_mesmo_sem_lacuna_de_negocio() -> None:
+    """Sem o documento, a reunião de negócio fica sem pauta e ninguém percebe."""
+    secao = sem_quebras(SKILL[SKILL.index("## Template de negocio.md") :])
+    assert "gere `negocio.md` mesmo assim" in secao
+
+
+def test_handoff_nomeia_as_duas_rodadas_sem_encadear() -> None:
+    fluxo = SKILL[SKILL.index("## Fluxo obrigatório") : SKILL.index("## Pasta da Demanda")]
+    assert "entrevistar-lacunas-requisito" in fluxo
+    assert "escopo `negócio`" in fluxo
+    assert "escopo `técnico`" in fluxo
+    assert "não chamar entrevista, geração ou publicação de backlog" in fluxo

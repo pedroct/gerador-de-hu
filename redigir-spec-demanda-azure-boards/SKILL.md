@@ -64,9 +64,13 @@ revisão manual posterior.
    de destino. Salve o parecer com os trechos, diagnósticos, sugestões e decisões pendentes; a
    orquestradora não aceita uma sugestão nem reescreve requisitos automaticamente.
 10. Confirme que a pasta da Demanda contém `spec.md` e os companheiros gerados, registrando eventual
-   indisponibilidade de uma skill especializada como lacuna. Informe ao usuário o caminho completo da
-   pasta. Em seguida, pare: não chamar entrevista, geração ou publicação de backlog.
-   A geração ou publicação de backlog é uma etapa manual controlada pelo usuário.
+   indisponibilidade de uma skill especializada como lacuna. Gere `negocio.md` conforme **Template de
+   negocio.md**. Execute `uv run python scripts/verificar_lacunas.py` sobre a spec e corrija o que ele
+   apontar. Informe ao usuário o caminho completo da pasta, quantas lacunas existem de cada audiência e
+   as duas rodadas possíveis: `entrevistar-lacunas-requisito` com escopo `negócio` sobre `negocio.md`,
+   e depois com escopo `técnico` sobre `spec.md`.
+   Em seguida, pare: não chamar entrevista, geração ou publicação de backlog. A geração ou publicação
+   de backlog é uma etapa manual controlada pelo usuário.
 
 ## Pasta da Demanda
 
@@ -75,6 +79,7 @@ Todos os documentos de uma Demanda ficam numa pasta própria:
 ```text
 docs/specs/DN-14125-emissao-de-convites/
 ├── spec.md
+├── negocio.md
 ├── debitos-tecnicos.md
 ├── telas-ux-ui.md
 └── revisao-textos.md
@@ -86,8 +91,8 @@ docs/specs/DN-14125-emissao-de-convites/
   nenhum caractere aproveitável, use apenas `DN-<id>`.
 - **Raiz:** `docs/specs/` por padrão, a partir da raiz do repositório investigado. Se o usuário indicar
   outra raiz, use a dele. Em qualquer caso, informe ao usuário o caminho completo que você gravou.
-- **Nomes internos:** o vocabulário é fechado — `spec.md`, `debitos-tecnicos.md`, `telas-ux-ui.md` e
-  `revisao-textos.md`. Nenhum outro nome, nenhum prefixo `spec-`.
+- **Nomes internos:** o vocabulário é fechado — `spec.md`, `negocio.md`, `debitos-tecnicos.md`,
+  `telas-ux-ui.md` e `revisao-textos.md`. Nenhum outro nome, nenhum prefixo `spec-`.
 - **Reexecução:** se a pasta já existir de uma rodada anterior, reaproveite a pasta existente e
   substitua apenas os arquivos que você regerar; nunca crie uma segunda pasta com sufixo, e nunca
   interrompa o fluxo por a pasta existir.
@@ -213,6 +218,45 @@ uv run python scripts/verificar_lacunas.py <caminho da spec>
 
 Saída 1 significa que alguma pergunta de negócio ainda cita código: reescreva-a e mova a citação para
 o comentário de evidência. Não entregue a Spec com o verificador falhando.
+
+## Template de negocio.md
+
+`negocio.md` é uma **projeção** de `spec.md`, escrita para a reunião com a área de negócio. `spec.md`
+continua dona de todas as lacunas; este documento mostra apenas as de audiência `Negócio`, e a
+evidência `caminho:linha` **nunca entra em `negocio.md`**.
+
+```markdown
+# <System.Title>
+
+**Demanda de Negócio #<id>** · para o refinamento de negócio
+
+## O que foi pedido
+<o conteúdo registrado na Demanda, em linguagem de negócio>
+
+## Como funciona hoje
+<o comportamento atual afirmado como fato observado, sem citar código>
+
+## O que muda
+<o comportamento esperado, em linguagem de negócio>
+
+## Decisões pendentes
+- **N1** — <pergunta, copiada de spec.md sem o comentário de evidência>
+- **N2** — <pergunta>
+
+## Fora desta reunião
+<n> decisões técnicas serão tratadas no refinamento técnico.
+```
+
+Sobre **Como funciona hoje**: o que a área precisa saber de `## Comportamento atual` é o fato — *"hoje
+o prazo conta 4 dias a partir do convite do executor, não 7 da abertura"* — e não a citação que o
+sustenta. O fato é de negócio mesmo tendo sido descoberto no código.
+
+Sobre **Fora desta reunião**: existe para que a área saiba que nada foi descartado, sem ser convidada
+a opinar. Não liste as perguntas técnicas, apenas a contagem.
+
+Se não houver nenhuma lacuna de audiência `Negócio`, **gere `negocio.md` mesmo assim**, com
+`## Decisões pendentes` contendo `Nenhuma decisão de negócio pendente.`. Omitir o documento deixaria a
+reunião sem pauta sem que ninguém percebesse.
 
 ## Valores já convertidos pelo leitor
 
