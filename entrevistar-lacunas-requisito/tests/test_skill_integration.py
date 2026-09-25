@@ -127,6 +127,19 @@ class InterviewingSkillIsolationTests(unittest.TestCase):
         texto = sem_quebras(self.interviewing)
         self.assertIn("registrar uma lacuna nova", texto)
 
+    def test_lacuna_sem_rotulo_entra_em_toda_rodada(self):
+        """Spec parcialmente rotulada é inevitável; a lacuna sem rótulo não pode sumir das duas."""
+        texto = sem_quebras(self.interviewing)
+        self.assertIn("Lacuna sem rótulo numa spec que tem outras rotuladas entra em toda", texto)
+        self.assertIn("rótulo faltante", texto)
+        self.assertIn("nunca é pulada por não casar com o escopo", texto)
+
+    def test_rodada_de_negocio_avisa_que_negocio_md_ficou_desatualizado(self):
+        """A skill é folha: ela não regenera a projeção, mas não pode deixar a divergência muda."""
+        texto = sem_quebras(self.interviewing)
+        self.assertIn("`negocio.md` ficou desatualizado", texto)
+        self.assertIn("Esta skill não regenera `negocio.md`", texto)
+
     def test_description_nao_fixa_uma_unica_skill_de_origem(self):
         frontmatter = self.interviewing[: self.interviewing.index("---", 4)]
         self.assertTrue(

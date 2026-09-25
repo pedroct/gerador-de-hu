@@ -252,6 +252,26 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn("Spec: Telas UX-UI", self.backlog)
         self.assertIn("fallback permanente", self.backlog)
 
+    def test_companheiros_da_pasta_nao_viram_item_de_backlog(self) -> None:
+        """Mandar abrir `debitos-tecnicos.md` sem dizer o limite convida a virá-lo backlog."""
+        texto = " ".join(self.backlog.split())
+        self.assertIn(
+            "`debitos-tecnicos.md` e `revisao-textos.md`, que são contexto rotulado, "
+            "nunca origem de item de backlog",
+            texto,
+        )
+
+    def test_spec_de_origem_registra_o_caminho_completo_ate_spec_md(self) -> None:
+        """É esse caminho que liga o backlog publicado de volta à pasta da Demanda."""
+        texto = " ".join(self.backlog_contract.split())
+        self.assertIn(
+            "- Spec de origem: [caminho completo até `spec.md`, "
+            "ou documento, versão ou localização]",
+            texto,
+        )
+        self.assertIn("docs/specs/DN-14125-emissao-de-convites/spec.md", texto)
+        self.assertIn("nunca fonte do ID da Demanda", texto)
+
     def test_contrato_proibe_o_nome_da_pasta_como_fonte_do_id(self) -> None:
         """Depois da convenção há um `DN-14125` a um basename de distância,
 

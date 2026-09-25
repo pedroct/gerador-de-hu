@@ -168,8 +168,10 @@ def test_regra_de_traducao_proibe_codigo_na_pergunta() -> None:
 def test_lacunas_do_template_nao_violam_o_proprio_verificador() -> None:
     """O exemplo do template não pode ser o primeiro a quebrar a regra que ensina."""
     sys.path.insert(0, str(RAIZ_SKILL / "scripts"))
-    from verificar_lacunas import verificar
+    from verificar_lacunas import extrair_lacunas, verificar
 
+    # Sem esta contagem, o teste passaria vazio caso o template deixasse de casar com o extrator.
+    assert len(extrair_lacunas(template())) == 2
     assert verificar(template()) == []
 
 
@@ -270,7 +272,7 @@ def test_pasta_existente_e_reaproveitada() -> None:
 def test_slug_degenerado_nao_produz_nome_quebrado() -> None:
     """Título só com pontuação ou acentos não pode gerar `DN-14125-` nem hífen final."""
     secao = sem_quebras(SKILL[SKILL.index("## Pasta da Demanda") :])
-    assert "sem hífen final" in secao
+    assert "sem hífen inicial nem final" in secao
     assert "use apenas `DN-<id>`" in secao
 
 
@@ -300,3 +302,23 @@ def test_handoff_nomeia_as_duas_rodadas_sem_encadear() -> None:
     assert "escopo `negócio`" in fluxo
     assert "escopo `técnico`" in fluxo
     assert "não chamar entrevista, geração ou publicação de backlog" in fluxo
+
+
+def test_passo_10_roda_o_verificador_com_raiz_e_caminho_explicitos() -> None:
+    """Sem a raiz da skill e sem o caminho, o comando do passo 10 sai com código 2."""
+    passo = sem_quebras(SKILL[SKILL.index("10. Confirme") : SKILL.index("## Pasta da Demanda")])
+    assert "a partir da raiz desta skill" in passo
+    assert "scripts/verificar_lacunas.py <caminho completo de spec.md>" in passo
+
+
+def test_negocio_md_e_descartavel_e_sempre_regerado() -> None:
+    """Uma cópia de rodada anterior lista decisões já tomadas e uma contagem técnica vencida."""
+    secao = sem_quebras(SKILL[SKILL.index("## Template de negocio.md") :])
+    assert "descartável e sempre regerado a partir de `spec.md`" in secao
+    assert "Uma cópia desatualizada nunca é fonte" in secao
+
+
+def test_prosa_do_negocio_md_cita_o_cabecalho_real_do_template() -> None:
+    """`## Comportamento atual` sem o sufixo não existe no template que a prosa manda consultar."""
+    secao = sem_quebras(SKILL[SKILL.index("## Template de negocio.md") :])
+    assert "`## Comportamento atual (evidência no código)`" in secao

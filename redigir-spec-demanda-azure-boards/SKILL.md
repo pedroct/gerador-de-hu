@@ -65,7 +65,8 @@ revisão manual posterior.
    orquestradora não aceita uma sugestão nem reescreve requisitos automaticamente.
 10. Confirme que a pasta da Demanda contém `spec.md` e os companheiros gerados, registrando eventual
    indisponibilidade de uma skill especializada como lacuna. Gere `negocio.md` conforme **Template de
-   negocio.md**. Execute `uv run python scripts/verificar_lacunas.py` sobre a spec e corrija o que ele
+   negocio.md**. Execute, a partir da raiz desta skill,
+   `uv run python scripts/verificar_lacunas.py <caminho completo de spec.md>` e corrija o que ele
    apontar. Informe ao usuário o caminho completo da pasta, quantas lacunas existem de cada audiência e
    as duas rodadas possíveis: `entrevistar-lacunas-requisito` com escopo `negócio` sobre `negocio.md`,
    e depois com escopo `técnico` sobre `spec.md`.
@@ -87,8 +88,8 @@ docs/specs/DN-14125-emissao-de-convites/
 
 - **Nome da pasta:** `DN-<id>-<slug>`. O `<id>` é o número do work item, sem zeros à esquerda. O
   `<slug>` deriva de `System.Title`: minúsculas, acentos removidos, espaços e pontuação viram hífen,
-  hífens repetidos colapsam, truncado em 60 caracteres e **sem hífen final**. Se o título não produzir
-  nenhum caractere aproveitável, use apenas `DN-<id>`.
+  hífens repetidos colapsam, truncado em 60 caracteres e **sem hífen inicial nem final**. Se o
+  título não produzir nenhum caractere aproveitável, use apenas `DN-<id>`.
 - **Raiz:** `docs/specs/` por padrão, a partir da raiz do repositório investigado. Se o usuário indicar
   outra raiz, use a dele. Em qualquer caso, informe ao usuário o caminho completo que você gravou.
 - **Nomes internos:** o vocabulário é fechado — `spec.md`, `negocio.md`, `debitos-tecnicos.md`,
@@ -225,6 +226,12 @@ o comentário de evidência. Não entregue a Spec com o verificador falhando.
 continua dona de todas as lacunas; este documento mostra apenas as de audiência `Negócio`, e a
 evidência `caminho:linha` **nunca entra em `negocio.md`**.
 
+**`negocio.md` é descartável e sempre regerado a partir de `spec.md`.** Uma rodada de entrevista
+grava as decisões em `spec.md` e pode criar lacunas novas, então a cópia anterior de `negocio.md`
+fica desatualizada no instante seguinte: ela ainda lista decisões já tomadas e uma contagem de
+decisões técnicas que já mudou. **Uma cópia desatualizada nunca é fonte.** Antes de cada rodada de negócio,
+regere `negocio.md` a partir de `spec.md`; nunca o edite à mão nem reconcilie os dois documentos.
+
 ```markdown
 # <System.Title>
 
@@ -247,9 +254,10 @@ evidência `caminho:linha` **nunca entra em `negocio.md`**.
 <n> decisões técnicas serão tratadas no refinamento técnico.
 ```
 
-Sobre **Como funciona hoje**: o que a área precisa saber de `## Comportamento atual` é o fato — *"hoje
-o prazo conta 4 dias a partir do convite do executor, não 7 da abertura"* — e não a citação que o
-sustenta. O fato é de negócio mesmo tendo sido descoberto no código.
+Sobre **Como funciona hoje**: o que a área precisa saber de `## Comportamento atual (evidência no
+código)` é o fato — *"hoje o prazo conta 4 dias a partir do convite do executor, não 7 da
+abertura"* — e não a citação que o sustenta. O fato é de negócio mesmo tendo sido descoberto no
+código.
 
 Sobre **Fora desta reunião**: existe para que a área saiba que nada foi descartado, sem ser convidada
 a opinar. Não liste as perguntas técnicas, apenas a contagem.

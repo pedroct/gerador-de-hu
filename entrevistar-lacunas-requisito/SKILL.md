@@ -34,7 +34,10 @@ arquitetura em aberto; isso continua sendo papel de `superpowers:brainstorming` 
    ele **compõe com a fronteira** em vez de substituí-la: uma lacuna `Técnico` que depende de uma
    `Negócio` ainda aberta fica fora da fronteira mesmo na rodada técnica. Relate o que ficou bloqueado
    em vez de forçar uma resposta prematura. Na rodada de escopo `negócio`, o material de leitura do
-   usuário é `negocio.md`; as decisões, porém, são sempre gravadas em `spec.md`.
+   usuário é `negocio.md`; as decisões, porém, são sempre gravadas em `spec.md`. **Lacuna sem rótulo
+   numa spec que tem outras rotuladas entra em toda rodada** e é relatada ao usuário como rótulo
+   faltante; ela nunca é pulada por não casar com o escopo, sob pena de a decisão sumir nas duas
+   rodadas.
 3. **Pergunte a fronteira inteira em uma única rodada**, no formato:
 
    ```text
@@ -62,7 +65,10 @@ arquitetura em aberto; isso continua sendo papel de `superpowers:brainstorming` 
      só na implementação.
 5. **Recalcule a fronteira** com o que foi decidido nesta rodada e repita a partir do passo 3.
 6. **Pare** quando a fronteira ficar vazia — nada mais dependia de decisão do usuário — ou quando o
-   usuário disser explicitamente para parar.
+   usuário disser explicitamente para parar. Ao encerrar uma rodada de escopo `negócio`, **avise o
+   usuário de que `negocio.md` ficou desatualizado**: as decisões foram para `spec.md`, e a projeção
+   precisa ser regerada a partir dela antes da próxima rodada. Esta skill não regenera `negocio.md`
+   nem chama quem o gera; o aviso é a entrega.
 
 ## Boundaries
 
