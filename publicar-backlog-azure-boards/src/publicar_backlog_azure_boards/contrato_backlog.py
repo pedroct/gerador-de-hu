@@ -10,12 +10,16 @@ ITEM_RE = re.compile(
     r"\[(?P<kind>Epic|Feature|User Story|Bug)\] (?P<title>\S.*)$"
 )
 WORK_ITEM_HINT_RE = re.compile(r"^#+ .*(?:\[Epic\]|\[Feature\]|\[User Story\]|\[Bug\])")
+TAGS = "Tags"
+LIMITE_TAG = 400
+
 SECTION_NAMES = {
     "Parent",
     "Título curto",
     "Description",
     "Acceptance Criteria",
     "Refinement Status",
+    TAGS,
 }
 IMPLEMENTATION_EVIDENCE = "Implementation Evidence"
 ACCEPTANCE_CRITERIA = "Acceptance Criteria"
@@ -35,6 +39,40 @@ class BacklogItem:
 
     def section(self, name: str) -> str:
         return "\n".join(self.sections.get(name, [])).strip()
+
+
+def normalizar_tags(bruto: str) -> tuple[tuple[str, ...], list[str]]:
+    """Normaliza a seção ``Tags`` e devolve também os erros de formato encontrados.
+
+    Uma seção ausente é legítima e devolve vazio sem erro; uma seção presente e vazia
+    é erro de quem a valida, não desta função, porque só o chamador sabe distinguir
+    "sem heading" de "heading sem conteúdo".
+    """
+    texto = bruto.strip()
+    if not texto:
+        return (), []
+
+    erros: list[str] = []
+    tags: list[str] = []
+    for parte in texto.split(","):
+        tag = parte.strip()
+        if not tag:
+            erros.append("a seção Tags possui uma tag vazia entre vírgulas")
+            continue
+        if ";" in tag:
+            erros.append(f"a tag '{tag}' contém ';', que o Azure Boards usa como separador")
+            continue
+        if len(tag) > LIMITE_TAG:
+            erros.append(
+                f"a tag '{tag}' passa de {LIMITE_TAG} caracteres, o limite do Azure Boards"
+            )
+            continue
+        if tag not in tags:
+            tags.append(tag)
+
+    if erros:
+        return (), erros
+    return tuple(tags), []
 
 
 def _new_item(match: re.Match[str]) -> BacklogItem:
