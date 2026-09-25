@@ -93,12 +93,17 @@ def verificar(texto: str) -> list[Violacao]:
     return violacoes
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("spec", help="caminho da spec, ou '-' para a entrada padrão")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
-    texto = sys.stdin.read() if args.spec == "-" else Path(args.spec).read_text("utf-8")
+    try:
+        texto = sys.stdin.read() if args.spec == "-" else Path(args.spec).read_text("utf-8")
+    except OSError as erro:
+        print(f"erro: {erro}", file=sys.stderr)
+        return 2
+
     violacoes = verificar(texto)
     if not violacoes:
         print("Nenhum vazamento de vocabulário técnico em lacunas de negócio.")

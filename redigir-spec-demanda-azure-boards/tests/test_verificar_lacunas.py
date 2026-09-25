@@ -4,7 +4,7 @@ from pathlib import Path
 RAIZ_SKILL = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ_SKILL / "scripts"))
 
-from verificar_lacunas import extrair_lacunas, verificar  # noqa: E402
+from verificar_lacunas import extrair_lacunas, main, verificar  # noqa: E402
 
 SPEC = """# Spec: Exemplo
 
@@ -70,3 +70,20 @@ def test_spec_sem_rotulos_de_audiencia_nao_gera_violacao() -> None:
     antiga = "## Lacunas e perguntas abertas\n\n- Qual data ancora o prazo (`X.java:12`)?\n"
     assert extrair_lacunas(antiga) == []
     assert verificar(antiga) == []
+
+
+def test_cli_devolve_1_quando_ha_violacao(tmp_path: Path) -> None:
+    spec = tmp_path / "spec.md"
+    spec.write_text("- **N6 · Negócio** — O prazo sai de `X.java:12`?\n", encoding="utf-8")
+    assert main([str(spec)]) == 1
+
+
+def test_cli_devolve_0_quando_a_spec_esta_limpa(tmp_path: Path) -> None:
+    spec = tmp_path / "spec.md"
+    spec.write_text("- **N7 · Negócio** — O prazo sai da abertura?\n", encoding="utf-8")
+    assert main([str(spec)]) == 0
+
+
+def test_cli_devolve_2_para_arquivo_inexistente() -> None:
+    """Arquivo ilegível é erro de uso, não violação: nem traceback, nem código 1."""
+    assert main(["/caminho/que/nao/existe/spec.md"]) == 2
