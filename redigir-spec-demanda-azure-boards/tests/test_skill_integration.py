@@ -1,4 +1,5 @@
 import re
+import sys
 from pathlib import Path
 
 RAIZ_SKILL = Path(__file__).resolve().parents[1]
@@ -92,7 +93,7 @@ def test_fluxo_estatico_preserva_ordem_gatilhos_e_lacunas() -> None:
         SKILL,
         flags=re.DOTALL,
     )
-    assert "pergunta objetiva para cada campo null" in SKILL
+    assert "em uma pergunta objetiva em" in SKILL
 
 
 def test_skill_documenta_configuracao_sem_expor_credencial() -> None:
@@ -142,6 +143,34 @@ def test_skill_manda_normalizar_valor_que_quebraria_a_tabela() -> None:
 def sem_quebras(texto: str) -> str:
     """Normaliza o reflow do Markdown para a asserção não quebrar ao reformatar o parágrafo."""
     return " ".join(texto.split())
+
+
+def test_lacuna_tem_id_audiencia_e_evidencia() -> None:
+    corpo = template()
+    assert "- **N1 · Negócio** —" in corpo
+    assert "- **T1 · Técnico** —" in corpo
+    assert "<!-- evidência:" in corpo
+
+
+def test_criterio_de_audiencia_e_checavel() -> None:
+    secao = sem_quebras(SKILL[SKILL.index("## Audiência das lacunas") :])
+    assert "muda o que o usuário percebe" in secao
+    assert "uma lacuna, uma decisão, uma audiência" in secao.lower()
+
+
+def test_regra_de_traducao_proibe_codigo_na_pergunta() -> None:
+    secao = sem_quebras(SKILL[SKILL.index("## Audiência das lacunas") :])
+    assert "verificar_lacunas.py" in secao
+    for proibido in ("arquivo", "classe", "método", "número de linha"):
+        assert proibido in secao
+
+
+def test_lacunas_do_template_nao_violam_o_proprio_verificador() -> None:
+    """O exemplo do template não pode ser o primeiro a quebrar a regra que ensina."""
+    sys.path.insert(0, str(RAIZ_SKILL / "scripts"))
+    from verificar_lacunas import verificar
+
+    assert verificar(template()) == []
 
 
 def test_skill_delega_a_conversao_de_html_ao_leitor() -> None:

@@ -39,8 +39,8 @@ revisão manual posterior.
    `Custom.DemandaValorEsperado`, `Custom.DemandaDoraResolver` e
    `Custom.DemandaRegraseRestricoes`.
 4. Converta cada valor `null`, vazio ou lista vazia em uma pergunta objetiva em **Lacunas e perguntas
-   abertas**. Nunca atribua `EXPLICITO` ou `INFERIDO` ao pedido original: os campos são apenas valores
-   registrados na Demanda de Negócio.
+   abertas**, classificada por audiência conforme **Audiência das lacunas**. Nunca atribua `EXPLICITO`
+   ou `INFERIDO` ao pedido original: os campos são apenas valores registrados na Demanda de Negócio.
 5. Antes de investigar, leia e aplique
    [references/investigacao-demanda-azure-boards.md](references/investigacao-demanda-azure-boards.md).
    Descubra repositórios irmãos, investigue somente leitura e classifique a demanda em `Defeito`,
@@ -156,7 +156,9 @@ Registrado na Demanda: <síntese fiel de Custom.DemandaDoraResolver>.
 - Lacuna: ...
 
 ## Lacunas e perguntas abertas
-- <pergunta objetiva para cada campo null, divergência ou limite de investigação>
+- **N1 · Negócio** — <pergunta em linguagem de negócio, sem citar código>
+  <!-- evidência: <caminho:linha que sustenta a pergunta> -->
+- **T1 · Técnico** — <pergunta para a equipe técnica, com a citação que ela precisa>
 ```
 
 ## Como preencher o template
@@ -171,6 +173,46 @@ O bloco acima é o documento a emitir: copie a estrutura, não estas explicaçõ
   comprova ator ou vocabulário no código; são insumos registrados na Demanda, não requisito confirmado.
 - Não apresente ausência de evidência como comportamento confirmado. Quando o código e a Demanda
   divergirem, registre ambos e mantenha a decisão como lacuna.
+
+## Audiência das lacunas
+
+Cada lacuna é decidida por uma audiência só, e o refinamento acontece em duas reuniões separadas: uma
+com a área de negócio, outra com a equipe técnica. Classificar errado manda a pergunta para a sala
+errada.
+
+**Critério:** a decisão muda o que o usuário percebe? Então é `Negócio`. Muda apenas como o sistema
+guarda ou calcula, com o mesmo resultado percebido? Então é `Técnico`.
+
+O vocabulário engana nas duas direções, e é por isso que o critério olha a consequência:
+
+| Lacuna | Audiência | Por quê |
+|---|---|---|
+| A expiração deve ocorrer sozinha ou só quando alguém acessa | `Negócio` | expirar ou não é percebido |
+| A renovação vale por diligência ou por executor | `Negócio` | muda quem consegue renovar |
+| "Pendente" vira valor persistido ou é rótulo de exibição | `Técnico` | o usuário lê "pendente" nos dois casos |
+| Onde o prazo vigente é persistido | `Técnico` | invisível |
+
+**Uma lacuna, uma decisão, uma audiência.** Uma pergunta que funde duas decisões não classifica e vai
+inteira para a reunião errada. *"Qual o valor exato da cor, e ele vale para portal e mobile?"* são
+duas: o alcance nos canais é `Negócio`, o valor exato é detalhe visual e pertence ao documento de
+telas. Divida em lacunas ligadas, citando a origem (`N7 origina T4`).
+
+**Regra de tradução**, obrigatória para toda lacuna `Negócio`:
+
+1. Não cite arquivo, classe, método, campo, enum, número de linha ou variável **na pergunta**.
+2. Afirme o estado atual como fato observado — *"hoje o prazo conta 4 dias a partir do convite do
+   executor"* — nunca como citação de código.
+3. Termine em uma escolha concreta, com alternativas. Não em *"como deve ser?"*.
+4. A evidência `caminho:linha` fica no comentário `<!-- evidência: ... -->` da própria lacuna.
+
+Antes de encerrar, execute a partir da raiz desta skill:
+
+```bash
+uv run python scripts/verificar_lacunas.py <caminho da spec>
+```
+
+Saída 1 significa que alguma pergunta de negócio ainda cita código: reescreva-a e mova a citação para
+o comentário de evidência. Não entregue a Spec com o verificador falhando.
 
 ## Valores já convertidos pelo leitor
 
