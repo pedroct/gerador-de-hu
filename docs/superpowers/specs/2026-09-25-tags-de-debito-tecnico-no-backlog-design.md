@@ -1,4 +1,4 @@
-# Design: tags no backlog e o caminho do débito técnico até o Azure Boards
+# Design: tags no backlog como discriminador de origem dos work items
 
 ## Contexto
 
@@ -49,11 +49,28 @@ Com a tag, a visão de débito existe independentemente da hierarquia. É isso q
 débito na capacidade afetada e ter as duas visões — hierarquia por capacidade e filtro por tag — em
 vez de escolher uma.
 
+### O mesmo sintoma em outro lugar
+
+O débito não é o único item que chega ao Boards sem identidade. `especificar-telas-ux-ui` produz um
+item de design por par (requisito, plataforma), e `gerar-backlog` o cria como `User Story` irmã do
+item funcional. No documento ele é distinguível: nasce de um `TL-xx` e declara `Bloqueia`. **No Azure
+Boards é uma User Story igual a qualquer outra.**
+
+A faceta plataforma tem valor próprio, porque a skill é taxativa em nunca agrupar web e mobile no
+mesmo item de design: quem trabalha com tela precisa perguntar "o que está pendente de design em web".
+
+Já a spec de negócio é o caso em que o mesmo raciocínio leva a uma conclusão diferente — ver
+"Classificação do pedido não vira tag", em Fora de escopo.
+
 ## Objetivos
 
 - O backlog Markdown passa a declarar tags por item, e as publicadoras as enviam em `System.Tags`.
 - Um débito publicado carrega `debito-tecnico`, sua faixa de priorização e, quando houver, a Demanda
   que o revelou — tudo filtrável por query e por Analytics, sem customizar o processo.
+- Um item de design carrega `design-ux-ui` e a plataforma; o item funcional que ele bloqueia carrega
+  `depende-de-design`.
+- `dn-<id>` deixa de ser exclusivo do débito e marca todo item nascido de uma Demanda, de modo que "o
+  que a DN-14125 gerou de trabalho" seja uma query em vez de uma navegação pela árvore.
 - O documento de débitos vira spec de entrada legítima do `gerar-backlog-azure-boards`, produzindo um
   backlog próprio.
 - Nenhum backlog já publicado deixa de retomar por causa desta mudança.
@@ -65,6 +82,19 @@ vez de escolher uma.
   torna a faixa por item impossível, e deixaria a tag fora do artefato revisado por humano — o mesmo
   backlog publicado duas vezes com flags diferentes daria resultados diferentes sem deixar rastro.
   Tag de campanha (`q4-2026`) não é necessidade declarada.
+- **Classificação do pedido não vira tag.** `Defeito | Melhoria | Outro` é metadado único da spec de
+  negócio, e o contrato insiste que a decisão entre Bug e User Story é por item, nunca herdada dessa
+  classificação — uma mesma spec origina os dois. Carimbar `defeito` em todos os itens de uma spec
+  `Defeito` reintroduziria a herança cega como metadado publicado, e a tag discordaria do tipo em
+  todo item que corretamente virou User Story. O tipo do work item já responde isso, item a item e com
+  mais precisão. O que generaliza da spec de negócio é `dn-<id>`, não a classificação.
+- **Tag por spec de origem** (ex.: `spec-emissao-convites`). Rastreabilidade mais fina que `dn-<id>`
+  quando uma Demanda gera várias specs, mas o vocabulário cresceria a cada spec e sujaria o
+  autocompletar de tags do projeto.
+- **Link Predecessor/Sucessor no Azure Boards.** `Depende de` / `Bloqueia` segue sendo texto
+  informativo na `Description`; o contrato já o declara responsabilidade de uma etapa de publicação
+  futura. A tag `depende-de-design` é paliativo explícito, não substituto: marca natureza, não cria
+  relação. Ver "Riscos conhecidos".
 - **Gherkin para débitos.** A skill de débitos continua produzindo critérios em bullets; ver
   "Critérios de aceite" abaixo.
 - **Consulta anti-duplicidade de Epic/Feature via MCP.** Continua adiada desde 2026-09-12. Ver
@@ -110,28 +140,44 @@ pedindo que os dois concordem.
 Se `Tags` entrar em apenas um dos conjuntos, um backlog com tags é aceito por um caminho e explode no
 outro. `Tags` entra em `_SECOES` e em `SECTION_NAMES` na mesma mudança.
 
-## Vocabulário reservado do débito técnico
+## Vocabulário reservado
 
-Definido pela skill `especificar-debitos-tecnicos`, não pelo contrato. Para o publicador, tag é
-string opaca.
+Definido pelas skills, não pelo contrato. Para o publicador, tag é string opaca.
 
-| Tag | Quando |
-|---|---|
-| `debito-tecnico` | todo item de folha originado de um DT |
-| `dt-restricao` / `dt-candidato` / `dt-a-confirmar` | exatamente uma, espelhando `faixa()` |
-| `dn-<id>` | quando a spec de débitos registrar Demanda de origem |
+| Tag | Emitida por | Quando |
+|---|---|---|
+| `debito-tecnico` | `especificar-debitos-tecnicos` | todo item de folha originado de um DT |
+| `dt-restricao` / `dt-candidato` / `dt-a-confirmar` | `especificar-debitos-tecnicos` | exatamente uma, espelhando `faixa()` |
+| `design-ux-ui` | `especificar-telas-ux-ui` | item de design originado de um TL |
+| `plataforma-web` / `plataforma-mobile` | `especificar-telas-ux-ui` | exatamente uma, no item de design |
+| `depende-de-design` | `especificar-telas-ux-ui` | item funcional que declara `Depende de` |
+| `dn-<id>` | qualquer origem | todo item nascido de uma Demanda |
 
-A faixa precisa virar campo oficial antes de virar tag. Hoje `faixa()` só aparece no stdout do
-`priorizar.py`, e o template do `Resumo priorizado` não tem a coluna — documentos gerados já a
-trazem, mas por iniciativa da rodada, não por contrato. Uma tag não pode depender de um dado que o
-template não garante.
+**Só em item de folha.** Epic e Feature são contêineres de capacidade compartilhados entre origens;
+marcá-los de débito ou de design mentiria sobre a capacidade inteira. `dn-<id>` segue a mesma regra.
 
-**Só em item de folha.** Epic e Feature são contêineres de capacidade compartilhados com o trabalho
-funcional; marcá-los de débito mentiria sobre a capacidade inteira.
+### Dois dados precisam virar campo antes de virar tag
 
-**A tag de faixa é um snapshot da geração.** Uma reavaliação que mova o DT-03 de `a-confirmar` para
-`restricao` não atualiza o work item já publicado. A skill precisa dizer isso, senão alguém lê a tag
-como verdade corrente seis meses depois.
+Uma tag não pode depender de um dado que o template não garante.
+
+- **`Faixa`**, na skill de débitos: hoje `faixa()` só aparece no stdout do `priorizar.py`, e o
+  template do `Resumo priorizado` não tem a coluna. Documentos gerados já a trazem, mas por
+  iniciativa da rodada, não por contrato.
+- **Plataforma por item**, na skill de telas: hoje ela está no cabeçalho do documento
+  (`**Plataforma:** <Web | Mobile>`) e no título em prosa do `TL-xx` ("com a plataforma no nome").
+  Derivar tag de título é frágil; o item precisa de um campo próprio.
+
+### Tags que envelhecem
+
+Duas do vocabulário são snapshots do momento da geração, e nenhuma se corrige sozinha depois de
+publicada:
+
+- **A faixa.** Uma reavaliação que mova o DT-03 de `a-confirmar` para `restricao` não atualiza o work
+  item já publicado.
+- **`depende-de-design`.** Quando o design for entregue, a tag continua lá afirmando um bloqueio que
+  já não existe, a menos que alguém a remova à mão.
+
+As skills precisam dizer isso, senão alguém lê a tag como verdade corrente seis meses depois.
 
 ## Hierarquia do backlog de débitos
 
@@ -153,7 +199,13 @@ A spec de débitos ganha `## Fonte da Demanda`, copiada da spec de origem — **
 replicando a proibição que o contrato do backlog já carrega: um diretório `DN-14125-<slug>/` parece uma
 resposta e não é. O `#id` chega ao backlog como rastreabilidade e vira a tag `dn-<id>`.
 
-A publicação usa a publicadora solta, com Area e Iteration escolhidas por execução. O motivo é o
+A tag em si não é exclusiva do débito: o backlog já registra `Demanda de Negócio de origem` em
+qualquer modo, e é desse campo que `dn-<id>` sai, venha o item de uma spec de negócio, de telas ou de
+débitos. O que esta seção acrescenta é o caminho que faltava — a spec de débitos não tinha de onde
+tirar o `#id`.
+
+A publicação **do backlog de débitos** usa a publicadora solta, com Area e Iteration escolhidas por
+execução; o backlog funcional de uma Demanda segue publicando como hoje. O motivo é o
 `Iteration Path`: `publicar-backlog-demanda-azure-boards` o herda da Demanda, ou seja, o débito
 nasceria alocado na sprint da Demanda — exatamente a sprint em que ele não será pago — e alguém teria
 que remanejar item por item depois.
@@ -203,8 +255,9 @@ são gêmeos.
 | Arquivo | Mudança |
 |---|---|
 | `gerar-backlog-azure-boards/references/backlog-markdown-contract.md` | seção `Tags`: formato, regras, posição no template, mapeamento para `System.Tags` |
-| `gerar-backlog-azure-boards/SKILL.md` | reconhece `Spec: Débitos técnicos` como spec de entrada; emite as tags nos itens de folha; Epic/Feature por capacidade e sem tags |
-| `especificar-debitos-tecnicos/SKILL.md` | `Faixa` como campo oficial; `## Fonte da Demanda`; nota do snapshot |
+| `gerar-backlog-azure-boards/SKILL.md` | reconhece `Spec: Débitos técnicos` como spec de entrada; emite todo o vocabulário nos itens de folha, incluindo `dn-<id>` em qualquer origem e `depende-de-design` no item funcional bloqueado; Epic/Feature por capacidade e sem tags |
+| `especificar-debitos-tecnicos/SKILL.md` | `Faixa` como campo oficial; `## Fonte da Demanda`; nota da tag que envelhece |
+| `especificar-telas-ux-ui/SKILL.md` | plataforma como campo estruturado por `TL-xx`, não só no cabeçalho e no título em prosa |
 
 ### Testes
 
@@ -216,6 +269,10 @@ são gêmeos.
 - Payload: `System.Tags` ausente sem tags, presente e unido por `"; "` com tags.
 - Validação estrutural agregando os erros novos junto dos existentes.
 
+O vocabulário é regra de skill, não de código: nenhum teste do publicador conhece `debito-tecnico` ou
+`design-ux-ui`. As skills de débitos e de telas têm suítes próprias em `tests/`, e é lá que a emissão
+correta do vocabulário se verifica.
+
 ## Riscos conhecidos
 
 **Recriação de Epic/Feature já publicados.** A publicadora só pendura um item em outro criado na
@@ -223,6 +280,12 @@ mesma execução; não existe caminho para pendurar em Epic já existente no Boa
 pode recriar a capacidade. Não é problema novo que o débito introduza — é o mesmo da segunda Demanda
 sobre uma capacidade já publicada — e a consulta anti-duplicidade via MCP segue adiada desde
 2026-09-12. Fica registrado, não resolvido aqui.
+
+**`depende-de-design` é paliativo, e paliativo envelhece.** O bloqueio real continua invisível no
+Boards: `Depende de` / `Bloqueia` não vira link Predecessor/Sucessor, e a tag não aponta para *qual*
+item de design bloqueia — só afirma que existe um. Além disso ela não se apaga quando o design é
+entregue. A correção de verdade é criar a relação formal na publicação, e isso merece trabalho
+próprio.
 
 **`demanda_id` sem checagem cruzada.** `publicar-backlog-demanda-azure-boards` toma o ID de
 `AZURE_DEVOPS_DEMANDA` ou de pergunta interativa e não confere contra o `Demanda de Negócio de origem`
@@ -243,3 +306,8 @@ escopo deste trabalho, merece correção própria.
 | Epic/Feature por capacidade | Epic "Débito técnico" por categoria | decisão de 2026-09-12; a tag já dá a visão de débito |
 | Publicação solta, com Demanda rastreável | pendurar na Demanda | a publicadora de Demanda herdaria a sprint da Demanda para o débito |
 | `Acceptance Criteria` em branco no débito | Gherkin na skill de débitos | fora do escopo pedido; `refinar-historias-gherkin` cobre depois |
+| `dn-<id>` em todo item de Demanda | `dn-<id>` só no débito | a rastreabilidade por query vale para qualquer origem, não só para débito |
+| Classificação do pedido fora do vocabulário | tag `defeito` / `melhoria` / `outro` | herdaria no item o metadado único da spec, e discordaria do tipo do work item |
+| `dn-<id>` em vez de tag por spec | `spec-<slug>` por origem | vocabulário aberto, crescendo a cada spec |
+| `depende-de-design` no item funcional | só etiquetar o item de design | é o único sinal visível de bloqueio enquanto não houver link Predecessor/Sucessor |
+| Plataforma como campo do `TL-xx` | derivar a plataforma do título em prosa | tag não pode depender de parsing de título |
