@@ -59,6 +59,11 @@ Boards é uma User Story igual a qualquer outra.**
 A faceta plataforma tem valor próprio, porque a skill é taxativa em nunca agrupar web e mobile no
 mesmo item de design: quem trabalha com tela precisa perguntar "o que está pendente de design em web".
 
+E o item de design carrega um segundo problema, que a tag não resolve: **o bloqueio que ele representa
+também é invisível no Boards.** `Depende de` / `Bloqueia` é texto na `Description`, não relação. Por
+isso este design trata as duas coisas — a tag marca natureza, o link Predecessor/Sucessor cria a
+relação — e não usa uma para fingir a outra.
+
 Já a spec de negócio é o caso em que o mesmo raciocínio leva a uma conclusão diferente — ver
 "Classificação do pedido não vira tag", em Fora de escopo.
 
@@ -67,8 +72,9 @@ Já a spec de negócio é o caso em que o mesmo raciocínio leva a uma conclusã
 - O backlog Markdown passa a declarar tags por item, e as publicadoras as enviam em `System.Tags`.
 - Um débito publicado carrega `debito-tecnico`, sua faixa de priorização e, quando houver, a Demanda
   que o revelou — tudo filtrável por query e por Analytics, sem customizar o processo.
-- Um item de design carrega `design-ux-ui` e a plataforma; o item funcional que ele bloqueia carrega
-  `depende-de-design`.
+- Um item de design carrega `design-ux-ui` e a plataforma.
+- `Depende de` deixa de ser texto solto na `Description` e vira dependência estruturada, publicada
+  como link Predecessor/Sucessor no Azure Boards.
 - `dn-<id>` deixa de ser exclusivo do débito e marca todo item nascido de uma Demanda, de modo que "o
   que a DN-14125 gerou de trabalho" seja uma query em vez de uma navegação pela árvore.
 - O documento de débitos vira spec de entrada legítima do `gerar-backlog-azure-boards`, produzindo um
@@ -91,10 +97,10 @@ Já a spec de negócio é o caso em que o mesmo raciocínio leva a uma conclusã
 - **Tag por spec de origem** (ex.: `spec-emissao-convites`). Rastreabilidade mais fina que `dn-<id>`
   quando uma Demanda gera várias specs, mas o vocabulário cresceria a cada spec e sujaria o
   autocompletar de tags do projeto.
-- **Link Predecessor/Sucessor no Azure Boards.** `Depende de` / `Bloqueia` segue sendo texto
-  informativo na `Description`; o contrato já o declara responsabilidade de uma etapa de publicação
-  futura. A tag `depende-de-design` é paliativo explícito, não substituto: marca natureza, não cria
-  relação. Ver "Riscos conhecidos".
+- **Tag `depende-de-design`.** Considerada e descartada. A justificativa dela era ser o único sinal
+  visível de bloqueio; com o link Predecessor publicado, o sinal existe, é preciso — aponta *qual*
+  item bloqueia, coisa que a tag não fazia — e não envelhece, porque fecha junto com o item de
+  design. Uma tag que continuasse afirmando bloqueio depois do design entregue seria pior que nada.
 - **Gherkin para débitos.** A skill de débitos continua produzindo critérios em bullets; ver
   "Critérios de aceite" abaixo.
 - **Consulta anti-duplicidade de Epic/Feature via MCP.** Continua adiada desde 2026-09-12. Ver
@@ -150,7 +156,6 @@ Definido pelas skills, não pelo contrato. Para o publicador, tag é string opac
 | `dt-restricao` / `dt-candidato` / `dt-a-confirmar` | `especificar-debitos-tecnicos` | exatamente uma, espelhando `faixa()` |
 | `design-ux-ui` | `especificar-telas-ux-ui` | item de design originado de um TL |
 | `plataforma-web` / `plataforma-mobile` | `especificar-telas-ux-ui` | exatamente uma, no item de design |
-| `depende-de-design` | `especificar-telas-ux-ui` | item funcional que declara `Depende de` |
 | `dn-<id>` | qualquer origem | todo item nascido de uma Demanda |
 
 **Só em item de folha.** Epic e Feature são contêineres de capacidade compartilhados entre origens;
@@ -167,17 +172,14 @@ Uma tag não pode depender de um dado que o template não garante.
   (`**Plataforma:** <Web | Mobile>`) e no título em prosa do `TL-xx` ("com a plataforma no nome").
   Derivar tag de título é frágil; o item precisa de um campo próprio.
 
-### Tags que envelhecem
+### A faixa envelhece
 
-Duas do vocabulário são snapshots do momento da geração, e nenhuma se corrige sozinha depois de
-publicada:
+`dt-<faixa>` é um snapshot do momento da geração e não se corrige sozinha depois de publicada: uma
+reavaliação que mova o DT-03 de `a-confirmar` para `restricao` não atualiza o work item já criado. A
+skill de débitos precisa dizer isso, senão alguém lê a tag como verdade corrente seis meses depois.
 
-- **A faixa.** Uma reavaliação que mova o DT-03 de `a-confirmar` para `restricao` não atualiza o work
-  item já publicado.
-- **`depende-de-design`.** Quando o design for entregue, a tag continua lá afirmando um bloqueio que
-  já não existe, a menos que alguém a remova à mão.
-
-As skills precisam dizer isso, senão alguém lê a tag como verdade corrente seis meses depois.
+É o único caso no vocabulário. `debito-tecnico`, `design-ux-ui`, a plataforma e `dn-<id>` afirmam
+origem, e origem não muda.
 
 ## Hierarquia do backlog de débitos
 
@@ -225,15 +227,76 @@ A consequência é visível e aceita: **um débito publicado chega ao Azure Boar
 preenchido.** A alternativa — fazer a skill de débitos produzir Gherkin — é mais trabalho e está fora
 do que se pediu.
 
+## Dependência estruturada e link Predecessor/Sucessor
+
+Hoje `Depende de` / `Bloqueia` é texto informativo dentro da `Description`, e o contrato o declara
+responsabilidade de "uma etapa de publicação futura". Esta é a etapa.
+
+### O campo
+
+`Depende de` vira subseção estruturada do item, como `Parent`: uma ou mais chaves documentais, sem o
+que não há o que ordenar nem o que vincular. **Vale entre quaisquer dois itens de folha** — o fluxo de
+telas é apenas o primeiro a usar. Mesmo princípio do campo `Tags`: o contrato define o mecanismo, a
+skill define quando emitir.
+
+`Bloqueia` permanece documental. É a inversa do mesmo link, e publicar os dois duplicaria a relação.
+
+### O problema é ordem, não API
+
+`_ORDEM_TIPOS` põe `User Story` e `Bug` ambos em 2 e desempata pela chave. O item funcional `1.1.1` e
+o item de design `1.1.2` são irmãos sob a mesma Feature, então o funcional é criado **antes** do
+design de que depende, e na hora de criá-lo o ID do design ainda não existe. `Parent` nunca teve esse
+problema porque o pai sempre vem antes por tipo.
+
+**A solução é ordenação topológica estável no planejador**, e não uma segunda passada de vinculação.
+O predecessor passa a ser criado antes, e o link entra no payload de criação do dependente, exatamente
+como `Parent` já entra. Nenhuma operação nova, nenhuma mudança na forma do manifesto.
+
+A segunda passada foi recusada por desproporção: o publicador passaria a ter uma operação que não é
+criação, e isso contamina manifesto, autorização, retomada e idempotência — todos construídos em cima
+de "só criamos".
+
+Entre rodadas o mecanismo já funciona: `executar_publicacao` mantém `registros`, lido do manifesto no
+início, mapeando chave documental para ID criado. Um predecessor criado numa rodada anterior tem ID
+disponível na seguinte, do mesmo modo que um pai tem.
+
+### Compatibilidade da ordem
+
+Uma ordenação topológica **estável** sobre um grafo sem arestas devolve a ordem de hoje, item por
+item. Backlog sem `Depende de` produz a mesma sequência, logo o mesmo hash, logo a retomada
+preservada — a mesma propriedade decidida para as tags, pelo mesmo motivo.
+
+### Recusas do planejador
+
+Com o mecanismo genérico, o ciclo deixa de ser impossível por construção — no par bipartido
+design/funcional ele não podia existir; entre duas histórias funcionais, pode. O planejador recusa,
+nomeando as chaves envolvidas:
+
+- ciclo de dependência;
+- `Depende de` apontando para chave inexistente;
+- `Depende de` apontando para item que não é folha.
+
+### Direção do link
+
+No item dependente entra `System.LinkTypes.Dependency-Reverse` apontando para o predecessor — "o alvo
+é meu predecessor", mesma convenção do `Hierarchy-Reverse` que o filho já usa para apontar o pai.
+
+**Inverter a direção é o erro clássico aqui e passa despercebido em teste de caminho feliz**, porque a
+relação aparece nos dois work items de qualquer forma — só que trocada. A implementação confirma os
+nomes contra a API antes de fechar, e o teste afirma a direção, não apenas a existência do link.
+
 ## Compatibilidade
 
 Um campo novo no item muda o hash do plano, e manifesto com hash divergente recusa retomar. Uma
 publicação interrompida no meio exigiria reconciliação manual item a item.
 
-**A chave `tags` só entra no dict serializado por `_calcular_hash` quando a tupla não é vazia.**
-Backlog sem tags produz exatamente o hash de hoje, e toda publicação parcial em andamento retoma
-normalmente. A assimetria precisa de comentário no código explicando o porquê — sem ele, alguém a
-"limpa" numa refatoração futura e quebra a retomada sem perceber.
+**As chaves `tags` e `depende_de` só entram no dict serializado por `_calcular_hash` quando não são
+vazias.** Backlog sem tags e sem dependências produz exatamente o hash de hoje, e toda publicação
+parcial em andamento retoma normalmente. A assimetria precisa de comentário no código explicando o
+porquê — sem ele, alguém a "limpa" numa refatoração futura e quebra a retomada sem perceber.
+
+A ordenação topológica estável tem a mesma propriedade, pelo mesmo motivo, e o teste que a protege é
+o mesmo: um backlog sem os campos novos precisa produzir o hash anterior, byte a byte.
 
 ## Alcance da mudança
 
@@ -244,18 +307,19 @@ são gêmeos.
 
 | Arquivo | Mudança |
 |---|---|
-| `contrato_backlog.py` | `Tags` em `SECTION_NAMES`; parsing com trim, dedup e as recusas de formato |
-| `interpretar_markdown.py` | `Tags` em `_SECOES`; `_converter_item` preenche o campo novo |
-| `modelos.py` | `ItemBacklog` e `OperacaoCriacao` ganham `tags: tuple[str, ...] = ()` — tupla porque os dataclasses são `frozen` |
-| `planejar_publicacao.py` | `_criar_operacao` propaga; `_calcular_hash` inclui `"tags"` só quando não vazia, com comentário |
-| `cliente_azure_devops.py` | `op: add` em `/fields/System.Tags`, valores unidos por `"; "`, apenas quando há tags |
+| `contrato_backlog.py` | `Tags` e `Depende de` em `SECTION_NAMES`; parsing com trim, dedup e as recusas de formato; validação de ciclo, chave inexistente e dependência para não-folha |
+| `interpretar_markdown.py` | `Tags` e `Depende de` em `_SECOES`; `_converter_item` preenche os campos novos |
+| `modelos.py` | `ItemBacklog` e `OperacaoCriacao` ganham `tags: tuple[str, ...] = ()` e `depende_de: tuple[str, ...] = ()` — tuplas porque os dataclasses são `frozen` |
+| `planejar_publicacao.py` | ordenação topológica estável substituindo o `sorted` atual; `_criar_operacao` propaga; `_calcular_hash` inclui `"tags"` e `"depende_de"` só quando não vazias, com comentário |
+| `executar_publicacao.py` | resolve os IDs dos predecessores em `registros`, como já faz com `chave_pai` |
+| `cliente_azure_devops.py` | `op: add` em `/fields/System.Tags` unido por `"; "`; uma relação `System.LinkTypes.Dependency-Reverse` por predecessor, ambos apenas quando há conteúdo |
 
 ### Skills
 
 | Arquivo | Mudança |
 |---|---|
-| `gerar-backlog-azure-boards/references/backlog-markdown-contract.md` | seção `Tags`: formato, regras, posição no template, mapeamento para `System.Tags` |
-| `gerar-backlog-azure-boards/SKILL.md` | reconhece `Spec: Débitos técnicos` como spec de entrada; emite todo o vocabulário nos itens de folha, incluindo `dn-<id>` em qualquer origem e `depende-de-design` no item funcional bloqueado; Epic/Feature por capacidade e sem tags |
+| `gerar-backlog-azure-boards/references/backlog-markdown-contract.md` | seção `Tags`: formato, regras, posição no template, mapeamento para `System.Tags`. `Depende de` promovido de texto na `Description` a subseção estruturada, com o mapeamento para o link e a nota de que `Bloqueia` permanece documental |
+| `gerar-backlog-azure-boards/SKILL.md` | reconhece `Spec: Débitos técnicos` como spec de entrada; emite todo o vocabulário nos itens de folha, incluindo `dn-<id>` em qualquer origem; serializa `Depende de` como subseção estruturada em vez de texto na `Description`; Epic/Feature por capacidade e sem tags |
 | `especificar-debitos-tecnicos/SKILL.md` | `Faixa` como campo oficial; `## Fonte da Demanda`; nota da tag que envelhece |
 | `especificar-telas-ux-ui/SKILL.md` | plataforma como campo estruturado por `TL-xx`, não só no cabeçalho e no título em prosa |
 
@@ -267,6 +331,13 @@ são gêmeos.
 - Hash: backlog sem tags mantém o hash anterior (é o teste que protege a retomada); backlog com tags
   muda o hash.
 - Payload: `System.Tags` ausente sem tags, presente e unido por `"; "` com tags.
+- Ordenação: sem dependências, a sequência é idêntica à atual; com dependências, o predecessor
+  precede o dependente, inclusive quando a chave do predecessor é maior.
+- Recusas do planejador: ciclo (inclusive de três itens), chave inexistente, dependência para
+  não-folha — cada erro nomeando as chaves.
+- Link: a relação é `Dependency-Reverse` **no item dependente apontando para o predecessor**. O teste
+  afirma a direção, não só a existência — uma inversão passa num teste que só conte relações.
+- Predecessor criado em rodada anterior: o ID vem de `registros` e o link se forma na retomada.
 - Validação estrutural agregando os erros novos junto dos existentes.
 
 O vocabulário é regra de skill, não de código: nenhum teste do publicador conhece `debito-tecnico` ou
@@ -281,11 +352,10 @@ pode recriar a capacidade. Não é problema novo que o débito introduza — é 
 sobre uma capacidade já publicada — e a consulta anti-duplicidade via MCP segue adiada desde
 2026-09-12. Fica registrado, não resolvido aqui.
 
-**`depende-de-design` é paliativo, e paliativo envelhece.** O bloqueio real continua invisível no
-Boards: `Depende de` / `Bloqueia` não vira link Predecessor/Sucessor, e a tag não aponta para *qual*
-item de design bloqueia — só afirma que existe um. Além disso ela não se apaga quando o design é
-entregue. A correção de verdade é criar a relação formal na publicação, e isso merece trabalho
-próprio.
+**Backlogs antigos com `Depende de` em prosa.** O campo nasceu como texto dentro da `Description` e
+continua válido ali — a subseção estruturada é opcional, e um backlog anterior não passa a ser
+inválido. Mas ele também não ganha link: só a subseção gera relação. Nenhuma migração automática é
+tentada, porque adivinhar chaves em prosa para criar relação no Boards erraria em silêncio.
 
 **`demanda_id` sem checagem cruzada.** `publicar-backlog-demanda-azure-boards` toma o ID de
 `AZURE_DEVOPS_DEMANDA` ou de pergunta interativa e não confere contra o `Demanda de Negócio de origem`
@@ -309,5 +379,9 @@ escopo deste trabalho, merece correção própria.
 | `dn-<id>` em todo item de Demanda | `dn-<id>` só no débito | a rastreabilidade por query vale para qualquer origem, não só para débito |
 | Classificação do pedido fora do vocabulário | tag `defeito` / `melhoria` / `outro` | herdaria no item o metadado único da spec, e discordaria do tipo do work item |
 | `dn-<id>` em vez de tag por spec | `spec-<slug>` por origem | vocabulário aberto, crescendo a cada spec |
-| `depende-de-design` no item funcional | só etiquetar o item de design | é o único sinal visível de bloqueio enquanto não houver link Predecessor/Sucessor |
 | Plataforma como campo do `TL-xx` | derivar a plataforma do título em prosa | tag não pode depender de parsing de título |
+| Link Predecessor/Sucessor no escopo | adiar como etapa futura | a tag seria paliativo que envelhece; o link é preciso e fecha junto com o item |
+| Ordenação topológica estável | segunda passada de vinculação | evita uma operação que não é criação, que contaminaria manifesto, autorização e retomada |
+| `Depende de` genérico entre folhas | restrito ao par design/funcional | o contrato define o mecanismo, a skill define quando emitir — como no campo `Tags` |
+| `Bloqueia` permanece documental | publicar os dois sentidos | é a inversa do mesmo link; duplicaria a relação |
+| Sem tag `depende-de-design` | link e tag juntos | o link já dá o sinal, aponta qual item bloqueia e não envelhece |
