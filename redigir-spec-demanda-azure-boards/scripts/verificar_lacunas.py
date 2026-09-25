@@ -1,7 +1,10 @@
 """Verifica se lacunas de negócio vazaram vocabulário técnico.
 
-A regra de tradução exige que uma pergunta destinada à área de negócio não cite arquivo, classe,
-método, campo, enum, número de linha ou variável. A evidência `caminho:linha` continua na spec, em
+A regra de tradução, escrita por extenso em `SKILL.md`, proíbe citar arquivo, classe, método, campo,
+enum, número de linha ou variável numa pergunta de negócio. Este verificador cobre o subconjunto
+automatizável dessa regra: caminho de arquivo, número de linha, chamada de método e identificador
+pontuado. Nome escrito sem pontuação — `prazoVigente`, `DemandaValorEsperado`, `EM_ANALISE` — passa
+limpo aqui e continua dependendo de revisão humana. A evidência `caminho:linha` continua na spec, em
 comentário, mas fora do corpo da pergunta.
 
 Uso:
@@ -20,9 +23,12 @@ CABECALHO = re.compile(
     r"^- \*\*(?P<id>[NT]\d+) · (?P<audiencia>Negócio|Técnico)\*\* — (?P<inicio>.*)$"
 )
 EVIDENCIA = re.compile(r"<!--.*?-->", re.DOTALL)
-NOVO_BLOCO = re.compile(r"^(?:- |#)")
+NOVO_BLOCO = re.compile(r"^(?:[-*+] |\d+\. |#|>|\||---)")
+SECAO_LACUNAS = "## Lacunas e perguntas abertas"
 
 EXTENSOES = "java|ts|tsx|js|jsx|dart|py|kt|swift|cs|rb|go|php|vue|html|scss|css|sql|xml|ya?ml|json"
+# A ordem importa: `verificar` para no primeiro padrão que casa, então é esta sequência que
+# decide qual nome sai em `Violacao.padrao`. Reordenar a tupla muda a saída do verificador.
 PADROES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("caminho-de-arquivo", re.compile(rf"[\w/.\-]+\.({EXTENSOES})\b")),
     ("numero-de-linha", re.compile(r"(?<!\d):\d+(?:-\d+)?\b")),
@@ -117,9 +123,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"erro: {erro}", file=sys.stderr)
         return 2
 
+    lacunas = extrair_lacunas(texto)
     violacoes = verificar(texto)
     if not violacoes:
-        print("Nenhum vazamento de vocabulário técnico em lacunas de negócio.")
+        if not lacunas and SECAO_LACUNAS in texto:
+            print(
+                f"aviso: a seção '{SECAO_LACUNAS}' existe, mas nenhuma lacuna rotulada foi "
+                "reconhecida. Spec sem rótulos de audiência não é violação; se você esperava "
+                "rótulos, confira o formato `- **N1 · Negócio** — `.",
+                file=sys.stderr,
+            )
+        print(f"{len(lacunas)} lacunas rotuladas verificadas, nenhum vazamento.")
         return 0
 
     for violacao in violacoes:

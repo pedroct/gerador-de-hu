@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 RAIZ_SKILL = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ_SKILL / "scripts"))
 
@@ -38,7 +40,9 @@ def test_spec_limpa_nao_gera_violacao() -> None:
 
 def test_lacuna_tecnica_pode_citar_codigo() -> None:
     """A regra de tradução vale só para `Negócio`; o dev precisa da citação."""
-    assert all(v.lacuna.audiencia != "Técnico" for v in verificar(SPEC))
+    tecnica = [lacuna for lacuna in extrair_lacunas(SPEC) if lacuna.audiencia == "Técnico"]
+    assert len(tecnica) == 1 and ".java" in tecnica[0].pergunta
+    assert verificar(SPEC) == []
 
 
 def test_caminho_de_arquivo_em_pergunta_de_negocio_viola() -> None:
@@ -126,3 +130,55 @@ def test_item_seguinte_sem_indentacao_nao_e_continuacao() -> None:
     assert len(lacunas) == 1
     assert lacunas[0].pergunta == "Uma pergunta limpa sobre o prazo?"
     assert verificar(texto) == []
+
+
+def test_cli_relata_quantas_lacunas_rotuladas_verificou(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Verde mudo não distingue spec limpa de formato que o extrator não reconheceu."""
+    spec = tmp_path / "spec.md"
+    spec.write_text(SPEC, encoding="utf-8")
+    assert main([str(spec)]) == 0
+    assert "2 lacunas rotuladas verificadas, nenhum vazamento." in capsys.readouterr().out
+
+
+def test_cli_avisa_quando_a_secao_existe_e_nenhuma_lacuna_foi_reconhecida(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Deriva tipográfica no rótulo produzia saída idêntica à de uma spec limpa."""
+    spec = tmp_path / "spec.md"
+    spec.write_text(
+        "## Lacunas e perguntas abertas\n\n- **N1 . Negócio** - Qual data ancora o prazo?\n",
+        encoding="utf-8",
+    )
+    assert main([str(spec)]) == 0
+    capturado = capsys.readouterr()
+    assert "nenhuma lacuna rotulada foi reconhecida" in capturado.err
+    assert "0 lacunas rotuladas verificadas, nenhum vazamento." in capturado.out
+
+
+def test_spec_sem_a_secao_de_lacunas_nao_gera_aviso(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """O aviso é sobre a seção presente e vazia, não sobre qualquer arquivo sem lacunas."""
+    spec = tmp_path / "spec.md"
+    spec.write_text("# Spec: Exemplo\n\n## Escopo\nItem único.\n", encoding="utf-8")
+    assert main([str(spec)]) == 0
+    assert capsys.readouterr().err == ""
+
+
+def test_marcador_de_bloco_fecha_a_lacuna_anterior() -> None:
+    """Absorvido, o vazamento do vizinho sairia com o identificador da lacuna errada."""
+    for vizinho in (
+        "| Afirmação | X.java:12 |",
+        "* Item solto citando X.java:12",
+        "+ Item solto citando X.java:12",
+        "1. Item solto citando X.java:12",
+        "> Nota citando X.java:12",
+        "---",
+    ):
+        texto = f"- **N13 · Negócio** — Uma pergunta limpa sobre o prazo?\n{vizinho}\n"
+        lacunas = extrair_lacunas(texto)
+        assert len(lacunas) == 1, vizinho
+        assert lacunas[0].pergunta == "Uma pergunta limpa sobre o prazo?", vizinho
+        assert verificar(texto) == [], vizinho
