@@ -1,6 +1,6 @@
 ---
 name: entrevistar-lacunas-requisito
-description: Use quando uma spec possui a seção aberta "Lacunas e perguntas abertas" e essas lacunas precisam ser fechadas por entrevista em rodadas, registrando adiamentos explícitos em vez de deixar decisões silenciosas.
+description: Use quando uma spec possui a seção aberta "Lacunas e perguntas abertas" e essas lacunas precisam ser fechadas por entrevista em rodadas, registrando adiamentos explícitos em vez de deixar decisões silenciosas. Aceita um escopo de audiência para separar o refinamento de negócio do técnico.
 license: See NOTICE.md — adapts the round/frontier interview mechanism from mattpocock/skills (grilling), MIT licensed.
 ---
 
@@ -9,10 +9,11 @@ license: See NOTICE.md — adapts the round/frontier interview mechanism from ma
 ## Objetivo
 
 Fechar, por entrevista com o usuário, a seção `## Lacunas e perguntas abertas` de uma spec já escrita —
-tipicamente produzida por `redigir-spec-pedido-negocio` — perguntando em rodadas até não
-sobrar nada em aberto ou até o usuário adiar explicitamente um item. O mecanismo de rodada/fronteira
-usado aqui é adaptado, com atribuição MIT completa em [NOTICE.md](NOTICE.md), da skill `grilling` do
-repositório [`mattpocock/skills`](https://github.com/mattpocock/skills/tree/main/skills/productivity/grilling)
+tipicamente produzida por `redigir-spec-demanda-azure-boards` ou `redigir-spec-pedido-negocio` —
+perguntando em rodadas até não sobrar nada em aberto ou até o usuário adiar explicitamente um item. O
+mecanismo de rodada/fronteira usado aqui é adaptado, com atribuição MIT completa em
+[NOTICE.md](NOTICE.md), da skill `grilling` do repositório
+[`mattpocock/skills`](https://github.com/mattpocock/skills/tree/main/skills/productivity/grilling)
 — o conteúdo abaixo foi reescrito para um escopo mais estreito, não traduzido literalmente.
 
 ## Escopo
@@ -23,9 +24,17 @@ arquitetura em aberto; isso continua sendo papel de `superpowers:brainstorming` 
 
 ## Fluxo
 
-1. **Leia a spec** e mapeie cada item de `## Lacunas e perguntas abertas` como um nó independente.
+1. **Leia a spec** e mapeie cada item de `## Lacunas e perguntas abertas` como um nó independente. Uma
+   lacuna pode vir rotulada no formato `- **N3 · Negócio** — <pergunta>`, onde a letra do ID e o rótulo
+   indicam a audiência. **Spec sem rótulos de audiência é o caso normal de specs antigas: pergunte
+   todas as lacunas, exatamente como antes.** O escopo é um filtro opcional, nunca um requisito de
+   formato.
 2. **Calcule a fronteira**: os itens que já podem ser perguntados agora, sem depender da resposta de
-   outro item ainda em aberto na mesma lista.
+   outro item ainda em aberto na mesma lista. Se o usuário informou um escopo (`negócio` ou `técnico`),
+   ele **compõe com a fronteira** em vez de substituí-la: uma lacuna `Técnico` que depende de uma
+   `Negócio` ainda aberta fica fora da fronteira mesmo na rodada técnica. Relate o que ficou bloqueado
+   em vez de forçar uma resposta prematura. Na rodada de escopo `negócio`, o material de leitura do
+   usuário é `negocio.md`; as decisões, porém, são sempre gravadas em `spec.md`.
 3. **Pergunte a fronteira inteira em uma única rodada**, no formato:
 
    ```text
@@ -45,7 +54,12 @@ arquitetura em aberto; isso continua sendo papel de `superpowers:brainstorming` 
      `Classificação`, etc.), com a lacuna correspondente removida de `## Lacunas e perguntas abertas`;
      ou
    - se o usuário adiar explicitamente, permanece registrada em `## Lacunas e perguntas abertas` como
-     decisão consciente de adiamento — nunca apagada como se tivesse sido respondida.
+     decisão consciente de adiamento — nunca apagada como se tivesse sido respondida; ou
+   - se a resposta criar uma decisão que ainda não existia, **registrar uma lacuna nova** em
+     `## Lacunas e perguntas abertas`, com ID e audiência próprios, citando a lacuna que a originou.
+     Decidir *"a diligência deve expirar sozinha"* cria *"como a rotina de expiração é disparada"*, que
+     é da outra rodada. Sem isso, decisões de negócio gerariam trabalho técnico invisível, descoberto
+     só na implementação.
 5. **Recalcule a fronteira** com o que foi decidido nesta rodada e repita a partir do passo 3.
 6. **Pare** quando a fronteira ficar vazia — nada mais dependia de decisão do usuário — ou quando o
    usuário disser explicitamente para parar.
@@ -61,3 +75,5 @@ arquitetura em aberto; isso continua sendo papel de `superpowers:brainstorming` 
   tratado como falha da entrevista nem como lacuna esquecida.
 - Não desenhe planos, features ou arquitetura em aberto; isso continua sendo papel de
   `superpowers:brainstorming`.
+- Não reclassifique a audiência de uma lacuna existente para encaixá-la na rodada atual. Se o rótulo
+  estiver errado, diga isso ao usuário e siga adiante sem perguntá-la.

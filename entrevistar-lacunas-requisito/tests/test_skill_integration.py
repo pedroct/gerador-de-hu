@@ -4,6 +4,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def sem_quebras(texto: str) -> str:
+    """Normaliza o reflow do Markdown para a asserção não quebrar ao reformatar o parágrafo."""
+    return " ".join(texto.split())
+
+
 class InterviewingSkillIsolationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -96,6 +101,37 @@ class InterviewingSkillIsolationTests(unittest.TestCase):
         self.assertIn(
             "https://github.com/mattpocock/skills/tree/main/skills/productivity/grilling",
             self.notice,
+        )
+
+    def test_escopo_filtra_por_audiencia(self):
+        self.assertIn("escopo", self.interviewing)
+        self.assertIn("Negócio", self.interviewing)
+        self.assertIn("Técnico", self.interviewing)
+
+    def test_escopo_compoe_com_a_fronteira_em_vez_de_substitui_la(self):
+        """Sem isso, a rodada técnica perguntaria algo que depende de decisão de negócio aberta."""
+        texto = sem_quebras(self.interviewing)
+        self.assertIn("compõe com a fronteira", texto)
+        self.assertIn("fica fora da fronteira", texto)
+
+    def test_spec_sem_rotulos_pergunta_tudo(self):
+        """Toda spec já escrita não tem rótulos; o escopo é filtro opcional, não requisito de
+        formato."""
+        texto = sem_quebras(self.interviewing)
+        self.assertIn("Spec sem rótulos de audiência", texto)
+        self.assertIn("pergunte todas as lacunas", texto)
+
+    def test_resposta_pode_criar_lacuna_nova(self):
+        """Decisão de negócio que gera trabalho técnico não pode virar descoberta na
+        implementação."""
+        texto = sem_quebras(self.interviewing)
+        self.assertIn("registrar uma lacuna nova", texto)
+
+    def test_description_nao_fixa_uma_unica_skill_de_origem(self):
+        frontmatter = self.interviewing[: self.interviewing.index("---", 4)]
+        self.assertTrue(
+            "redigir-spec-demanda-azure-boards" in frontmatter
+            or ("tipicamente produzida por `redigir-spec-pedido-negocio`" not in self.interviewing)
         )
 
 
