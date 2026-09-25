@@ -75,6 +75,10 @@ Já a spec de negócio é o caso em que o mesmo raciocínio leva a uma conclusã
 - Um item de design carrega `design-ux-ui` e a plataforma.
 - `Depende de` deixa de ser texto solto na `Description` e vira dependência estruturada, publicada
   como link Predecessor/Sucessor no Azure Boards.
+- Um Epic ou Feature de capacidade já publicado deixa de ser recriado: o backlog declara o ID
+  existente e o publicador pendura os filhos nele.
+- A publicadora de Demanda recusa publicar quando o `demanda_id` informado diverge do que o backlog
+  declara, antes de qualquer escrita.
 - `dn-<id>` deixa de ser exclusivo do débito e marca todo item nascido de uma Demanda, de modo que "o
   que a DN-14125 gerou de trabalho" seja uma query em vez de uma navegação pela árvore.
 - O documento de débitos vira spec de entrada legítima do `gerar-backlog-azure-boards`, produzindo um
@@ -103,10 +107,14 @@ Já a spec de negócio é o caso em que o mesmo raciocínio leva a uma conclusã
   design. Uma tag que continuasse afirmando bloqueio depois do design entregue seria pior que nada.
 - **Gherkin para débitos.** A skill de débitos continua produzindo critérios em bullets; ver
   "Critérios de aceite" abaixo.
-- **Consulta anti-duplicidade de Epic/Feature via MCP.** Continua adiada desde 2026-09-12. Ver
-  "Riscos conhecidos".
-- **Checagem cruzada entre o `demanda_id` do publicador e o backlog.** Lacuna real encontrada durante
-  o desenho, mas independente deste trabalho. Ver "Riscos conhecidos".
+- **Descoberta automática do Epic/Feature já publicado.** O publicador não consulta o Boards para
+  achar a capacidade: ele obedece ao ID declarado no documento. Automatizar a descoberta — propor o ID
+  durante a geração do backlog — é trabalho do `gerar-backlog`, e fica para depois. Ver "Item já
+  publicado no Azure Boards".
+- **Busca por título como anti-duplicidade.** Estruturalmente inviável: o título remoto é
+  `{data_geracao} {chave} {titulo_curto}`, então a mesma capacidade publicada a partir de dois
+  backlogs tem títulos diferentes por construção, e dois títulos curtos iguais podem ser capacidades
+  distintas. Erraria nos dois sentidos.
 
 ## O campo `Tags` no contrato do backlog
 
@@ -285,13 +293,69 @@ No item dependente entra `System.LinkTypes.Dependency-Reverse` apontando para o 
 relação aparece nos dois work items de qualquer forma — só que trocada. A implementação confirma os
 nomes contra a API antes de fechar, e o teste afirma a direção, não apenas a existência do link.
 
+## Item já publicado no Azure Boards
+
+A hierarquia é por capacidade e a capacidade é durável, então a segunda rodada sobre o mesmo fluxo
+encontra o Epic — e às vezes a Feature — já no Boards. Hoje o publicador os recriaria, porque só sabe
+pendurar um item em outro criado por ele.
+
+### O campo
+
+Epic e Feature ganham uma subseção opcional com o ID do work item existente. Quando ela está presente,
+**o publicador não cria o item**: ele apenas resolve os filhos para aquele ID.
+
+Este é o único lugar do backlog em que um ID real do Azure Boards aparece, e a proibição geral do
+contrato continua valendo em volta dele: o ID é **copiado do Boards**, nunca inferido, nunca derivado
+da chave documental, nunca do nome da pasta.
+
+Não vale em item de folha. O caso de uso é reaproveitar contêiner de capacidade; permitir numa
+História abriria caminho para encobrir problema de manifesto declarando um ID à mão.
+
+### Validações
+
+- **Ancestral também declarado.** Uma Feature com ID existente exige que seu Epic também tenha ID
+  declarado — não existe Feature publicada sob um Epic que ainda será criado.
+- **O item existe e é do tipo esperado.** O publicador confere antes de pendurar qualquer filho, como
+  `leitor_demanda` já faz com o work item da Demanda. Pendurar épicos sob um ID errado é caro de
+  desfazer, e um ID digitado com um dígito a menos aponta para outro work item qualquer.
+
+### Manifesto
+
+A chave documental passa a poder mapear para um ID **não criado por esta ferramenta**. O registro
+precisa ser distinguível: nunca contado como criação, nunca elegível para reconciliação, e nunca
+apagado por uma retomada. Sem essa distinção, o manifesto passaria a afirmar que criamos algo que já
+existia.
+
+## Checagem cruzada do `demanda_id`
+
+`publicar-backlog-demanda-azure-boards` toma o ID de `AZURE_DEVOPS_DEMANDA` ou de pergunta interativa
+e nunca o confere contra o `Demanda de Negócio de origem` escrito no backlog. Os Épicos penduram na
+Demanda digitada, certa ou errada, em silêncio.
+
+`extrair_demanda_origem` lê o metadado como `extrair_data_geracao` já lê a data, e a publicadora de
+Demanda **recusa antes de qualquer escrita**, nomeando os dois valores, quando:
+
+- o ID informado diverge do declarado no backlog;
+- o backlog declara `Não se aplica` — esse backlog não nasceu de uma Demanda, e não é essa a
+  publicadora dele.
+
+Sem flag de sobreposição. Uma flag para forçar existiria para ser usada sob pressão, e o erro que ela
+habilitaria é exatamente o que a checagem existe para impedir. Republicar sob outra Demanda é uma
+decisão que passa por corrigir o documento.
+
+### A publicadora solta não herda essa recusa
+
+Simetria seria um bug aqui. O backlog de débitos declara Demanda de origem **e** publica solto de
+propósito, pelo `Iteration Path`. Se a publicadora solta passasse a recusar backlog com Demanda
+declarada, o fluxo de débitos deixaria de funcionar no dia em que fosse implementado.
+
 ## Compatibilidade
 
 Um campo novo no item muda o hash do plano, e manifesto com hash divergente recusa retomar. Uma
 publicação interrompida no meio exigiria reconciliação manual item a item.
 
-**As chaves `tags` e `depende_de` só entram no dict serializado por `_calcular_hash` quando não são
-vazias.** Backlog sem tags e sem dependências produz exatamente o hash de hoje, e toda publicação
+**As chaves `tags`, `depende_de` e o ID declarado só entram no dict serializado por `_calcular_hash`
+quando não são vazios.** Backlog sem tags e sem dependências produz exatamente o hash de hoje, e toda publicação
 parcial em andamento retoma normalmente. A assimetria precisa de comentário no código explicando o
 porquê — sem ele, alguém a "limpa" numa refatoração futura e quebra a retomada sem perceber.
 
@@ -307,11 +371,12 @@ são gêmeos.
 
 | Arquivo | Mudança |
 |---|---|
-| `contrato_backlog.py` | `Tags` e `Depende de` em `SECTION_NAMES`; parsing com trim, dedup e as recusas de formato; validação de ciclo, chave inexistente e dependência para não-folha |
-| `interpretar_markdown.py` | `Tags` e `Depende de` em `_SECOES`; `_converter_item` preenche os campos novos |
-| `modelos.py` | `ItemBacklog` e `OperacaoCriacao` ganham `tags: tuple[str, ...] = ()` e `depende_de: tuple[str, ...] = ()` — tuplas porque os dataclasses são `frozen` |
+| `contrato_backlog.py` | `Tags`, `Depende de` e o ID existente em `SECTION_NAMES`; parsing com trim, dedup e as recusas de formato; validação de ciclo, chave inexistente, dependência para não-folha, ID em item de folha e ID sem ancestral declarado |
+| `interpretar_markdown.py` | as três seções em `_SECOES`; `_converter_item` preenche os campos novos; `extrair_demanda_origem` ao lado de `extrair_data_geracao` |
+| `modelos.py` | `ItemBacklog` e `OperacaoCriacao` ganham `tags: tuple[str, ...] = ()`, `depende_de: tuple[str, ...] = ()` e o ID existente — tuplas porque os dataclasses são `frozen` |
 | `planejar_publicacao.py` | ordenação topológica estável substituindo o `sorted` atual; `_criar_operacao` propaga; `_calcular_hash` inclui `"tags"` e `"depende_de"` só quando não vazias, com comentário |
-| `executar_publicacao.py` | resolve os IDs dos predecessores em `registros`, como já faz com `chave_pai` |
+| `executar_publicacao.py` | resolve os IDs dos predecessores em `registros`, como já faz com `chave_pai`; pré-registra os IDs declarados e pula a criação desses itens |
+| `manifesto.py` | registro distinguível para item pré-existente: nunca contado como criação nem elegível para reconciliação |
 | `cliente_azure_devops.py` | `op: add` em `/fields/System.Tags` unido por `"; "`; uma relação `System.LinkTypes.Dependency-Reverse` por predecessor, ambos apenas quando há conteúdo |
 
 ### Skills
@@ -338,6 +403,14 @@ são gêmeos.
 - Link: a relação é `Dependency-Reverse` **no item dependente apontando para o predecessor**. O teste
   afirma a direção, não só a existência — uma inversão passa num teste que só conte relações.
 - Predecessor criado em rodada anterior: o ID vem de `registros` e o link se forma na retomada.
+- ID declarado: o item não é criado, os filhos penduram nele, o manifesto o marca como pré-existente
+  e uma retomada não o recria nem o conta como criação.
+- Recusas do ID declarado: em item de folha, sem ancestral declarado, apontando para work item
+  inexistente, apontando para work item de outro tipo.
+- `demanda_id` divergente recusa antes de qualquer escrita, nomeando os dois valores; backlog com
+  `Não se aplica` recusa a publicadora de Demanda.
+- **A publicadora solta aceita backlog com Demanda declarada** — é o teste que impede alguém de
+  "corrigir" a assimetria e quebrar o fluxo de débitos.
 - Validação estrutural agregando os erros novos junto dos existentes.
 
 O vocabulário é regra de skill, não de código: nenhum teste do publicador conhece `debito-tecnico` ou
@@ -346,22 +419,15 @@ correta do vocabulário se verifica.
 
 ## Riscos conhecidos
 
-**Recriação de Epic/Feature já publicados.** A publicadora só pendura um item em outro criado na
-mesma execução; não existe caminho para pendurar em Epic já existente no Boards. Uma rodada de débito
-pode recriar a capacidade. Não é problema novo que o débito introduza — é o mesmo da segunda Demanda
-sobre uma capacidade já publicada — e a consulta anti-duplicidade via MCP segue adiada desde
-2026-09-12. Fica registrado, não resolvido aqui.
+**Achar o ID continua manual.** O publicador deixa de recriar a capacidade, mas quem monta o backlog
+ainda precisa localizar o Epic no Boards e copiar o ID. Enquanto houver poucas capacidades publicadas
+isso é aceitável; com dezenas, vira fonte de erro por digitação — mitigada pela conferência de
+existência e tipo, não eliminada. Propor o ID durante a geração do backlog é o próximo passo natural.
 
 **Backlogs antigos com `Depende de` em prosa.** O campo nasceu como texto dentro da `Description` e
 continua válido ali — a subseção estruturada é opcional, e um backlog anterior não passa a ser
 inválido. Mas ele também não ganha link: só a subseção gera relação. Nenhuma migração automática é
 tentada, porque adivinhar chaves em prosa para criar relação no Boards erraria em silêncio.
-
-**`demanda_id` sem checagem cruzada.** `publicar-backlog-demanda-azure-boards` toma o ID de
-`AZURE_DEVOPS_DEMANDA` ou de pergunta interativa e não confere contra o `Demanda de Negócio de origem`
-escrito no backlog: grep por esse rótulo no pacote inteiro devolve zero ocorrências. Os Épicos
-penduram na Demanda digitada, certa ou errada, em silêncio. Encontrado durante este desenho, fora do
-escopo deste trabalho, merece correção própria.
 
 ## Decisões registradas
 
@@ -385,3 +451,7 @@ escopo deste trabalho, merece correção própria.
 | `Depende de` genérico entre folhas | restrito ao par design/funcional | o contrato define o mecanismo, a skill define quando emitir — como no campo `Tags` |
 | `Bloqueia` permanece documental | publicar os dois sentidos | é a inversa do mesmo link; duplicaria a relação |
 | Sem tag `depende-de-design` | link e tag juntos | o link já dá o sinal, aponta qual item bloqueia e não envelhece |
+| ID existente declarado no documento | consulta automática ao Boards | o publicador obedece ao documento revisado em vez de adivinhar; e a busca por título é inviável pelo prefixo de data e chave |
+| ID existente só em Epic e Feature | permitir também em folha | o caso de uso é reaproveitar contêiner de capacidade; em folha serviria para encobrir problema de manifesto |
+| `demanda_id` divergente recusa | avisar, ou flag para forçar | pendurar épicos na Demanda errada é caro de desfazer, e a flag existiria para ser usada sob pressão |
+| Publicadora solta sem essa recusa | aplicar a checagem nas duas | o backlog de débitos declara Demanda e publica solto de propósito |
