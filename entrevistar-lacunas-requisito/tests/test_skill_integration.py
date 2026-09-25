@@ -104,7 +104,7 @@ class InterviewingSkillIsolationTests(unittest.TestCase):
         )
 
     def test_escopo_filtra_por_audiencia(self):
-        self.assertIn("escopo", self.interviewing)
+        self.assertIn("escopo de audiência", self.interviewing)
         self.assertIn("Negócio", self.interviewing)
         self.assertIn("Técnico", self.interviewing)
 
