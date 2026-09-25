@@ -20,11 +20,12 @@ CABECALHO = re.compile(
     r"^- \*\*(?P<id>[NT]\d+) · (?P<audiencia>Negócio|Técnico)\*\* — (?P<inicio>.*)$"
 )
 EVIDENCIA = re.compile(r"<!--.*?-->", re.DOTALL)
+NOVO_BLOCO = re.compile(r"^(?:- |#)")
 
 EXTENSOES = "java|ts|tsx|js|jsx|dart|py|kt|swift|cs|rb|go|php|vue|html|scss|css|sql|xml|ya?ml|json"
 PADROES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("caminho-de-arquivo", re.compile(rf"[\w/.\-]+\.({EXTENSOES})\b")),
-    ("numero-de-linha", re.compile(r":\d+(?:-\d+)?\b")),
+    ("numero-de-linha", re.compile(r"(?<!\d):\d+(?:-\d+)?\b")),
     ("chamada-de-metodo", re.compile(r"\b[A-Za-z_][\w.]*\.[a-z]\w*\s*\(")),
     ("identificador-pontuado", re.compile(r"\b[A-Z][A-Za-z0-9]*\.[A-Za-z][A-Za-z0-9]*\b")),
 )
@@ -43,6 +44,18 @@ class Violacao:
     lacuna: Lacuna
     trecho: str
     padrao: str
+
+
+def _e_continuacao(linha: str) -> bool:
+    """Diz se a linha ainda pertence ao item aberto.
+
+    Linha indentada sempre continua. Sem indentação, continua mesmo assim — continuação preguiçosa
+    é Markdown válido e renderiza dentro do item, então o que vaza nela tem de chegar ao gate —,
+    a menos que abra outro item ou um título.
+    """
+    if linha.startswith(("  ", "\t")):
+        return True
+    return bool(linha.strip()) and not NOVO_BLOCO.match(linha)
 
 
 def extrair_lacunas(texto: str) -> list[Lacuna]:
@@ -71,7 +84,7 @@ def extrair_lacunas(texto: str) -> list[Lacuna]:
             linha_inicial = numero
             corpo = [encontrado.group("inicio")]
             aberta = True
-        elif aberta and linha.startswith(("  ", "\t")):
+        elif aberta and _e_continuacao(linha):
             corpo.append(linha.strip())
         elif aberta:
             fechar()

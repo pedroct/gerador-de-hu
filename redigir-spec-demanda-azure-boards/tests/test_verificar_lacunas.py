@@ -87,3 +87,42 @@ def test_cli_devolve_0_quando_a_spec_esta_limpa(tmp_path: Path) -> None:
 def test_cli_devolve_2_para_arquivo_inexistente() -> None:
     """Arquivo ilegível é erro de uso, não violação: nem traceback, nem código 1."""
     assert main(["/caminho/que/nao/existe/spec.md"]) == 2
+
+
+def test_hora_do_dia_em_pergunta_de_negocio_nao_viola() -> None:
+    """Prazo e expiração são o domínio da skill: a hora de corte é pergunta de negócio legítima."""
+    texto = "- **N8 · Negócio** — A diligência expira às 23:59 do último dia ou na virada?\n"
+    assert verificar(texto) == []
+
+
+def test_varias_horas_na_mesma_pergunta_de_negocio_nao_violam() -> None:
+    texto = "- **N9 · Negócio** — O lembrete sai às 8:00 ou às 18:00?\n"
+    assert verificar(texto) == []
+
+
+def test_proporcao_em_pergunta_de_negocio_nao_viola() -> None:
+    texto = "- **N10 · Negócio** — A proporção de 1:3 entre urgente e comum vale ainda?\n"
+    assert verificar(texto) == []
+
+
+def test_continuacao_sem_indentacao_entra_na_pergunta() -> None:
+    """Continuação preguiçosa é Markdown válido: o que vaza nela tem de chegar ao gate."""
+    texto = (
+        "- **N11 · Negócio** — Uma pergunta que continua\n"
+        "na linha seguinte sem indentação citando X.java:12?\n"
+    )
+    assert "sem indentação" in extrair_lacunas(texto)[0].pergunta
+    assert [v.padrao for v in verificar(texto)] == ["caminho-de-arquivo"]
+
+
+def test_item_seguinte_sem_indentacao_nao_e_continuacao() -> None:
+    """A lacuna fecha no próximo item ou título; o vazamento do vizinho não migra para ela."""
+    texto = (
+        "- **N12 · Negócio** — Uma pergunta limpa sobre o prazo?\n"
+        "- Item solto citando X.java:12\n"
+        "## Outra seção\n"
+    )
+    lacunas = extrair_lacunas(texto)
+    assert len(lacunas) == 1
+    assert lacunas[0].pergunta == "Uma pergunta limpa sobre o prazo?"
+    assert verificar(texto) == []
