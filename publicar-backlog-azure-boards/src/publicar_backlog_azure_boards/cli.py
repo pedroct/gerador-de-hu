@@ -325,6 +325,11 @@ def _apresentar_plano(
     _escrever(saida, f"Itens registrados no manifesto: {registrados}\n")
     _escrever(saida, f"Por tipo remoto: {dict(contagem)}\n")
     _escrever(saida, f"Ordem: {', '.join(op.chave for op in pendentes) or 'nenhuma'}\n")
+    # Um item reaproveitado nao aparece na ordem de criacao, mas a linha de relacoes
+    # abaixo cita a chave dele. Sem esta linha, quem le a tela nao tem como saber de
+    # onde a chave veio -- e o ID que ele aprova implicitamente fica invisivel.
+    reaproveitados = ", ".join(f"{item.chave} (#{item.id})" for item in plano.preexistentes)
+    _escrever(saida, f"Itens já publicados reaproveitados: {reaproveitados or 'nenhum'}\n")
     relacoes = ", ".join(
         f"{operacao.chave} <- {operacao.chave_pai}"
         for operacao in pendentes
