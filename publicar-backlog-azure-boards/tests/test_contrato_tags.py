@@ -1,4 +1,4 @@
-from publicar_backlog_azure_boards.contrato_backlog import normalizar_tags
+from publicar_backlog_azure_boards.contrato_backlog import normalizar_tags, validate_backlog
 
 
 def test_seccao_ausente_nao_produz_tags_nem_erros() -> None:
@@ -46,3 +46,36 @@ def test_acumula_mais_de_um_erro_de_formato() -> None:
     _, erros = normalizar_tags("a;b, , c;d")
 
     assert len(erros) == 3
+
+
+BACKLOG_COM_TAGS = """# Backlog para Azure Boards
+
+## Metadados e cobertura
+- Data de geração: `2026-09-25`
+
+## 1.0.0 [Epic] Épico
+
+### Description
+Origem na spec: seção 1
+
+### Tags
+{tags}
+"""
+
+
+def test_validacao_aceita_tags_bem_formadas() -> None:
+    erros = validate_backlog(BACKLOG_COM_TAGS.format(tags="debito-tecnico, dt-restricao"))
+
+    assert not any("Tags" in erro for erro in erros)
+
+
+def test_validacao_recusa_secao_tags_presente_e_vazia() -> None:
+    erros = validate_backlog(BACKLOG_COM_TAGS.format(tags=""))
+
+    assert any("1.0.0 possui a seção Tags presente e vazia" in erro for erro in erros)
+
+
+def test_validacao_propaga_o_erro_de_formato_com_a_chave_do_item() -> None:
+    erros = validate_backlog(BACKLOG_COM_TAGS.format(tags="debito;tecnico"))
+
+    assert any(erro.startswith("1.0.0: a tag 'debito;tecnico' contém ';'") for erro in erros)

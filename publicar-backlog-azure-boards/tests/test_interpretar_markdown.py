@@ -29,6 +29,43 @@ def test_titulo_curto_fica_vazio_quando_nao_declarado():
     assert itens[0].titulo_curto == ""
 
 
+def test_le_tags_declaradas_no_item(tmp_path: Path):
+    caminho = tmp_path / "backlog.md"
+    caminho.write_text(
+        "# Backlog para Azure Boards\n\n## Metadados e cobertura\n"
+        "- Data de geração: `2026-09-25`\n\n"
+        "## 1.0.0 [Epic] Épico\n\n### Description\nTexto\n\n"
+        "### 1.1.0 [Feature] Feature\n\n#### Parent\n`1.0.0`\n\n#### Description\nTexto\n\n"
+        "#### 1.1.1 [User Story] História\n\n##### Parent\n`1.1.0`\n\n"
+        "##### Description\nTexto\n\n##### Tags\ndebito-tecnico, dt-restricao\n\n"
+        "##### Acceptance Criteria\n",
+        encoding="utf-8",
+    )
+
+    itens = interpretar_backlog(caminho)
+
+    assert itens[-1].tags == ("debito-tecnico", "dt-restricao")
+
+
+def test_item_sem_secao_tags_fica_com_tupla_vazia():
+    itens = interpretar_backlog(Path("tests/fixtures/valid-backlog.md"))
+
+    assert itens[0].tags == ()
+
+
+def test_rejeita_secao_tags_presente_e_vazia(tmp_path: Path):
+    caminho = tmp_path / "backlog.md"
+    caminho.write_text(
+        "# Backlog para Azure Boards\n\n## Metadados e cobertura\n"
+        "- Data de geração: `2026-09-25`\n\n"
+        "## 1.0.0 [Epic] Épico\n\n### Description\nTexto\n\n### Tags\n\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ErroContratoMarkdown, match="Tags"):
+        interpretar_backlog(caminho)
+
+
 def test_extrai_data_geracao_dos_metadados():
     assert extrair_data_geracao(Path("tests/fixtures/valid-backlog.md")) == "2026-09-10"
 

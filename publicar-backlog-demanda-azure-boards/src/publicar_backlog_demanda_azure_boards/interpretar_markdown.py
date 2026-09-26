@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
+from publicar_backlog_demanda_azure_boards.contrato_backlog import normalizar_tags
 from publicar_backlog_demanda_azure_boards.modelos import ItemBacklog, TipoItem
 
 _HEADING_RE = re.compile(r"^(?P<marcas>#{1,6}) (?P<conteudo>.+)$")
@@ -15,7 +16,14 @@ _ITEM_RE = re.compile(
     r"\[(?P<tipo>Epic|Feature|User Story|Bug)\] (?P<titulo>\S.*)$"
 )
 _DATA_GERACAO_RE = re.compile(r"^- Data de geração: `(\d{4}-\d{2}-\d{2})`$", re.MULTILINE)
-_SECOES = {"Parent", "Título curto", "Description", "Acceptance Criteria", "Refinement Status"}
+_SECOES = {
+    "Parent",
+    "Título curto",
+    "Description",
+    "Acceptance Criteria",
+    "Refinement Status",
+    "Tags",
+}
 _FOLHAS = {TipoItem.HISTORIA_USUARIO, TipoItem.BUG}
 
 
@@ -226,6 +234,17 @@ def _validar_criterios_aceitacao(item: _ItemEmConstrucao) -> None:
         raise ErroContratoMarkdown(f"{item.chave} possui bloco gherkin não encerrado")
 
 
+def _tags_do_item(item: _ItemEmConstrucao) -> tuple[str, ...]:
+    if "Tags" not in item.secoes:
+        return ()
+    tags, erros = normalizar_tags(item.texto_secao("Tags"))
+    if erros:
+        raise ErroContratoMarkdown(f"{item.chave}: {erros[0]}")
+    if not tags:
+        raise ErroContratoMarkdown(f"{item.chave} possui a seção Tags presente e vazia")
+    return tags
+
+
 def _converter_item(item: _ItemEmConstrucao) -> ItemBacklog:
     return ItemBacklog(
         chave=item.chave,
@@ -235,4 +254,5 @@ def _converter_item(item: _ItemEmConstrucao) -> ItemBacklog:
         descricao=item.texto_secao("Description"),
         criterios_aceitacao=item.texto_secao("Acceptance Criteria"),
         titulo_curto=item.texto_secao("Título curto"),
+        tags=_tags_do_item(item),
     )

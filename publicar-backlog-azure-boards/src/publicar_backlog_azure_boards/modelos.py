@@ -75,6 +75,7 @@ class ItemBacklog:
     descricao: str
     criterios_aceitacao: str
     titulo_curto: str = ""
+    tags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -219,6 +219,11 @@ def _validate_item(item: BacklogItem, keys: set[str]) -> list[str]:
     origin_text = item.section("Description") + "\n" + item.section(REFINEMENT_STATUS)
     if not _has_origin_reference(origin_text):
         errors.append(f"{item.key} não possui Origem na spec")
+    if TAGS in item.sections:
+        tags, erros_tags = normalizar_tags(item.section(TAGS))
+        errors.extend(f"{item.key}: {erro}" for erro in erros_tags)
+        if not tags and not erros_tags:
+            errors.append(f"{item.key} possui a seção Tags presente e vazia")
     return errors
 
 
