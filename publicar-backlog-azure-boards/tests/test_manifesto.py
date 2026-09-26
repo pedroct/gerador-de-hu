@@ -12,6 +12,7 @@ from publicar_backlog_azure_boards.manifesto import (
 )
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
+    ItemPreexistente,
     OperacaoCriacao,
     PlanoPublicacao,
     RegistroManifesto,
@@ -340,3 +341,83 @@ def test_manifesto_antigo_sem_a_marca_continua_valido(tmp_path) -> None:
     caminho.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
 
     assert ler_manifesto(caminho).itens["1.0.0"].preexistente is False
+
+
+def _plano_com_preexistente() -> PlanoPublicacao:
+    return PlanoPublicacao(
+        operacoes=(
+            OperacaoCriacao("1.1.0", TipoItem.FEATURE, "Feature", "", "", "1.0.0", "Feature"),
+        ),
+        hash_plano="hash-preexistente",
+        configuracao=CONFIGURACAO,
+        preexistentes=(ItemPreexistente("1.0.0", TipoItem.EPIC, 4721),),
+    )
+
+
+def test_validar_manifesto_aceita_segunda_rodada_com_item_preexistente_ja_registrado() -> None:
+    """A segunda rodada sobre o mesmo backlog encontra o Epic já publicado e continua.
+
+    Antes desta correção, `validar_manifesto` exigia que toda chave em `manifesto.itens`
+    estivesse em `plano.operacoes` — e um preexistente nunca está lá (a Tarefa 7a o remove
+    de propósito). Isso derrubava com ValueError qualquer segunda chamada sobre um
+    manifesto que já tivesse persistido o preexistente.
+    """
+    plano = _plano_com_preexistente()
+    manifesto = Manifesto(
+        hash_plano="hash-preexistente",
+        configuracao=CONFIGURACAO,
+        itens={
+            "1.0.0": RegistroManifesto(4721, TipoItem.EPIC, "https://exemplo/4721", True),
+            "1.1.0": RegistroManifesto(1, TipoItem.FEATURE, "https://exemplo/1.1.0"),
+        },
+        titulos={
+            "1.0.0": "(item pré-existente, Azure Boards #4721)",
+            "1.1.0": "Feature",
+        },
+    )
+
+    pendentes = validar_manifesto(manifesto, plano, CONFIGURACAO)
+
+    assert pendentes == ()
+
+
+def test_validar_manifesto_recusa_id_preexistente_alterado_entre_rodadas() -> None:
+    """Um `Azure Boards ID` editado no Markdown entre duas rodadas precisa ser detectado."""
+    plano = _plano_com_preexistente()
+    manifesto = Manifesto(
+        hash_plano="hash-preexistente",
+        configuracao=CONFIGURACAO,
+        itens={"1.0.0": RegistroManifesto(9999, TipoItem.EPIC, "https://exemplo/9999", True)},
+        titulos={"1.0.0": "(item pré-existente, Azure Boards #9999)"},
+    )
+
+    with pytest.raises(ValueError, match="1.0.0 do manifesto diverge do item pré-existente"):
+        validar_manifesto(manifesto, plano, CONFIGURACAO)
+
+
+def test_validar_manifesto_recusa_registro_nao_marcado_como_preexistente() -> None:
+    """Um manifesto adulterado à mão não pode se passar por uma criação legítima."""
+    plano = _plano_com_preexistente()
+    manifesto = Manifesto(
+        hash_plano="hash-preexistente",
+        configuracao=CONFIGURACAO,
+        itens={"1.0.0": RegistroManifesto(4721, TipoItem.EPIC, "https://exemplo/4721")},
+        titulos={"1.0.0": "(item pré-existente, Azure Boards #4721)"},
+    )
+
+    with pytest.raises(ValueError, match="1.0.0 do manifesto não está marcado como pré-existente"):
+        validar_manifesto(manifesto, plano, CONFIGURACAO)
+
+
+def test_validar_manifesto_continua_recusando_item_fora_do_backlog_completo() -> None:
+    """Não-regressão: uma chave que não é operação nem preexistente continua rejeitada."""
+    plano = _plano_com_preexistente()
+    manifesto = Manifesto(
+        hash_plano="hash-preexistente",
+        configuracao=CONFIGURACAO,
+        itens={"9.9.9": RegistroManifesto(1, TipoItem.EPIC, "https://exemplo/9")},
+        titulos={"9.9.9": "Item desconhecido"},
+    )
+
+    with pytest.raises(ValueError, match="9.9.9"):
+        validar_manifesto(manifesto, plano, CONFIGURACAO)

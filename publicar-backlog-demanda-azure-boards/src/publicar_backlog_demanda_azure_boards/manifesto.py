@@ -169,12 +169,33 @@ def validar_manifesto(
         raise ValueError("O destino do manifesto não corresponde ao plano atual.")
 
     operacoes = {operacao.chave: operacao for operacao in plano.operacoes}
+    preexistentes = {item.chave: item for item in plano.preexistentes}
     for chave, registro in manifesto.itens.items():
         operacao = operacoes.get(chave)
-        if operacao is None:
+        if operacao is not None:
+            diverge_do_backlog = (
+                registro.tipo is not operacao.tipo
+                or manifesto.titulos.get(chave) != operacao.titulo
+            )
+            if diverge_do_backlog:
+                raise ValueError(f"O item {chave} do manifesto diverge do backlog completo.")
+            continue
+        preexistente = preexistentes.get(chave)
+        if preexistente is None:
             raise ValueError(f"O item {chave} do manifesto não pertence ao backlog completo.")
-        if registro.tipo is not operacao.tipo or manifesto.titulos.get(chave) != operacao.titulo:
-            raise ValueError(f"O item {chave} do manifesto diverge do backlog completo.")
+        # O backlog declara este item como já publicado: não há operacao.titulo para comparar
+        # (o título remoto pertence a quem criou o work item, não a nós), mas o registro precisa
+        # continuar batendo com o que o backlog declara — ID, tipo e a marca de pré-existente.
+        if not registro.preexistente:
+            raise ValueError(
+                f"O item {chave} do manifesto não está marcado como pré-existente, mas o "
+                "backlog o declara como já publicado."
+            )
+        if registro.id != preexistente.id or registro.tipo is not preexistente.tipo:
+            raise ValueError(
+                f"O item {chave} do manifesto diverge do item pré-existente declarado no "
+                "backlog completo."
+            )
     return tuple(operacao for operacao in plano.operacoes if operacao.chave not in manifesto.itens)
 
 

@@ -309,3 +309,43 @@ def test_item_preexistente_nao_e_recriado_e_serve_de_pai(tmp_path) -> None:
     assert manifesto.itens["1.0.0"].id == 4721
     assert manifesto.itens["1.0.0"].preexistente is True
     assert manifesto.itens["1.1.0"].preexistente is False
+
+
+def test_segunda_rodada_sobre_manifesto_com_preexistente_nao_estoura(tmp_path) -> None:
+    """Ponta a ponta: executar, gravar, e executar de novo sobre o mesmo manifesto.
+
+    Reproduz o cenário que motiva a Tarefa 7 inteira — a segunda rodada sobre o mesmo
+    backlog encontra o Epic já publicado — e prova que `executar_plano` (que chama
+    `validar_manifesto` internamente a cada rodada) não estoura ao reencontrar o registro
+    pré-existente que a primeira rodada persistiu.
+    """
+    plano_com_epic_existente = PlanoPublicacao(
+        operacoes=(
+            OperacaoCriacao("1.1.0", TipoItem.FEATURE, "Feature", "", "", "1.0.0", "Feature"),
+            OperacaoCriacao(
+                "1.1.1", TipoItem.HISTORIA_USUARIO, "História", "", "", "1.1.0", "User Story"
+            ),
+        ),
+        hash_plano="hash-preexistente-rodada-2",
+        configuracao=CONFIGURACAO,
+        preexistentes=(ItemPreexistente("1.0.0", TipoItem.EPIC, 4721),),
+    )
+    caminho = tmp_path / "mapa.json"
+    cliente = ClienteFalso()
+
+    confirmacao_1 = criar_frase_confirmacao(plano_com_epic_existente, ("1.1.0",))
+    autorizacao_1 = criar_autorizacao(
+        plano_com_epic_existente, confirmacao_1, frozenset(("1.1.0",))
+    )
+    executar_plano(plano_com_epic_existente, autorizacao_1, cliente, caminho)
+
+    confirmacao_2 = criar_frase_confirmacao(plano_com_epic_existente, ("1.1.1",))
+    autorizacao_2 = criar_autorizacao(
+        plano_com_epic_existente, confirmacao_2, frozenset(("1.1.1",))
+    )
+    executar_plano(plano_com_epic_existente, autorizacao_2, cliente, caminho)
+
+    assert cliente.chaves_criadas == ["1.1.0", "1.1.1"]
+    manifesto = ler_manifesto(caminho)
+    assert manifesto.itens["1.0.0"].preexistente is True
+    assert set(manifesto.itens) == {"1.0.0", "1.1.0", "1.1.1"}

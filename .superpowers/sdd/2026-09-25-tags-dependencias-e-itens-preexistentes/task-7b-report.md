@@ -253,3 +253,238 @@ mais direta seria pular a checagem "não pertence ao backlog completo" para regi
 ## Commit
 
 Commitei como pedido no Passo 5, com o assunto sugerido pelo brief.
+
+---
+
+# Adendo — Correção do achado nº 1: `validar_manifesto` quebrava a segunda rodada
+
+O controlador reproduziu o bug de forma independente, confirmou que a lacuna é do plano (Tarefas 7a/
+7b não notaram que `validar_manifesto` cruza `manifesto.itens` com `plano.operacoes`) e devolveu a
+tarefa para eu corrigir antes da revisão, com uma decisão específica de design (ver mensagem do
+controlador). Esta seção documenta a correção.
+
+## O que foi corrigido
+
+Em **ambos** os pacotes, `validar_manifesto` (`manifesto.py`):
+
+- Antes: para toda `chave` em `manifesto.itens`, exigia `chave` em `plano.operacoes` — senão,
+  `ValueError("... não pertence ao backlog completo.")`. Uma chave pré-existente nunca está em
+  `plano.operacoes` (por desenho da Tarefa 7a), então a segunda invocação sobre um manifesto que já
+  tinha persistido o preexistente sempre estourava.
+- Depois: quando a chave não está em `plano.operacoes`, ela agora é buscada em
+  `plano.preexistentes` (por `chave`). Se também não estiver lá, o erro original ("não pertence ao
+  backlog completo") continua valendo — nenhuma regressão no caso de item realmente desconhecido. Se
+  estiver, dois requisitos são exigidos, exatamente como pedido pelo controlador:
+  - `registro.preexistente is True` — senão, `ValueError` dizendo que o item não está marcado como
+    pré-existente, mas o backlog o declara como já publicado (pega um manifesto adulterado à mão).
+  - `registro.id == preexistente.id and registro.tipo is preexistente.tipo` — senão, `ValueError`
+    dizendo que o item diverge do item pré-existente declarado no backlog completo (pega um `Azure
+    Boards ID` editado entre rodadas).
+  - Não há comparação de título: o título remoto de um preexistente pertence a quem criou o work
+    item, não a nós, e não existe `operacao.titulo` para comparar (a chave não está em
+    `plano.operacoes`).
+
+Diff (idêntico nos dois pacotes, só o nome do módulo muda):
+
+```python
+    operacoes = {operacao.chave: operacao for operacao in plano.operacoes}
+    preexistentes = {item.chave: item for item in plano.preexistentes}
+    for chave, registro in manifesto.itens.items():
+        operacao = operacoes.get(chave)
+        if operacao is not None:
+            diverge_do_backlog = (
+                registro.tipo is not operacao.tipo
+                or manifesto.titulos.get(chave) != operacao.titulo
+            )
+            if diverge_do_backlog:
+                raise ValueError(f"O item {chave} do manifesto diverge do backlog completo.")
+            continue
+        preexistente = preexistentes.get(chave)
+        if preexistente is None:
+            raise ValueError(f"O item {chave} do manifesto não pertence ao backlog completo.")
+        if not registro.preexistente:
+            raise ValueError(
+                f"O item {chave} do manifesto não está marcado como pré-existente, mas o "
+                "backlog o declara como já publicado."
+            )
+        if registro.id != preexistente.id or registro.tipo is not preexistente.tipo:
+            raise ValueError(
+                f"O item {chave} do manifesto diverge do item pré-existente declarado no "
+                "backlog completo."
+            )
+    return tuple(operacao for operacao in plano.operacoes if operacao.chave not in manifesto.itens)
+```
+
+## Testes acrescentados
+
+Em `tests/test_manifesto.py` (ambos os pacotes), 4 testes novos exatamente pelos critérios pedidos:
+
+1. `test_validar_manifesto_aceita_segunda_rodada_com_item_preexistente_ja_registrado` — o caso que
+   hoje falhava: manifesto com o preexistente já registrado (`preexistente=True`, mesmo `id`/`tipo`)
+   e a operação `1.1.0` também já criada; `validar_manifesto` não deve levantar, e `pendentes == ()`.
+2. `test_validar_manifesto_recusa_id_preexistente_alterado_entre_rodadas` — `Azure Boards ID` mudou
+   de `4721` (no plano) para `9999` (no manifesto, mesma chave `1.0.0`); espera `ValueError` cuja
+   mensagem bate com `"1.0.0 do manifesto diverge do item pré-existente"` — texto que só a nova
+   ramificação produz (o texto antigo era "não pertence ao backlog completo").
+3. `test_validar_manifesto_recusa_registro_nao_marcado_como_preexistente` — registro com o mesmo
+   `id`/`tipo`, mas `preexistente=False` (manifesto adulterado à mão); espera `ValueError`
+   cuja mensagem bate com `"1.0.0 do manifesto não está marcado como pré-existente"`.
+4. `test_validar_manifesto_continua_recusando_item_fora_do_backlog_completo` (não-regressão) — chave
+   `9.9.9` que não está nem em `plano.operacoes` nem em `plano.preexistentes`; continua recusada com
+   a mensagem original.
+
+Escolhi propositalmente mensagens de erro **distintas** para os testes 2 e 3 (em vez de só
+`match="1.0.0"`) porque, testado contra o código antigo, `match="1.0.0"` já passaria mesmo sem a
+correção — o código antigo também levanta `ValueError` mencionando a chave, só que pelo motivo errado
+("não pertence ao backlog completo"). Usar o texto da nova mensagem prova que a ramificação nova foi
+de fato exercitada.
+
+Em `tests/test_executar_publicacao.py` (ambos os pacotes), 1 teste ponta a ponta:
+
+`test_segunda_rodada_sobre_manifesto_com_preexistente_nao_estoura` — plano com Epic preexistente
+`#4721` e duas operações (`1.1.0` sob o Epic, `1.1.1` sob `1.1.0`); chama `executar_plano` duas vezes
+sobre o **mesmo** arquivo de manifesto, autorizando `1.1.0` na primeira vez e `1.1.1` na segunda —
+reproduzindo literalmente "executar, gravar, executar de novo". Sem a correção, a segunda chamada
+(que invoca `validar_manifesto` internamente) estoura. Coube sem esforço desproporcional, então não
+pulei essa parte do pedido.
+
+## Evidência de TDD — RED antes da correção
+
+Para gerar RED de verdade (não apenas reler o relato anterior), copiei o `manifesto.py` já corrigido
+para fora do repositório, revertive o arquivo para o `HEAD` (`git checkout --`, arquivo rastreado,
+conteúdo já salvo à parte) e rodei os testes novos contra o código antigo:
+
+```
+$ cd publicar-backlog-azure-boards && uv run pytest tests/test_manifesto.py -q -k preexistente
+...
+E       ValueError: O item 1.0.0 do manifesto não pertence ao backlog completo.
+...
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: '1.0.0 do manifesto não está marcado como pré-existente'
+E         Actual message: 'O item 1.0.0 do manifesto não pertence ao backlog completo.'
+...
+FAILED tests/test_manifesto.py::test_validar_manifesto_aceita_segunda_rodada_com_item_preexistente_ja_registrado
+FAILED tests/test_manifesto.py::test_validar_manifesto_recusa_id_preexistente_alterado_entre_rodadas
+FAILED tests/test_manifesto.py::test_validar_manifesto_recusa_registro_nao_marcado_como_preexistente
+3 failed, 1 passed, 18 deselected in 0.06s
+```
+
+(O 4º teste, de não-regressão, passa mesmo com o código antigo — é o comportamento que já existia e
+que a correção preserva; não é RED por desenho.)
+
+Mesmo resultado (3 failed, 1 passed) no pacote `publicar-backlog-demanda-azure-boards`.
+
+E o teste ponta a ponta, reproduzindo exatamente o bug relatado:
+
+```
+$ cd publicar-backlog-azure-boards && uv run pytest tests/test_executar_publicacao.py -q -k segunda_rodada
+...
+E               raise ValueError(f"O item {chave} do manifesto não pertence ao backlog completo.")
+E               ValueError: O item 1.0.0 do manifesto não pertence ao backlog completo.
+...
+FAILED tests/test_executar_publicacao.py::test_segunda_rodada_sobre_manifesto_com_preexistente_nao_estoura
+1 failed, 11 deselected in 0.10s
+```
+
+Mesmo resultado no pacote `publicar-backlog-demanda-azure-boards` (mensagem idêntica, caminho do
+módulo trocado).
+
+## Evidência de TDD — GREEN depois da correção
+
+Restaurei o `manifesto.py` corrigido (a partir da cópia salva) e rodei de novo:
+
+```
+$ cd publicar-backlog-azure-boards && uv run pytest tests/test_manifesto.py -q -k preexistente
+....                                                                     [100%]
+4 passed, 18 deselected in 0.02s
+
+$ uv run pytest tests/test_executar_publicacao.py -q -k segunda_rodada
+.                                                                        [100%]
+1 passed, 11 deselected in 0.06s
+```
+
+```
+$ cd publicar-backlog-demanda-azure-boards && uv run pytest tests/test_manifesto.py -q -k preexistente
+....                                                                     [100%]
+4 passed, 19 deselected in 0.02s
+
+$ uv run pytest tests/test_executar_publicacao.py -q -k segunda_rodada
+.                                                                        [100%]
+1 passed, 11 deselected in 0.06s
+```
+
+## Suíte inteira, lint, format, mypy — depois da correção
+
+```
+$ cd publicar-backlog-azure-boards
+$ uv run pytest -q
+203 passed in 0.34s
+$ uv run ruff check .
+All checks passed!
+$ uv run ruff format --check .
+31 files already formatted
+$ uv run mypy src
+Success: no issues found in 13 source files
+
+$ cd publicar-backlog-demanda-azure-boards
+$ uv run pytest -q
+295 passed in 1.10s
+$ uv run ruff check .
+All checks passed!
+$ uv run ruff format --check .
+39 files already formatted
+$ uv run mypy src
+Success: no issues found in 15 source files
+```
+
+`test_hash_nao_muda_para_backlog_sem_tags` confirmado verde isoladamente nos dois pacotes (não
+toquei no literal do hash):
+
+```
+$ uv run pytest -q -k test_hash_nao_muda_para_backlog_sem_tags
+1 passed, 202 deselected in 0.15s   # azure-boards
+1 passed, 294 deselected in 0.15s   # demanda-azure-boards
+```
+
+Largura de linha conferida em Python (`len(linha) > 100`, caracteres, não bytes) sobre todas as linhas
+adicionadas do diff desta correção (`manifesto.py` e os dois arquivos de teste, nos dois pacotes):
+nenhuma excede 100 caracteres.
+
+## Decisões do controlador, aplicadas como pedido
+
+- **`validar_manifesto` corrigido de verdade**, cruzando contra `plano.preexistentes` (não pulando a
+  validação) — feito.
+- **`titulos.setdefault` mantido** — nenhuma mudança nele. Rótulo escolhido na Tarefa 7b original:
+  `"(item pré-existente, Azure Boards #{id})"`; deixa explícito que o item foi **declarado como já
+  publicado**, não criado por nós. Registrado aqui como pedido.
+- **`cli.py`**: nenhuma mudança adicional — o controlador confirmou que estava dentro da instrução.
+- **`cli.py:147` ("registrados")**: nenhuma mudança — o controlador confirmou a conclusão original.
+
+## Arquivos alterados nesta correção
+
+- `publicar-backlog-azure-boards/src/publicar_backlog_azure_boards/manifesto.py`
+- `publicar-backlog-azure-boards/tests/test_manifesto.py`
+- `publicar-backlog-azure-boards/tests/test_executar_publicacao.py`
+- Os mesmos três arquivos em `publicar-backlog-demanda-azure-boards` (caminhos equivalentes)
+
+## Achados da autorrevisão desta correção
+
+- Os dois pacotes ficaram simétricos linha a linha no trecho corrigido de `manifesto.py` (a mesma
+  edição foi aplicada literalmente nos dois arquivos).
+- Não usei `match="{chave}"` genérico nos testes de recusa — usei o texto específico de cada nova
+  mensagem, para que os testes discriminem de verdade a nova lógica (ver seção RED acima: com
+  `match` genérico, os testes 2 e 3 passariam mesmo sem a correção).
+- Cogitei também validar o caso inverso (uma chave que o plano declara como **operação**, mas cujo
+  registro no manifesto vem marcado `preexistente=True`) — não é um dos quatro casos pedidos, e não
+  há teste ou pedido explícito para ele; não implementei, para não exceder o escopo desta correção,
+  mas registro como possível gap simétrico caso o controlador queira endereçar depois.
+
+## Problemas ou preocupações (após a correção)
+
+Nenhuma preocupação nova. Os itens 2, 3 e 4 do relatório original já foram resolvidos pelas decisões
+do controlador (nada a desfazer). O item 1 (o achado principal) está corrigido, testado com RED/GREEN
+literal, e a suíte inteira dos dois pacotes está verde.
+
+## Commit desta correção
+
+Vou criar um novo commit (não um amend) com esta correção, referenciando a Tarefa 7b.
