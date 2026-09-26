@@ -322,11 +322,32 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn("## Tags emitidas", self.backlog)
         self.assertIn("**Epic e Feature nunca recebem tags**", self.backlog)
         self.assertIn("`debito-tecnico`", self.backlog)
-        self.assertIn("`dt-restricao`, `dt-candidato` ou `dt-a-confirmar`", self.backlog)
+        self.assertIn("| Restrição | `restricao` | `dt-restricao` |", self.backlog)
+        self.assertIn("| Candidato | `candidato` | `dt-candidato` |", self.backlog)
+        self.assertIn("| A confirmar | `a_confirmar` | `dt-a-confirmar` |", self.backlog)
         self.assertIn("`design-ux-ui`", self.backlog)
         self.assertIn("`plataforma-web`", self.backlog)
         self.assertIn("`plataforma-mobile`", self.backlog)
         self.assertIn("`dn-<id>`", self.backlog)
+
+    def test_tag_de_faixa_parte_do_retorno_ascii_de_faixa_nao_do_texto_de_exibicao(self) -> None:
+        """Achado da revisão: 'minúsculas e hífen' sobre o texto de exibição `Restrição`
+
+        produz `dt-restrição` (cedilha e til), não `dt-restricao` — o modo de falha
+        silencioso que o brief da Tarefa 10 descreve como risco central. A regra precisa
+        partir do retorno ASCII de `faixa()`, nunca do texto de exibição da coluna.
+        """
+        self.assertIn("retorno ASCII de", self.backlog)
+        self.assertIn(
+            "nunca do texto de exibição `Faixa` do DT (`Restrição`, `Candidato`, "
+            "`A confirmar`) passado por minúsculas",
+            self.backlog,
+        )
+        # A única ocorrência de "dt-restrição" (com cedilha) no arquivo é dentro da própria
+        # explicação do erro evitado — nunca como tag recomendada. Ela não pode aparecer como
+        # entrada da tabela de mapeamento, que é a única fonte que o gerador deve seguir.
+        self.assertNotIn("| `dt-restrição` |", self.backlog)
+        self.assertIn("produziria `dt-restrição`, não `dt-restricao`", self.backlog)
 
     def test_epico_e_feature_de_debito_nomeiam_capacidade_nao_o_debito(self) -> None:
         """Decisão de 2026-09-12: hierarquia é por capacidade, não por problema."""

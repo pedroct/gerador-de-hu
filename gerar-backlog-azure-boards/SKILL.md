@@ -44,7 +44,13 @@ Determine e registre o modo antes de decompor ou refinar:
 
 Preenchendo a subseção `Tags` de [references/backlog-markdown-contract.md](references/backlog-markdown-contract.md#tags), esta skill é a única responsável por decidir **quais** tags cada item de folha recebe — o publicador as trata como string opaca, sem conhecer nenhum destes rótulos. Só item de folha (User Story ou Bug) recebe tag; **Epic e Feature nunca recebem tags**, mesmo quando toda a Feature descende de uma spec de débitos técnicos.
 
-- **`debito-tecnico`** e **`dt-<faixa>`** — em todo item de folha nascido de uma `Spec: Débitos técnicos`. `<faixa>` copia a `Faixa` declarada no DT de origem, convertida para minúsculas e hífen: `dt-restricao`, `dt-candidato` ou `dt-a-confirmar`. É a mesma classificação de [`priorizacao.py::faixa()`](../especificar-debitos-tecnicos/scripts/priorizacao.py) que a spec já declara; não recalcule.
+- **`debito-tecnico`** e **`dt-<faixa>`** — em todo item de folha nascido de uma `Spec: Débitos técnicos`. `<faixa>` vem do **retorno ASCII de [`priorizacao.py::faixa()`](../especificar-debitos-tecnicos/scripts/priorizacao.py)** (`restricao`, `a_confirmar`, `candidato`), trocando `_` por `-` — nunca do texto de exibição `Faixa` do DT (`Restrição`, `Candidato`, `A confirmar`) passado por minúsculas: `Restrição` tem cedilha e til, e "minúsculas e hífen" sobre ele produziria `dt-restrição`, não `dt-restricao`. A tabela de exibição → tag é fixa e não se recalcula:
+
+  | Faixa (texto de exibição no DT) | Retorno de `faixa()` | Tag |
+  |---|---|---|
+  | Restrição | `restricao` | `dt-restricao` |
+  | Candidato | `candidato` | `dt-candidato` |
+  | A confirmar | `a_confirmar` | `dt-a-confirmar` |
 - **`design-ux-ui`** e **`plataforma-web`** ou **`plataforma-mobile`** — em todo item de design nascido do passo 2 (`especificar-telas-ux-ui`), conforme a `### Plataforma` declarada no `TL-xx` de origem — nunca as duas tags de plataforma no mesmo item, porque um item de design é sempre de uma única plataforma (passo 4).
 - **`dn-<id>`** — em todo item de folha nascido de uma spec com `## Fonte da Demanda`, usando o mesmo `#<id>` copiado para `Demanda de Negócio de origem` nos metadados (passo 9). Aplica-se a todo item de folha do backlog, não só aos vindos de débito ou design.
 
