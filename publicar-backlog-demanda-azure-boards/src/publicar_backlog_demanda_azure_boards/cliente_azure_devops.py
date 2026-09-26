@@ -98,6 +98,7 @@ class ClienteAzureDevOps:
 
     VERSOES_API = {
         "criacao": "7.2-preview.3",
+        "consulta": "7.2-preview.3",
         "tipos": "7.2-preview.2",
         "campos": "7.2-preview.2",
         "relacoes": "7.2-preview.2",
@@ -224,6 +225,24 @@ class ClienteAzureDevOps:
         recusar o Épico como filho da Demanda de Negócio.
         """
         self._enviar_criacao(operacao, validar=True, id_pai=id_pai)
+
+    def url_do_item(self, id_item: int) -> str:
+        """Monta a URL canônica de um work item pelo ID."""
+        return f"{self._base_url}/_apis/wit/workItems/{id_item}"
+
+    def verificar_item_existente(self, id_item: int, tipo_esperado: str) -> None:
+        """Confirma que o work item existe e é do tipo esperado antes de pendurar filhos nele.
+
+        Um ID digitado com um dígito a menos aponta para outro work item qualquer, e
+        pendurar épicos sob ele é caro de desfazer.
+        """
+        dados = self._enviar("GET", self._url_api(f"/_apis/wit/workitems/{id_item}", "consulta"))
+        tipo = dados.get("fields", {}).get("System.WorkItemType")
+        if tipo != tipo_esperado:
+            raise ErroDestinoInvalido(
+                f"O work item {id_item} é do tipo {tipo!r}, e o backlog o declara como "
+                f"{tipo_esperado!r}."
+            )
 
     def criar_item(
         self,

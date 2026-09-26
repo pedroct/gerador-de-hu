@@ -19,6 +19,7 @@ from publicar_backlog_azure_boards.manifesto import (
 )
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
+    ItemPreexistente,
     OperacaoCriacao,
     PlanoPublicacao,
     RegistroManifesto,
@@ -75,6 +76,9 @@ class ClienteFalso:
         return RegistroManifesto(
             len(self.chaves_criadas), operacao.tipo, f"https://exemplo/{operacao.chave}"
         )
+
+    def url_do_item(self, id_item: int) -> str:
+        return f"https://exemplo/workItems/{id_item}"
 
 
 def plano_com_dependencia() -> PlanoPublicacao:
@@ -278,3 +282,27 @@ def test_recusa_quando_o_predecessor_nao_foi_publicado(tmp_path) -> None:
             cliente,
             tmp_path / "mapa.json",
         )
+
+
+def test_item_preexistente_nao_e_recriado_e_serve_de_pai(tmp_path) -> None:
+    plano_com_epic_existente = PlanoPublicacao(
+        operacoes=(
+            OperacaoCriacao("1.1.0", TipoItem.FEATURE, "Feature", "", "", "1.0.0", "Feature"),
+        ),
+        hash_plano="hash-preexistente",
+        configuracao=CONFIGURACAO,
+        preexistentes=(ItemPreexistente("1.0.0", TipoItem.EPIC, 4721),),
+    )
+    confirmacao = criar_frase_confirmacao(plano_com_epic_existente, ("1.1.0",))
+    autorizacao_atual = criar_autorizacao(
+        plano_com_epic_existente, confirmacao, frozenset(("1.1.0",))
+    )
+    cliente = ClienteFalso()
+
+    executar_plano(plano_com_epic_existente, autorizacao_atual, cliente, tmp_path / "mapa.json")
+
+    assert cliente.chaves_criadas == ["1.1.0"]
+    manifesto = ler_manifesto(tmp_path / "mapa.json")
+    assert manifesto.itens["1.0.0"].id == 4721
+    assert manifesto.itens["1.0.0"].preexistente is True
+    assert manifesto.itens["1.1.0"].preexistente is False

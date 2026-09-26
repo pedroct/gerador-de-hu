@@ -33,6 +33,7 @@ from publicar_backlog_azure_boards.manifesto import ler_manifesto, validar_manif
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
     ItemBacklog,
+    ItemPreexistente,
     OperacaoCriacao,
     PlanoPublicacao,
 )
@@ -58,6 +59,8 @@ class ClientePublicacao(Protocol):
 
     def validar_operacao(self, operacao: OperacaoCriacao) -> None: ...
 
+    def verificar_item_existente(self, id_item: int, tipo_esperado: str) -> None: ...
+
     def tipos_sem_criterios_aceitacao(self) -> frozenset[str]: ...
 
     def criar_item(
@@ -66,6 +69,8 @@ class ClientePublicacao(Protocol):
         id_pai: int | None = None,
         ids_predecessores: tuple[int, ...] = (),
     ) -> IdentidadeCriada: ...
+
+    def url_do_item(self, id_item: int) -> str: ...
 
 
 def construir_parser() -> argparse.ArgumentParser:
@@ -179,6 +184,7 @@ def principal(
             cliente_real,
             configuracao.publicacao,
             pendentes,
+            plano.preexistentes,
         )
         _avisar_criterios_descartados(cliente_real, pendentes, saida_real)
         if argumentos_parseados.validar_apenas:
@@ -252,8 +258,14 @@ def _verificar_preliminar(
     cliente: ClientePublicacao,
     configuracao: ConfiguracaoPublicacao,
     operacoes: Sequence[OperacaoCriacao],
+    preexistentes: Sequence[ItemPreexistente] = (),
 ) -> None:
     cliente.verificar_destino(configuracao)
+    for preexistente in preexistentes:
+        # Confere o ID declarado antes de qualquer autorização: pendurar um filho num
+        # work item errado (ou inexistente) é caro de desfazer depois de criado.
+        tipo_remoto = configuracao.mapeamento_tipos.nome_remoto(preexistente.tipo)
+        cliente.verificar_item_existente(preexistente.id, tipo_remoto)
     for operacao in operacoes:
         cliente.validar_operacao(operacao)
 

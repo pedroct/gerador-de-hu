@@ -559,3 +559,26 @@ def test_pai_e_predecessor_usam_relacoes_distintas() -> None:
     }
     assert por_rel["System.LinkTypes.Hierarchy-Reverse"].endswith("/workItems/7")
     assert por_rel["System.LinkTypes.Dependency-Reverse"].endswith("/workItems/42")
+
+
+def test_url_do_item_monta_o_caminho_canonico() -> None:
+    cliente_azure, _ = cliente([])
+
+    assert cliente_azure.url_do_item(4721).endswith("/_apis/wit/workItems/4721")
+
+
+def test_verificar_item_existente_aceita_o_tipo_esperado() -> None:
+    cliente_azure, _ = cliente(
+        [resposta(200, {"id": 4721, "fields": {"System.WorkItemType": "Epic"}})]
+    )
+
+    cliente_azure.verificar_item_existente(4721, "Epic")
+
+
+def test_verificar_item_existente_recusa_tipo_divergente() -> None:
+    cliente_azure, _ = cliente(
+        [resposta(200, {"id": 4721, "fields": {"System.WorkItemType": "Feature"}})]
+    )
+
+    with pytest.raises(ErroDestinoInvalido, match="4721"):
+        cliente_azure.verificar_item_existente(4721, "Epic")

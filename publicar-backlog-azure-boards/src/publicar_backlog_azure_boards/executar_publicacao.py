@@ -44,6 +44,8 @@ class ClientePublicador(Protocol):
         ids_predecessores: tuple[int, ...] = (),
     ) -> IdentidadeCriada: ...
 
+    def url_do_item(self, id_item: int) -> str: ...
+
 
 class FalhaPublicacao(RuntimeError):
     """Indica que a publicação parou no item informado, sem rollback."""
@@ -82,6 +84,19 @@ def executar_plano(
 
     registros = dict(manifesto.itens)
     titulos = dict(manifesto.titulos)
+    for preexistente in plano.preexistentes:
+        registros[preexistente.chave] = RegistroManifesto(
+            preexistente.id,
+            preexistente.tipo,
+            cliente.url_do_item(preexistente.id),
+            preexistente=True,
+        )
+        # ItemPreexistente não carrega título: o backlog só declarou o ID publicado.
+        # O manifesto exige um título não vazio para round-trip, e este é só um rótulo
+        # informativo, nunca comparado ao backlog (a chave não está em plano.operacoes).
+        titulos.setdefault(
+            preexistente.chave, f"(item pré-existente, Azure Boards #{preexistente.id})"
+        )
     criados: list[str] = []
     for operacao in plano.operacoes:
         if operacao.chave not in autorizadas:
