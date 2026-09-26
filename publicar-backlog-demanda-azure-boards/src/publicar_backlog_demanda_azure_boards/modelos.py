@@ -77,6 +77,7 @@ class ItemBacklog:
     titulo_curto: str = ""
     tags: tuple[str, ...] = ()
     depende_de: tuple[str, ...] = ()
+    azure_boards_id: int | None = None
 
 
 @dataclass(frozen=True)

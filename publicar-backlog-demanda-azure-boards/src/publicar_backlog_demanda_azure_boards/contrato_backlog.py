@@ -15,6 +15,8 @@ TAGS = "Tags"
 LIMITE_TAG = 400
 DEPENDE_DE = "Depende de"
 CHAVE_RE = re.compile(r"^[1-9]\d*\.\d+\.\d+$")
+AZURE_BOARDS_ID = "Azure Boards ID"
+CONTAINER_KINDS = ("Epic", "Feature")
 
 SECTION_NAMES = {
     "Parent",
@@ -24,6 +26,7 @@ SECTION_NAMES = {
     "Refinement Status",
     TAGS,
     DEPENDE_DE,
+    AZURE_BOARDS_ID,
 }
 IMPLEMENTATION_EVIDENCE = "Implementation Evidence"
 ACCEPTANCE_CRITERIA = "Acceptance Criteria"
@@ -101,6 +104,20 @@ def normalizar_chaves(bruto: str) -> tuple[tuple[str, ...], list[str]]:
     if erros:
         return (), erros
     return tuple(chaves), []
+
+
+def normalizar_id(bruto: str) -> tuple[int | None, list[str]]:
+    """Lê o ID de um work item já publicado, recusando o que não for inteiro positivo.
+
+    Um ID digitado com um dígito a menos aponta para outro work item qualquer, então a
+    conversão nunca pode estourar ``ValueError`` cru no meio do planejamento.
+    """
+    texto = bruto.strip().strip("`").strip()
+    if not texto:
+        return None, []
+    if not texto.isdigit() or int(texto) <= 0:
+        return None, [f"'{texto}' não é um ID de work item inteiro e positivo"]
+    return int(texto), []
 
 
 def detectar_ciclo(pares: Sequence[tuple[str, Sequence[str]]]) -> list[str] | None:
@@ -270,7 +287,9 @@ def _validate_leaf_item(item: BacklogItem) -> list[str]:
     return errors
 
 
-def _validate_item(item: BacklogItem, keys: set[str], folhas: set[str]) -> list[str]:
+def _validate_item(
+    item: BacklogItem, keys: set[str], folhas: set[str], com_id: set[str]
+) -> list[str]:
     errors = _validate_hierarchy(item, keys)
     if item.kind in LEAF_KINDS:
         errors.extend(_validate_leaf_item(item))
@@ -294,6 +313,15 @@ def _validate_item(item: BacklogItem, keys: set[str], folhas: set[str]) -> list[
                 errors.append(f"{item.key} depende de {chave}, que não existe no backlog")
             elif chave not in folhas:
                 errors.append(f"{item.key} depende de {chave}, que não é item de folha")
+    if AZURE_BOARDS_ID in item.sections:
+        valor, erros_id = normalizar_id(item.section(AZURE_BOARDS_ID))
+        errors.extend(f"{item.key}: {erro}" for erro in erros_id)
+        if item.kind not in CONTAINER_KINDS:
+            errors.append(f"{item.key} declara Azure Boards ID, permitido só em Epic e Feature")
+        elif valor is not None and item.kind == "Feature" and _parent_value(item) not in com_id:
+            errors.append(
+                f"{item.key} declara Azure Boards ID, mas seu pai {_parent_value(item)} não declara"
+            )
     return errors
 
 
@@ -334,12 +362,17 @@ def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
     seen: set[str] = set()
     keys = {item.key for item in items}
     folhas = {item.key for item in items if item.kind in LEAF_KINDS}
+    com_id = {
+        item.key
+        for item in items
+        if AZURE_BOARDS_ID in item.sections and normalizar_id(item.section(AZURE_BOARDS_ID))[0]
+    }
     groups: dict[tuple[str, str], list[int]] = {}
     for item in items:
         if item.key in seen:
             errors.append(f"chave duplicada: {item.key}")
         seen.add(item.key)
-        errors.extend(_validate_item(item, keys, folhas))
+        errors.extend(_validate_item(item, keys, folhas, com_id))
         group, number = _group_key(item)
         groups.setdefault(group, []).append(number)
     errors.extend(_validate_groups(groups, update_mode))

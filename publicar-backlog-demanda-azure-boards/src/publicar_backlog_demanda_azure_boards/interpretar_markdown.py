@@ -9,6 +9,7 @@ from pathlib import Path
 
 from publicar_backlog_demanda_azure_boards.contrato_backlog import (
     normalizar_chaves,
+    normalizar_id,
     normalizar_tags,
 )
 from publicar_backlog_demanda_azure_boards.modelos import ItemBacklog, TipoItem
@@ -27,6 +28,7 @@ _SECOES = {
     "Refinement Status",
     "Tags",
     "Depende de",
+    "Azure Boards ID",
 }
 _FOLHAS = {TipoItem.HISTORIA_USUARIO, TipoItem.BUG}
 
@@ -260,6 +262,17 @@ def _dependencias_do_item(item: _ItemEmConstrucao) -> tuple[str, ...]:
     return chaves
 
 
+def _id_existente(item: _ItemEmConstrucao) -> int | None:
+    if "Azure Boards ID" not in item.secoes:
+        return None
+    valor, erros = normalizar_id(item.texto_secao("Azure Boards ID"))
+    if erros:
+        raise ErroContratoMarkdown(f"{item.chave}: {erros[0]}")
+    if valor is None:
+        raise ErroContratoMarkdown(f"{item.chave} possui a seção Azure Boards ID presente e vazia")
+    return valor
+
+
 def _converter_item(item: _ItemEmConstrucao) -> ItemBacklog:
     return ItemBacklog(
         chave=item.chave,
@@ -271,4 +284,5 @@ def _converter_item(item: _ItemEmConstrucao) -> ItemBacklog:
         titulo_curto=item.texto_secao("Título curto"),
         tags=_tags_do_item(item),
         depende_de=_dependencias_do_item(item),
+        azure_boards_id=_id_existente(item),
     )
