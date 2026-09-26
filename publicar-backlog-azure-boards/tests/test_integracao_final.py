@@ -37,9 +37,16 @@ class ClienteSimulado:
         self.configuracao = CONFIGURACAO
         self.chaves_criadas: list[str] = []
 
-    def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroManifesto:
+    def criar_item(
+        self,
+        operacao: OperacaoCriacao,
+        id_pai: int | None = None,
+        ids_predecessores: tuple[int, ...] = (),
+    ) -> RegistroManifesto:
         if operacao.chave_pai is not None:
             assert id_pai is not None
+        if operacao.depende_de:
+            assert ids_predecessores
         self.chaves_criadas.append(operacao.chave)
         return RegistroManifesto(
             id=len(self.chaves_criadas),

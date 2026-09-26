@@ -38,7 +38,10 @@ class ClientePublicador(Protocol):
     configuracao: ConfiguracaoPublicacao
 
     def criar_item(
-        self, operacao: OperacaoCriacao, id_pai: int | None = None
+        self,
+        operacao: OperacaoCriacao,
+        id_pai: int | None = None,
+        ids_predecessores: tuple[int, ...] = (),
     ) -> IdentidadeCriada: ...
 
 
@@ -83,6 +86,11 @@ def executar_plano(
     for operacao in plano.operacoes:
         if operacao.chave not in autorizadas:
             continue
+        for chave_predecessor in operacao.depende_de:
+            if chave_predecessor not in registros:
+                raise ValueError(
+                    f"O predecessor {chave_predecessor} do item {operacao.chave} não foi publicado."
+                )
         if operacao.chave_pai is not None and operacao.chave_pai not in registros:
             raise ValueError(
                 f"O pai {operacao.chave_pai} do item {operacao.chave} não foi publicado."
@@ -94,6 +102,7 @@ def executar_plano(
             if operacao.chave_pai is not None
             else cliente.configuracao.demanda_id
         )
+        ids_predecessores = tuple(registros[chave].id for chave in operacao.depende_de)
         marcador = ReconciliacaoPendente(
             chave=operacao.chave,
             tipo_remoto=operacao.tipo_remoto,
@@ -114,7 +123,9 @@ def executar_plano(
         )
         gravar_manifesto(caminho_manifesto, manifesto_em_escrita)
         try:
-            criado = cliente.criar_item(operacao, id_pai=id_pai)
+            criado = cliente.criar_item(
+                operacao, id_pai=id_pai, ids_predecessores=ids_predecessores
+            )
         except ErroCriacaoAmbigua as erro:
             raise FalhaPublicacao(operacao.chave, erro) from erro
         except Exception as erro:

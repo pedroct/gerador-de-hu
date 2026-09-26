@@ -508,3 +508,54 @@ def test_criacao_omite_system_tags_quando_nao_ha_tags() -> None:
 
     patch = loads(chamadas[0].content)
     assert all("System.Tags" not in entrada["path"] for entrada in patch)
+
+
+def test_criacao_liga_predecessor_com_dependency_reverse() -> None:
+    cliente_azure, chamadas = cliente(
+        [resposta(200, {"id": 9, "url": "https://dev.azure.com/item/9"})]
+    )
+    operacao = replace(OPERACAO, depende_de=("1.1.2",))
+
+    cliente_azure.criar_item(operacao, ids_predecessores=(42,))
+
+    patch = loads(chamadas[0].content)
+    relacoes = [entrada["value"] for entrada in patch if entrada["path"] == "/relations/-"]
+    assert len(relacoes) == 1
+    assert relacoes[0]["rel"] == "System.LinkTypes.Dependency-Reverse"
+    assert relacoes[0]["url"].endswith("/workItems/42")
+
+
+def test_criacao_liga_um_predecessor_por_plataforma() -> None:
+    cliente_azure, chamadas = cliente(
+        [resposta(200, {"id": 9, "url": "https://dev.azure.com/item/9"})]
+    )
+    operacao = replace(OPERACAO, depende_de=("1.1.2", "1.1.3"))
+
+    cliente_azure.criar_item(operacao, ids_predecessores=(42, 43))
+
+    patch = loads(chamadas[0].content)
+    urls = [
+        entrada["value"]["url"]
+        for entrada in patch
+        if entrada["path"] == "/relations/-"
+        and entrada["value"]["rel"] == "System.LinkTypes.Dependency-Reverse"
+    ]
+    assert [url.rsplit("/", 1)[-1] for url in urls] == ["42", "43"]
+
+
+def test_pai_e_predecessor_usam_relacoes_distintas() -> None:
+    cliente_azure, chamadas = cliente(
+        [resposta(200, {"id": 9, "url": "https://dev.azure.com/item/9"})]
+    )
+    operacao = replace(OPERACAO, depende_de=("1.1.2",))
+
+    cliente_azure.criar_item(operacao, id_pai=7, ids_predecessores=(42,))
+
+    patch = loads(chamadas[0].content)
+    por_rel = {
+        entrada["value"]["rel"]: entrada["value"]["url"]
+        for entrada in patch
+        if entrada["path"] == "/relations/-"
+    }
+    assert por_rel["System.LinkTypes.Hierarchy-Reverse"].endswith("/workItems/7")
+    assert por_rel["System.LinkTypes.Dependency-Reverse"].endswith("/workItems/42")

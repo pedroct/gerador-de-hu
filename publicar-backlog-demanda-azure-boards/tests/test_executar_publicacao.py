@@ -63,14 +63,51 @@ class ClienteFalso:
         self.erro = erro or RuntimeError("falha permanente")
         self.configuracao = configuracao
         self.chaves_criadas: list[str] = []
+        self.predecessores_por_chave: dict[str, tuple[int, ...]] = {}
 
-    def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None):
+    def criar_item(
+        self,
+        operacao: OperacaoCriacao,
+        id_pai: int | None = None,
+        ids_predecessores: tuple[int, ...] = (),
+    ):
         if operacao.chave == self.falhar_na_chave:
             raise self.erro
         self.chaves_criadas.append(operacao.chave)
+        self.predecessores_por_chave[operacao.chave] = tuple(ids_predecessores)
         return RegistroManifesto(
             len(self.chaves_criadas), operacao.tipo, f"https://exemplo/{operacao.chave}"
         )
+
+
+def plano_com_dependencia() -> PlanoPublicacao:
+    return PlanoPublicacao(
+        operacoes=(
+            OperacaoCriacao("1.0.0", TipoItem.EPIC, "Épico", "", "", None, "Epic"),
+            OperacaoCriacao("1.1.0", TipoItem.FEATURE, "Feature", "", "", "1.0.0", "Feature"),
+            OperacaoCriacao(
+                "1.1.2", TipoItem.HISTORIA_USUARIO, "Design", "", "", "1.1.0", "User Story"
+            ),
+            OperacaoCriacao(
+                "1.1.1",
+                TipoItem.HISTORIA_USUARIO,
+                "Funcional",
+                "",
+                "",
+                "1.1.0",
+                "User Story",
+                depende_de=("1.1.2",),
+            ),
+        ),
+        hash_plano="hash-dependencia",
+        configuracao=CONFIGURACAO,
+    )
+
+
+def autorizacao_com_dependencia(chaves_pendentes: tuple[str, ...]):
+    plano_atual = plano_com_dependencia()
+    confirmacao = criar_frase_confirmacao(plano_atual, chaves_pendentes)
+    return criar_autorizacao(plano_atual, confirmacao, frozenset(chaves_pendentes))
 
 
 def test_manifesto_e_gravado_depois_de_cada_sucesso(tmp_path) -> None:
@@ -196,3 +233,51 @@ def test_reconciliacao_pendente_bloqueia_nova_criacao_com_erro_especifico(tmp_pa
         executar_plano(plano(), autorizacao(), cliente, caminho)
 
     assert cliente.chaves_criadas == []
+
+
+def test_passa_o_id_do_predecessor_criado_na_mesma_rodada(tmp_path) -> None:
+    cliente = ClienteFalso()
+
+    executar_plano(
+        plano_com_dependencia(),
+        autorizacao_com_dependencia(("1.0.0", "1.1.0", "1.1.2", "1.1.1")),
+        cliente,
+        tmp_path / "mapa.json",
+    )
+
+    id_do_design = ler_manifesto(tmp_path / "mapa.json").itens["1.1.2"].id
+    assert cliente.predecessores_por_chave["1.1.1"] == (id_do_design,)
+
+
+def test_resolve_predecessor_publicado_em_rodada_anterior(tmp_path) -> None:
+    caminho = tmp_path / "mapa.json"
+    cliente_com_falha = ClienteFalso("1.1.1")
+
+    with pytest.raises(FalhaPublicacao):
+        executar_plano(
+            plano_com_dependencia(),
+            autorizacao_com_dependencia(("1.0.0", "1.1.0", "1.1.2", "1.1.1")),
+            cliente_com_falha,
+            caminho,
+        )
+
+    id_do_design = ler_manifesto(caminho).itens["1.1.2"].id
+    cliente_sem_falha = ClienteFalso()
+    executar_plano(
+        plano_com_dependencia(), autorizacao_com_dependencia(("1.1.1",)), cliente_sem_falha, caminho
+    )
+
+    assert cliente_sem_falha.chaves_criadas == ["1.1.1"]
+    assert cliente_sem_falha.predecessores_por_chave["1.1.1"] == (id_do_design,)
+
+
+def test_recusa_quando_o_predecessor_nao_foi_publicado(tmp_path) -> None:
+    cliente = ClienteFalso()
+
+    with pytest.raises(ValueError, match="predecessor 1.1.2"):
+        executar_plano(
+            plano_com_dependencia(),
+            autorizacao_com_dependencia(("1.1.1",)),
+            cliente,
+            tmp_path / "mapa.json",
+        )

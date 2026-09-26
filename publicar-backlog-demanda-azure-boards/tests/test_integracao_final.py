@@ -41,9 +41,16 @@ class ClienteSimulado:
         self.validadas: list[tuple[str, int | None]] = []
         self.pais_usados: list[tuple[str, int | None]] = []
 
-    def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroManifesto:
+    def criar_item(
+        self,
+        operacao: OperacaoCriacao,
+        id_pai: int | None = None,
+        ids_predecessores: tuple[int, ...] = (),
+    ) -> RegistroManifesto:
         if operacao.chave_pai is not None:
             assert id_pai is not None
+        if operacao.depende_de:
+            assert ids_predecessores
         self.pais_usados.append((operacao.chave, id_pai))
         self.chaves_criadas.append(operacao.chave)
         return RegistroManifesto(

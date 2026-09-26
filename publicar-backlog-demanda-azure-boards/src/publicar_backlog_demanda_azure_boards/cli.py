@@ -63,7 +63,10 @@ class ClientePublicacao(Protocol):
     def tipos_sem_criterios_aceitacao(self) -> frozenset[str]: ...
 
     def criar_item(
-        self, operacao: OperacaoCriacao, id_pai: int | None = None
+        self,
+        operacao: OperacaoCriacao,
+        id_pai: int | None = None,
+        ids_predecessores: tuple[int, ...] = (),
     ) -> IdentidadeCriada: ...
 
 

@@ -54,7 +54,12 @@ class _ClienteFalso:
         self.chamadas: list[tuple[str, int | None]] = []
         self._proximo = 13969
 
-    def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> _Criado:
+    def criar_item(
+        self,
+        operacao: OperacaoCriacao,
+        id_pai: int | None = None,
+        ids_predecessores: tuple[int, ...] = (),
+    ) -> _Criado:
         self.chamadas.append((operacao.chave, id_pai))
         criado = _Criado(
             self._proximo,

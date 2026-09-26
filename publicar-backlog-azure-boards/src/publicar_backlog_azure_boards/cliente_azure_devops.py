@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote, unquote, urlencode, urlparse
@@ -31,6 +31,11 @@ _CAMPO_CRITERIOS_ACEITACAO = "Microsoft.VSTS.Common.AcceptanceCriteria"
 # item. Só o Bug expõe este campo, então sua presença identifica o tipo com segurança.
 _CAMPO_REPRO_STEPS = "Microsoft.VSTS.TCM.ReproSteps"
 _RELACAO_HIERARQUICA = "System.LinkTypes.Hierarchy-Reverse"
+# No item dependente, a relação Reverse aponta para o predecessor — mesma convenção da
+# hierarquia, em que o filho aponta o pai. Inverter para Forward cria a relação trocada,
+# e ela aparece nos dois work items de qualquer forma, então só um teste que afirme a
+# direção pega o erro.
+_RELACAO_PREDECESSORA = "System.LinkTypes.Dependency-Reverse"
 # O Azure DevOps sempre insere este segmento fixo em `path` logo após o projeto,
 # mesmo quando a consulta usa o caminho curto sem ele (confirmado contra a API real).
 _ROTULOS_ESTRUTURA = {"Areas": "Area", "Iterations": "Iteration"}
@@ -215,9 +220,16 @@ class ClienteAzureDevOps:
         """Valida o JSON Patch no endpoint de criação, sem persistir o item."""
         self._enviar_criacao(operacao, validar=True, id_pai=None)
 
-    def criar_item(self, operacao: OperacaoCriacao, id_pai: int | None = None) -> RegistroCriado:
-        """Cria um item e inclui a relação hierárquica apenas com pai identificado."""
-        payload = self._enviar_criacao(operacao, validar=False, id_pai=id_pai)
+    def criar_item(
+        self,
+        operacao: OperacaoCriacao,
+        id_pai: int | None = None,
+        ids_predecessores: Sequence[int] = (),
+    ) -> RegistroCriado:
+        """Cria um item e inclui as relações hierárquica e de predecessor identificadas."""
+        payload = self._enviar_criacao(
+            operacao, validar=False, id_pai=id_pai, ids_predecessores=ids_predecessores
+        )
         try:
             item_id = payload.get("id")
             url = payload.get("url")
@@ -232,7 +244,12 @@ class ClienteAzureDevOps:
         return RegistroCriado(id=item_id, tipo=operacao.tipo.value, url=url)
 
     def _enviar_criacao(
-        self, operacao: OperacaoCriacao, *, validar: bool, id_pai: int | None
+        self,
+        operacao: OperacaoCriacao,
+        *,
+        validar: bool,
+        id_pai: int | None,
+        ids_predecessores: Sequence[int] = (),
     ) -> dict[str, Any]:
         campos_tipo = self._campos_por_tipo.get(operacao.tipo_remoto)
         campo_narrativa = (
@@ -269,8 +286,19 @@ class ClienteAzureDevOps:
                     "op": "add",
                     "path": "/relations/-",
                     "value": {
-                        "rel": "System.LinkTypes.Hierarchy-Reverse",
+                        "rel": _RELACAO_HIERARQUICA,
                         "url": f"{self._base_url}/_apis/wit/workItems/{id_pai}",
+                    },
+                }
+            )
+        for id_predecessor in ids_predecessores:
+            patch.append(
+                {
+                    "op": "add",
+                    "path": "/relations/-",
+                    "value": {
+                        "rel": _RELACAO_PREDECESSORA,
+                        "url": f"{self._base_url}/_apis/wit/workItems/{id_predecessor}",
                     },
                 }
             )
