@@ -11,7 +11,7 @@ def test_le_id_entre_crases() -> None:
     assert normalizar_id("`4721`") == (4721, [])
 
 
-@pytest.mark.parametrize("bruto", ["`abc`", "`0`", "`-3`", "`47.21`", "`47 21`"])
+@pytest.mark.parametrize("bruto", ["`abc`", "`0`", "`-3`", "`47.21`", "`47 21`", "`²³¹`", "`٣`"])
 def test_recusa_id_que_nao_e_inteiro_positivo(bruto: str) -> None:
     valor, erros = normalizar_id(bruto)
 

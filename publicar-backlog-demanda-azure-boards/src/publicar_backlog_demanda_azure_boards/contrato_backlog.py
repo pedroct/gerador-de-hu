@@ -110,12 +110,15 @@ def normalizar_id(bruto: str) -> tuple[int | None, list[str]]:
     """Lê o ID de um work item já publicado, recusando o que não for inteiro positivo.
 
     Um ID digitado com um dígito a menos aponta para outro work item qualquer, então a
-    conversão nunca pode estourar ``ValueError`` cru no meio do planejamento.
+    conversão nunca pode estourar ``ValueError`` cru no meio do planejamento. ``str.isdigit()``
+    sozinho não bastaria: aceita sobrescritos como "²" (categoria Unicode "No", não "Nd"), que
+    fazem ``int()`` estourar, e dígitos não-ASCII como "٣", que ``int()`` converteria em
+    silêncio para outro work item. A checagem ASCII fecha as duas portas.
     """
     texto = bruto.strip().strip("`").strip()
     if not texto:
         return None, []
-    if not texto.isdigit() or int(texto) <= 0:
+    if not texto.isascii() or not texto.isdigit() or int(texto) <= 0:
         return None, [f"'{texto}' não é um ID de work item inteiro e positivo"]
     return int(texto), []
 
