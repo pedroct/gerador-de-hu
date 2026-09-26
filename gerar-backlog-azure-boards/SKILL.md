@@ -12,7 +12,7 @@ Transforme somente requisitos rastreáveis em Épicos, Features e itens de folha
 
 Esta skill decompõe **uma spec de entrada por execução**: o documento que o usuário passa diretamente para virar backlog. Duas formas são reconhecidas:
 
-- Uma spec de produto ou software comum, do fluxo usual (`redigir-spec-pedido-negocio`, `redigir-spec-demanda-azure-boards` ou equivalente).
+- Uma spec de produto ou software do fluxo usual de requisitos (por exemplo `redigir-spec-demanda-azure-boards`, ou qualquer skill de redação equivalente).
 - Uma `Spec: Débitos técnicos — <contexto>` de `especificar-debitos-tecnicos`, quando ela é o documento passado diretamente para esta execução — não localizado como companheiro dentro da pasta de outra Demanda. Cada DT do `Resumo priorizado` vira um item de folha (passo 4), seguindo o mesmo Workflow e o mesmo contrato de qualquer outra spec de entrada.
 
 A regra de companheiro do passo 2 não muda: um `debitos-tecnicos.md` encontrado ao lado da spec de produto, dentro da mesma pasta de Demanda, continua contexto rotulado — nunca origem de item de backlog. É a mesma skill de origem (`especificar-debitos-tecnicos`) produzindo o mesmo arquivo; o que muda o tratamento é **como ele chegou** a esta execução: como spec de entrada (origem) ou como companheiro (contexto).
