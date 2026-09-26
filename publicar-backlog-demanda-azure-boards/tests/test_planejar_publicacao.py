@@ -144,3 +144,33 @@ def test_mapeamento_product_backlog_item_integra_operacao_e_hash() -> None:
 
     assert plano_pbi.operacoes[-1].tipo_remoto == "Product Backlog Item"
     assert plano_pbi.hash_plano != plano_padrao.hash_plano
+
+
+# Hash produzido pela versão anterior aos campos novos. Ele existe para que um backlog
+# sem tags, sem dependências e sem ID declarado continue gerando o mesmo plano — é o que
+# permite a toda publicação parcial já gravada retomar. Se este teste falhar, a assimetria
+# do hash foi quebrada; não atualize o literal para "consertar".
+HASH_ANTES_DOS_CAMPOS_NOVOS = "36d9bee8e7073aa1e2c2de786a316a373f38ad5ba83e23b3dd4b628dedf1af58"
+
+
+def test_hash_nao_muda_para_backlog_sem_tags() -> None:
+    plano = criar_plano(ITENS, CONFIGURACAO, DATA_GERACAO)
+
+    assert plano.hash_plano == HASH_ANTES_DOS_CAMPOS_NOVOS
+
+
+def test_operacao_propaga_tags_do_item() -> None:
+    itens = [replace(ITENS[0], tags=("debito-tecnico",)), ITENS[1], ITENS[2]]
+
+    plano = criar_plano(itens, CONFIGURACAO, DATA_GERACAO)
+
+    assert plano.operacoes[-1].tags == ("debito-tecnico",)
+
+
+def test_hash_muda_quando_ha_tags() -> None:
+    com_tags = [replace(ITENS[0], tags=("debito-tecnico",)), ITENS[1], ITENS[2]]
+
+    assert (
+        criar_plano(com_tags, CONFIGURACAO, DATA_GERACAO).hash_plano
+        != criar_plano(ITENS, CONFIGURACAO, DATA_GERACAO).hash_plano
+    )

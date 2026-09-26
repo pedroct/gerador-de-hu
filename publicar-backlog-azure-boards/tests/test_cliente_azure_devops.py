@@ -459,3 +459,27 @@ def test_narrativa_continua_em_description_quando_nao_ha_repro_steps() -> None:
     caminhos = _caminhos_enviados(chamadas[-1])
     assert "/fields/System.Description" in caminhos
     assert "/fields/Microsoft.VSTS.TCM.ReproSteps" not in caminhos
+
+
+def test_criacao_envia_tags_unidas_por_ponto_e_virgula() -> None:
+    cliente_azure, chamadas = cliente(
+        [resposta(200, {"id": 7, "url": "https://dev.azure.com/item/7"})]
+    )
+    operacao = replace(OPERACAO, tags=("debito-tecnico", "dt-restricao"))
+
+    cliente_azure.criar_item(operacao)
+
+    patch = loads(chamadas[0].content)
+    campos = {entrada["path"]: entrada["value"] for entrada in patch if "fields" in entrada["path"]}
+    assert campos["/fields/System.Tags"] == "debito-tecnico; dt-restricao"
+
+
+def test_criacao_omite_system_tags_quando_nao_ha_tags() -> None:
+    cliente_azure, chamadas = cliente(
+        [resposta(200, {"id": 7, "url": "https://dev.azure.com/item/7"})]
+    )
+
+    cliente_azure.criar_item(OPERACAO)
+
+    patch = loads(chamadas[0].content)
+    assert all("System.Tags" not in entrada["path"] for entrada in patch)

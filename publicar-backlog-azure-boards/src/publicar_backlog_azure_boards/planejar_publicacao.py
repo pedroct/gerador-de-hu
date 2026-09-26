@@ -57,7 +57,26 @@ def _criar_operacao(
         criterios_aceitacao=converter_criterios(item.criterios_aceitacao),
         chave_pai=item.pai,
         tipo_remoto=configuracao.mapeamento_tipos.nome_remoto(item.tipo),
+        tags=item.tags,
     )
+
+
+def _conteudo_do_item(item: ItemBacklog) -> dict[str, object]:
+    conteudo: dict[str, object] = {
+        "chave": item.chave,
+        "tipo": item.tipo,
+        "titulo": item.titulo,
+        "titulo_curto": item.titulo_curto,
+        "pai": item.pai,
+        "descricao": item.descricao,
+        "criterios_aceitacao": item.criterios_aceitacao,
+    }
+    # A chave só entra quando preenchida: um backlog sem campos novos precisa produzir
+    # o hash anterior, ou todo manifesto de publicação parcial deixa de retomar. Não
+    # "simplifique" incluindo sempre.
+    if item.tags:
+        conteudo["tags"] = list(item.tags)
+    return conteudo
 
 
 def _calcular_hash(
@@ -72,18 +91,7 @@ def _calcular_hash(
             "mapeamento_tipos": configuracao.mapeamento_tipos.como_dict(),
         },
         "data_geracao": data_geracao,
-        "itens": [
-            {
-                "chave": item.chave,
-                "tipo": item.tipo,
-                "titulo": item.titulo,
-                "titulo_curto": item.titulo_curto,
-                "pai": item.pai,
-                "descricao": item.descricao,
-                "criterios_aceitacao": item.criterios_aceitacao,
-            }
-            for item in itens
-        ],
+        "itens": [_conteudo_do_item(item) for item in itens],
     }
     serializado = json.dumps(conteudo, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(serializado.encode()).hexdigest()

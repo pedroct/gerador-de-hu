@@ -259,6 +259,10 @@ class ClienteAzureDevOps:
                     "value": operacao.criterios_aceitacao,
                 },
             )
+        if operacao.tags:
+            patch.append(
+                {"op": "add", "path": "/fields/System.Tags", "value": "; ".join(operacao.tags)}
+            )
         if id_pai is not None:
             patch.append(
                 {

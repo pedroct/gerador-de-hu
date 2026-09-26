@@ -151,6 +151,7 @@ class OperacaoCriacao:
     criterios_aceitacao: str
     chave_pai: str | None
     tipo_remoto: str
+    tags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
