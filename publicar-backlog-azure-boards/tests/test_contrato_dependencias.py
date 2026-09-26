@@ -168,3 +168,11 @@ def test_folha_com_dependencia_continua_aceita() -> None:
     )
 
     assert erros == []
+
+
+def test_recusa_secao_depende_de_presente_e_vazia() -> None:
+    """`interpretar_backlog` já recusa; sem esta regra aqui, `validacao_estrutural` devolve
+    zero erro e o usuário recebe a recusa isolada do estágio seguinte, fora do agregado."""
+    erros = validate_backlog(BACKLOG.format(depende_de=""))
+
+    assert any("1.1.1 possui a seção Depende de presente e vazia" in erro for erro in erros)

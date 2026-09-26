@@ -311,6 +311,8 @@ def _validate_item(
             errors.append(f"{item.key} declara Depende de, permitido só em item de folha")
         chaves, erros_chaves = normalizar_chaves(item.section(DEPENDE_DE))
         errors.extend(f"{item.key}: {erro}" for erro in erros_chaves)
+        if not chaves and not erros_chaves:
+            errors.append(f"{item.key} possui a seção Depende de presente e vazia")
         for chave in chaves:
             if chave not in keys:
                 errors.append(f"{item.key} depende de {chave}, que não existe no backlog")
@@ -319,6 +321,8 @@ def _validate_item(
     if AZURE_BOARDS_ID in item.sections:
         valor, erros_id = normalizar_id(item.section(AZURE_BOARDS_ID))
         errors.extend(f"{item.key}: {erro}" for erro in erros_id)
+        if valor is None and not erros_id:
+            errors.append(f"{item.key} possui a seção Azure Boards ID presente e vazia")
         if item.kind not in CONTAINER_KINDS:
             errors.append(f"{item.key} declara Azure Boards ID, permitido só em Epic e Feature")
         elif valor is not None and item.kind == "Feature" and _parent_value(item) not in com_id:

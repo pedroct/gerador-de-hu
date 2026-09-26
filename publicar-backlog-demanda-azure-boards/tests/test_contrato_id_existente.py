@@ -86,3 +86,14 @@ Origem na spec: seção 1
 #### Description
 Origem na spec: seção 1
 """
+
+
+def test_recusa_secao_azure_boards_id_presente_e_vazia() -> None:
+    """`interpretar_backlog` já recusa; sem esta regra aqui, `validacao_estrutural` devolve
+    zero erro e o usuário recebe a recusa isolada do estágio seguinte, fora do agregado."""
+    erros = validate_backlog(BACKLOG_FEATURE_COM_ID_VAZIO)
+
+    assert any("1.1.0 possui a seção Azure Boards ID presente e vazia" in e for e in erros)
+
+
+BACKLOG_FEATURE_COM_ID_VAZIO = BACKLOG_FEATURE_COM_ID_EPIC_SEM.replace("`4722`\n", "")

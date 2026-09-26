@@ -84,6 +84,34 @@ Funcionalidade: Reabrir diligência
 )
 
 
+def _com_tags(text: str, conteudo: str) -> str:
+    """Declara `Tags` na primeira folha, entre `Parent` e `Description`."""
+    return text.replace(
+        "##### Parent\n`1.1.0`\n", f"##### Parent\n`1.1.0`\n##### Tags\n{conteudo}\n", 1
+    )
+
+
+def _com_depende_de(text: str, conteudo: str) -> str:
+    """Declara `Depende de` na primeira folha, entre `Parent` e `Description`."""
+    return text.replace(
+        "##### Parent\n`1.1.0`\n", f"##### Parent\n`1.1.0`\n##### Depende de\n{conteudo}\n", 1
+    )
+
+
+def _com_id_no_epic(text: str, conteudo: str = "`4721`") -> str:
+    return text.replace(
+        "## 1.0.0 [Epic] Corrigir diligências\n",
+        f"## 1.0.0 [Epic] Corrigir diligências\n### Azure Boards ID\n{conteudo}\n",
+        1,
+    )
+
+
+def _com_id_na_feature(text: str, conteudo: str = "`4722`") -> str:
+    return text.replace(
+        "#### Parent\n`1.0.0`\n", f"#### Parent\n`1.0.0`\n#### Azure Boards ID\n{conteudo}\n", 1
+    )
+
+
 class ValidateBacklogTests(unittest.TestCase):
     def test_parse_backlog_ignores_headings_inside_fences(self):
         text = """## 1.0.0 [Epic] Épico
@@ -279,6 +307,105 @@ Origem na spec: seção 1.1.
         errors = MODULE.validate_backlog(text)
         self.assertTrue(
             any(error.startswith("título de item de trabalho inválido:") for error in errors)
+        )
+
+    # --- Campos novos do contrato: Tags, Depende de e Azure Boards ID ---------------
+    # Este script é a cópia canônica do contrato. Sem estes casos, acrescentar os nomes a
+    # SECTION_NAMES destravaria o gate sem validar nada — confiança falsa, pior que recusar.
+
+    def test_accepts_tags_on_leaf_item(self):
+        text = _com_tags(VALID, "debito-tecnico, dt-restricao")
+        self.assertEqual([], MODULE.validate_backlog(text))
+
+    def test_rejects_tag_with_semicolon(self):
+        text = _com_tags(VALID, "debito-tecnico; dt-restricao")
+        self.assertIn(
+            "1.1.1: a tag 'debito-tecnico; dt-restricao' contém ';', "
+            "que o Azure Boards usa como separador",
+            MODULE.validate_backlog(text),
+        )
+
+    def test_rejects_empty_tags_section(self):
+        text = _com_tags(VALID, "")
+        self.assertIn("1.1.1 possui a seção Tags presente e vazia", MODULE.validate_backlog(text))
+
+    def test_accepts_dependency_between_sibling_leaves(self):
+        text = _com_depende_de(VALID_WITH_BUG, "`1.1.2`")
+        self.assertEqual([], MODULE.validate_backlog(text))
+
+    def test_rejects_dependency_on_missing_key(self):
+        text = _com_depende_de(VALID, "`9.9.9`")
+        self.assertIn(
+            "1.1.1 depende de 9.9.9, que não existe no backlog", MODULE.validate_backlog(text)
+        )
+
+    def test_rejects_dependency_on_non_leaf_item(self):
+        text = _com_depende_de(VALID, "`1.1.0`")
+        self.assertIn(
+            "1.1.1 depende de 1.1.0, que não é item de folha", MODULE.validate_backlog(text)
+        )
+
+    def test_rejects_dependency_declared_outside_leaf(self):
+        text = VALID_WITH_BUG.replace(
+            "#### Parent\n`1.0.0`\n", "#### Parent\n`1.0.0`\n#### Depende de\n`1.1.2`\n", 1
+        )
+        self.assertIn(
+            "1.1.0 declara Depende de, permitido só em item de folha",
+            MODULE.validate_backlog(text),
+        )
+
+    def test_rejects_empty_dependency_section(self):
+        text = _com_depende_de(VALID, "")
+        self.assertIn(
+            "1.1.1 possui a seção Depende de presente e vazia", MODULE.validate_backlog(text)
+        )
+
+    def test_rejects_dependency_cycle(self):
+        text = _com_depende_de(VALID_WITH_BUG, "`1.1.2`")
+        text = text.replace(
+            "#### 1.1.2 [Bug] Reabertura falha sem mensagem de erro\n##### Parent\n`1.1.0`\n",
+            "#### 1.1.2 [Bug] Reabertura falha sem mensagem de erro\n##### Parent\n`1.1.0`\n"
+            "##### Depende de\n`1.1.1`\n",
+        )
+        self.assertTrue(
+            any(
+                error.startswith("ciclo de dependência entre")
+                for error in MODULE.validate_backlog(text)
+            )
+        )
+
+    def test_accepts_existing_azure_boards_id_on_epic_and_feature(self):
+        text = _com_id_no_epic(_com_id_na_feature(VALID))
+        self.assertEqual([], MODULE.validate_backlog(text))
+
+    def test_rejects_azure_boards_id_on_leaf_item(self):
+        text = VALID.replace(
+            "##### Parent\n`1.1.0`\n", "##### Parent\n`1.1.0`\n##### Azure Boards ID\n`4723`\n", 1
+        )
+        self.assertIn(
+            "1.1.1 declara Azure Boards ID, permitido só em Epic e Feature",
+            MODULE.validate_backlog(text),
+        )
+
+    def test_rejects_feature_with_id_under_epic_without_id(self):
+        text = _com_id_na_feature(VALID)
+        self.assertIn(
+            "1.1.0 declara Azure Boards ID, mas seu pai 1.0.0 não declara",
+            MODULE.validate_backlog(text),
+        )
+
+    def test_rejects_azure_boards_id_that_is_not_a_positive_integer(self):
+        text = _com_id_no_epic(VALID, "`0`")
+        self.assertIn(
+            "1.0.0: '0' não é um ID de work item inteiro e positivo",
+            MODULE.validate_backlog(text),
+        )
+
+    def test_rejects_empty_azure_boards_id_section(self):
+        text = _com_id_no_epic(VALID, "")
+        self.assertIn(
+            "1.0.0 possui a seção Azure Boards ID presente e vazia",
+            MODULE.validate_backlog(text),
         )
 
 

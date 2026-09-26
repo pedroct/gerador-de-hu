@@ -8,6 +8,11 @@ from datetime import date
 from pathlib import Path
 
 from publicar_backlog_azure_boards.contrato_backlog import (
+    AZURE_BOARDS_ID,
+    DEPENDE_DE,
+    IMPLEMENTATION_EVIDENCE,
+    SECTION_NAMES,
+    TAGS,
     normalizar_chaves,
     normalizar_id,
     normalizar_tags,
@@ -20,16 +25,11 @@ _ITEM_RE = re.compile(
     r"\[(?P<tipo>Epic|Feature|User Story|Bug)\] (?P<titulo>\S.*)$"
 )
 _DATA_GERACAO_RE = re.compile(r"^- Data de geração: `(\d{4}-\d{2}-\d{2})`$", re.MULTILINE)
-_SECOES = {
-    "Parent",
-    "Título curto",
-    "Description",
-    "Acceptance Criteria",
-    "Refinement Status",
-    "Tags",
-    "Depende de",
-    "Azure Boards ID",
-}
+# Os dois parsers do contrato precisam reconhecer exatamente as mesmas seções: uma seção
+# conhecida só aqui explode como "heading fora do contrato" no outro caminho, e uma seção
+# conhecida só lá é anexada em silêncio ao conteúdo da seção anterior. Em vez de repetir a
+# lista, este módulo reusa a de ``contrato_backlog`` — não há dois conjuntos para divergir.
+_SECOES = SECTION_NAMES
 _FOLHAS = {TipoItem.HISTORIA_USUARIO, TipoItem.BUG}
 
 
@@ -152,8 +152,8 @@ def _tratar_heading(
 def _nome_secao(conteudo: str) -> str | None:
     if conteudo in _SECOES:
         return conteudo
-    if conteudo.startswith("Implementation Evidence "):
-        return "Implementation Evidence"
+    if conteudo.startswith(f"{IMPLEMENTATION_EVIDENCE} "):
+        return IMPLEMENTATION_EVIDENCE
     return None
 
 
@@ -241,35 +241,37 @@ def _validar_criterios_aceitacao(item: _ItemEmConstrucao) -> None:
 
 
 def _tags_do_item(item: _ItemEmConstrucao) -> tuple[str, ...]:
-    if "Tags" not in item.secoes:
+    if TAGS not in item.secoes:
         return ()
-    tags, erros = normalizar_tags(item.texto_secao("Tags"))
+    tags, erros = normalizar_tags(item.texto_secao(TAGS))
     if erros:
         raise ErroContratoMarkdown(f"{item.chave}: {erros[0]}")
     if not tags:
-        raise ErroContratoMarkdown(f"{item.chave} possui a seção Tags presente e vazia")
+        raise ErroContratoMarkdown(f"{item.chave} possui a seção {TAGS} presente e vazia")
     return tags
 
 
 def _dependencias_do_item(item: _ItemEmConstrucao) -> tuple[str, ...]:
-    if "Depende de" not in item.secoes:
+    if DEPENDE_DE not in item.secoes:
         return ()
-    chaves, erros = normalizar_chaves(item.texto_secao("Depende de"))
+    chaves, erros = normalizar_chaves(item.texto_secao(DEPENDE_DE))
     if erros:
         raise ErroContratoMarkdown(f"{item.chave}: {erros[0]}")
     if not chaves:
-        raise ErroContratoMarkdown(f"{item.chave} possui a seção Depende de presente e vazia")
+        raise ErroContratoMarkdown(f"{item.chave} possui a seção {DEPENDE_DE} presente e vazia")
     return chaves
 
 
 def _id_existente(item: _ItemEmConstrucao) -> int | None:
-    if "Azure Boards ID" not in item.secoes:
+    if AZURE_BOARDS_ID not in item.secoes:
         return None
-    valor, erros = normalizar_id(item.texto_secao("Azure Boards ID"))
+    valor, erros = normalizar_id(item.texto_secao(AZURE_BOARDS_ID))
     if erros:
         raise ErroContratoMarkdown(f"{item.chave}: {erros[0]}")
     if valor is None:
-        raise ErroContratoMarkdown(f"{item.chave} possui a seção Azure Boards ID presente e vazia")
+        raise ErroContratoMarkdown(
+            f"{item.chave} possui a seção {AZURE_BOARDS_ID} presente e vazia"
+        )
     return valor
 
 

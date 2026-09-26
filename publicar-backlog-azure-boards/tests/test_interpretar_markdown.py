@@ -2,7 +2,9 @@ from pathlib import Path
 
 import pytest
 
+from publicar_backlog_azure_boards.contrato_backlog import SECTION_NAMES
 from publicar_backlog_azure_boards.interpretar_markdown import (
+    _SECOES,
     ErroContratoMarkdown,
     extrair_data_geracao,
     interpretar_backlog,
@@ -175,3 +177,78 @@ def test_rejeita_contrato_invalido(tmp_path: Path, texto: str, mensagem: str):
 
     with pytest.raises(ErroContratoMarkdown, match=mensagem):
         interpretar_backlog(caminho)
+
+
+BACKLOG_COM_DEPENDENCIA_E_ID = """# Backlog para Azure Boards
+
+## Metadados e cobertura
+- Data de geração: `2026-09-25`
+
+## 1.0.0 [Epic] Épico
+
+### Azure Boards ID
+`4721`
+
+### Description
+Texto
+
+### 1.1.0 [Feature] Feature
+
+#### Parent
+`1.0.0`
+
+#### Description
+Texto
+
+#### 1.1.1 [User Story] História funcional
+
+##### Parent
+`1.1.0`
+
+##### Depende de
+`1.1.2`
+
+##### Description
+Texto
+
+##### Acceptance Criteria
+
+#### 1.1.2 [User Story] Item de design
+
+##### Parent
+`1.1.0`
+
+##### Description
+Texto
+
+##### Acceptance Criteria
+"""
+
+
+def test_le_depende_de_declarado_no_item(tmp_path: Path):
+    """`Depende de` só aparecia como Markdown em teste de `contrato_backlog`; sem este, o
+    caminho de `interpretar_backlog` aceitava a seção por construção e ninguém media."""
+    caminho = tmp_path / "backlog.md"
+    caminho.write_text(BACKLOG_COM_DEPENDENCIA_E_ID, encoding="utf-8")
+
+    itens = {item.chave: item for item in interpretar_backlog(caminho)}
+
+    assert itens["1.1.1"].depende_de == ("1.1.2",)
+    assert itens["1.1.2"].depende_de == ()
+
+
+def test_le_azure_boards_id_declarado_no_item(tmp_path: Path):
+    """Mesmo motivo do teste acima: o campo existia em Markdown só no outro parser."""
+    caminho = tmp_path / "backlog.md"
+    caminho.write_text(BACKLOG_COM_DEPENDENCIA_E_ID, encoding="utf-8")
+
+    itens = {item.chave: item for item in interpretar_backlog(caminho)}
+
+    assert itens["1.0.0"].azure_boards_id == 4721
+    assert itens["1.1.0"].azure_boards_id is None
+
+
+def test_as_secoes_reconhecidas_sao_as_do_contrato():
+    """Os dois parsers precisam reconhecer o mesmo conjunto: uma seção conhecida só por um
+    deles é aceita por um caminho e explode no outro."""
+    assert _SECOES == SECTION_NAMES
