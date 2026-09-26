@@ -1,6 +1,114 @@
 # Relatório — Tarefa 8: checagem cruzada do `demanda_id`
 
-## O que foi implementado
+## Correção pós-revisão: teste de não-regressão do pacote solto era vazio
+
+A revisão apontou (achado Importante, contra o brief que eu recebi, não contra a implementação)
+que `test_publicadora_solta_aceita_backlog_com_demanda_declarada`, copiado verbatim do brief,
+chamava só `interpretar_backlog(caminho)` — e `_extrair_itens` nunca inspeciona o conteúdo da
+seção `## Metadados e cobertura` (só reconhece o heading em si, via `_validar_heading_inicial`,
+quando nenhum item começou ainda). O teste passaria antes desta tarefa e passaria com qualquer
+metadado, inventado ou não. Confirmei o achado eu mesmo, comparando três backlogs — sem o
+metadado, com a linha real da Demanda, e com um metadado inventado — todos produzindo a mesma
+lista de itens pelo parser:
+
+```
+$ python3 -c "... interpretar_backlog sobre as três variantes ..."
+com_demanda   [('1.0.0', Epic), ('1.1.0', Feature), ('1.1.1', User Story)]
+sem_metadado  [('1.0.0', Epic), ('1.1.0', Feature), ('1.1.1', User Story)]
+inventado     [('1.0.0', Epic), ('1.1.0', Feature), ('1.1.1', User Story)]
+```
+
+**Correção**: removi o teste vazio de `test_interpretar_markdown.py` e escrevi
+`test_publicadora_solta_publica_backlog_com_demanda_de_origem_declarada` em
+`test_integracao_final.py` (pacote `publicar-backlog-azure-boards`) — a superfície certa, porque
+é onde a assimetria poderia de fato ser quebrada: `cli.py::principal()`, o mesmo ponto onde o
+pacote de Demanda tem `conferir_demanda_de_origem`. O teste reaproveita o harness já existente
+nesse arquivo (`ClienteSimulado`, `criar_plano`, `criar_frase_confirmacao`), parte da fixture
+`valid-backlog.md` real, acrescenta a linha `Demanda de Negócio de origem` nos Metadados,
+publica de ponta a ponta com autorização confirmada, e afirma que a publicação **prossegue**
+(`codigo == 0` e os três itens criados) — comportamental, não estrutural, como o coordenador
+preferiu.
+
+### RED — demonstrando que o teste não é vazio
+
+Para provar que o teste de fato reprova se alguém "corrigir a assimetria", adicionei
+temporariamente ao `cli.py` do pacote solto, logo antes de `_verificar_preliminar(...)` em
+`principal()`, uma recusa simulando exatamente esse erro:
+
+```python
+if "Demanda de Negócio de origem" in argumentos_parseados.backlog.read_text(encoding="utf-8"):
+    raise ValueError("recusa simulada: demonstrando a checagem replicada indevidamente")
+```
+
+```
+$ cd publicar-backlog-azure-boards && uv run pytest tests/test_integracao_final.py::test_publicadora_solta_publica_backlog_com_demanda_de_origem_declarada -q
+...
+>       assert codigo == 0
+E       assert 1 == 0
+tests/test_integracao_final.py:179: AssertionError
+1 failed in 0.21s
+```
+
+Confirmado o RED, revertit a edição temporária (`Edit` desfazendo exatamente o bloco acrescentado)
+e confirmei que `cli.py` do pacote solto ficou byte a byte igual ao commit anterior:
+
+```
+$ git diff --stat -- publicar-backlog-azure-boards/src/publicar_backlog_azure_boards/cli.py
+$ git status --short publicar-backlog-azure-boards/src/publicar_backlog_azure_boards/cli.py
+(nenhuma saída nos dois — arquivo limpo)
+```
+
+### GREEN — suíte inteira dos dois pacotes após a correção
+
+```
+$ cd publicar-backlog-azure-boards && uv run pytest -q
+........................................................................ [ 35%]
+........................................................................ [ 70%]
+............................................................             [100%]
+204 passed in 0.37s
+
+$ uv run ruff check . && uv run ruff format --check . && uv run mypy src
+All checks passed!
+31 files already formatted
+Success: no issues found in 13 source files
+
+$ cd ../publicar-backlog-demanda-azure-boards && uv run pytest -q
+........................................................................ [ 23%]
+........................................................................ [ 47%]
+........................................................................ [ 71%]
+........................................................................ [ 95%]
+.............                                                            [100%]
+301 passed in 1.07s
+
+$ uv run pytest -q -k test_hash_nao_muda_para_backlog_sem_tags
+.                                                                        [100%]
+1 passed, 300 deselected in 0.16s
+
+$ uv run pytest tests/test_sincronia_com_origem.py -q
+.....                                                                    [100%]
+5 passed in 0.01s
+
+$ uv run ruff check . && uv run ruff format --check . && uv run mypy src
+All checks passed!
+40 files already formatted
+Success: no issues found in 15 source files
+```
+
+O total do pacote solto continua em 204 (era 204 antes também: removi 1 teste vazio, acrescentei
+1 teste de verdade). O invariante `test_hash_nao_muda_para_backlog_sem_tags` segue verde e o
+literal do hash não foi tocado.
+
+### Arquivos alterados nesta correção
+
+- `publicar-backlog-azure-boards/tests/test_interpretar_markdown.py` (removido o teste vazio)
+- `publicar-backlog-azure-boards/tests/test_integracao_final.py` (novo teste comportamental)
+
+Nenhum arquivo de produção foi alterado nesta correção — a demonstração em `cli.py` foi só
+temporária, para produzir o RED, e já está revertida.
+
+---
+
+## O que foi implementado (tarefa original)
 
 Só no pacote `publicar-backlog-demanda-azure-boards` (esta é a única tarefa assimétrica):
 
@@ -143,7 +251,11 @@ por contagem de bytes — que inflava por causa dos acentos).
 - `publicar-backlog-demanda-azure-boards/tests/test_demanda_de_origem.py` (novo)
 - `publicar-backlog-demanda-azure-boards/tests/fixtures/valid-backlog.md` (linha de metadado
   acrescentada)
-- `publicar-backlog-azure-boards/tests/test_interpretar_markdown.py` (teste de não-regressão)
+- `publicar-backlog-azure-boards/tests/test_interpretar_markdown.py` (teste de não-regressão;
+  **substituído** na correção pós-revisão — ver seção no topo do relatório — por um teste
+  comportamental em `test_integracao_final.py`, porque o original era vazio)
+- `publicar-backlog-azure-boards/tests/test_integracao_final.py` (acrescentado na correção
+  pós-revisão: `test_publicadora_solta_publica_backlog_com_demanda_de_origem_declarada`)
 
 ## Achados da autorrevisão
 
