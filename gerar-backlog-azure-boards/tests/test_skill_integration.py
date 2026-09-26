@@ -226,9 +226,16 @@ class SkillIntegrationTests(unittest.TestCase):
             self.backlog,
         )
 
-    def test_backlog_boundaries_mark_dependency_field_as_informative(self):
+    def test_backlog_boundaries_distinguish_dependency_link_from_informative_bloqueia(self):
+        """A Tarefa 9 tornou `Depende de` gerador de link real (System.LinkTypes.Dependency-
+        Reverse); a asserção anterior, que descrevia os dois campos como só 'informativo',
+        descrevia o contrato pré-Tarefa 9 e ficou incorreta com a reescrita do contrato."""
         self.assertIn(
-            "O campo `Depende de`/`Bloqueia`, quando presente, é informativo",
+            "gera, na publicação, a relação real `System.LinkTypes.Dependency-Reverse`",
+            self.backlog,
+        )
+        self.assertIn(
+            "`Bloqueia`, ao contrário, permanece texto informativo em prosa",
             self.backlog,
         )
 
@@ -296,6 +303,56 @@ class SkillIntegrationTests(unittest.TestCase):
     def test_readme_descreve_as_duas_rodadas(self) -> None:
         self.assertIn("duas rodadas", self.readme)
         self.assertIn("negocio.md", self.readme)
+
+    def test_reconhece_spec_de_debitos_tecnicos_como_entrada_valida(self) -> None:
+        """Companheiro é contexto; spec de entrada é origem — os dois papéis convivem."""
+        self.assertIn("## Specs de entrada reconhecidas", self.backlog)
+        self.assertIn("Spec: Débitos técnicos", self.backlog)
+        self.assertIn(
+            "não localizado como companheiro dentro da pasta de outra Demanda",
+            self.backlog,
+        )
+        self.assertIn(
+            "`debitos-tecnicos.md` e `revisao-textos.md`, que são contexto rotulado, "
+            "nunca origem de item de backlog",
+            self.backlog,
+        )
+
+    def test_emite_vocabulario_de_tags_por_origem_do_item(self) -> None:
+        self.assertIn("## Tags emitidas", self.backlog)
+        self.assertIn("**Epic e Feature nunca recebem tags**", self.backlog)
+        self.assertIn("`debito-tecnico`", self.backlog)
+        self.assertIn("`dt-restricao`, `dt-candidato` ou `dt-a-confirmar`", self.backlog)
+        self.assertIn("`design-ux-ui`", self.backlog)
+        self.assertIn("`plataforma-web`", self.backlog)
+        self.assertIn("`plataforma-mobile`", self.backlog)
+        self.assertIn("`dn-<id>`", self.backlog)
+
+    def test_epico_e_feature_de_debito_nomeiam_capacidade_nao_o_debito(self) -> None:
+        """Decisão de 2026-09-12: hierarquia é por capacidade, não por problema."""
+        self.assertIn(
+            "Epic e Feature nomeiam a **capacidade de produto afetada** pelo débito",
+            self.backlog,
+        )
+        self.assertIn(
+            'um Epic "Débito técnico" com Features por categoria seria contêiner do problema',
+            self.backlog,
+        )
+
+    def test_criterios_do_dt_viram_contexto_da_conversation_nao_acceptance_criteria(self) -> None:
+        self.assertIn(
+            "forneça os bullets de `### Critérios de aceite` do DT como contexto rotulado "
+            "de entrada para a Conversation da 3C",
+            self.backlog,
+        )
+        self.assertIn("não os copie diretamente para `Acceptance Criteria`", self.backlog)
+
+    def test_backlog_de_debito_indica_publicadora_solta_mesmo_com_demanda(self) -> None:
+        self.assertIn(
+            "indique ainda assim `publicar-backlog-azure-boards` (a publicadora solta)",
+            self.backlog,
+        )
+        self.assertIn("nunca `publicar-backlog-demanda-azure-boards`", self.backlog)
 
 
 if __name__ == "__main__":

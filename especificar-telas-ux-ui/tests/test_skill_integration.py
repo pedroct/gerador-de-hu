@@ -122,6 +122,7 @@ class SkillIntegrationTests(unittest.TestCase):
 
     def test_item_template_has_design_sections(self):
         for secao in (
+            "### Plataforma",
             "### Por que esta tela existe",
             "### Quem usa",
             "### Onde fica",
@@ -187,6 +188,16 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn("telas-ux-ui.md", self.skill)
         self.assertIn("diretório de destino", self.skill)
         self.assertIn("Sem diretório de destino", self.skill)
+
+    def test_item_template_declares_platform_as_structured_field(self):
+        """A plataforma virou campo estruturado por TL-xx; tag não pode depender de parsing
+        de título nem do cabeçalho do documento."""
+        self.assertIn("### Plataforma", self.skill)
+        self.assertIn(
+            "único lugar onde a plataforma do item é campo estruturado",
+            self.skill,
+        )
+        self.assertIn("nunca deve depender de parsing de título", self.skill)
 
     def test_titulo_do_documento_e_o_que_o_gerador_de_backlog_procura(self):
         """O título é a identidade do documento fora da pasta; se divergir, o fallback

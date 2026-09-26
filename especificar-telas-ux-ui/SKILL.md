@@ -163,6 +163,9 @@ depois a rastreabilidade, escrita para quem mantém a spec.
 
 ## TL-01 — <título curto, com a plataforma no nome>
 
+### Plataforma
+<Web | Mobile — valor único; um item de design nunca cobre as duas>
+
 ### Por que esta tela existe
 <2 a 4 frases: o que hoje não dá para fazer, o que passa a dar, e o que trava enquanto a tela não
 existe. Sem repetir a frase do requisito em outras quatro seções.>
@@ -232,6 +235,11 @@ a definir>
 
 Repita a seção do item para cada par (requisito, plataforma) sinalizado. Use `TL-01`, `TL-02` apenas como
 chaves documentais deste documento; elas não são IDs de work items nem chaves `E.F.S` do backlog.
+
+A subseção `### Plataforma` é o único lugar onde a plataforma do item é campo estruturado, com valor
+único `Web` ou `Mobile`. O cabeçalho do documento e o título em prosa de cada item continuam existindo
+para quem lê, mas `gerar-backlog-azure-boards` nunca deve depender de parsing de título ou de cabeçalho
+para decidir a tag `plataforma-web`/`plataforma-mobile` de um item de design — só desta subseção.
 
 ## Boundaries
 

@@ -72,6 +72,11 @@ Duas ressalvas antes de usar:
 
   `sinalizar_inversoes()` aponta inversões entre os candidatos, sem corrigi-las.
 
+- **A `Faixa` registrada na spec é fotografia da geração, não obrigação recalculável.** Quando
+  `gerar-backlog-azure-boards` publica um item nascido de um DT, a tag `dt-<faixa>` grava o valor
+  presente nesta rodada. Uma reavaliação posterior que mude a `Faixa` aqui registrada não atualiza
+  sozinha o work item já criado — a mudança só chega ao board com nova publicação ou edição manual.
+
 - **Descreva o que acontece quando o débito se manifesta**, não apenas o que está errado. Sem isso
   a severidade é inferida e a confiança cai — num teste, acrescentar a consequência levou a
   severidade de 4 com confiança 0,50 para 5 com confiança 1,00, e o item saiu de *a confirmar*
@@ -92,10 +97,20 @@ nos dois casos: é ele que identifica o documento, não o nome do arquivo.
 ## Contexto e origem
 <demanda, sessão de refinamento ou spec relacionada>
 
+## Fonte da Demanda
+[Se a spec, sessão ou conversa de origem tiver a seção `## Fonte da Demanda`, copie-a aqui exatamente
+como está lá — mesmo `#<id>` e mesma URL. Caso contrário: `Não se aplica — a origem não é uma Demanda
+de Negócio publicada.`]
+
+**Nunca derive este valor do nome da pasta.** Um diretório `DN-14125-<slug>/` parece uma resposta e
+não é: pode ter sido renomeado à mão, copiado de outra Demanda ou criado por engano. O único ID válido
+é o que já estava escrito na seção `## Fonte da Demanda` da origem lida — sem essa seção na origem,
+registre `Não se aplica`, nunca infira o número.
+
 ## Resumo priorizado
-| Item | Categoria | Tipo sugerido | Impacto | Risco | Esforço | Prioridade |
-|---|---|---|---:|---:|---:|---:|
-| DT-01 | ... | User Story/Bug | 1-5 | 1-5 | 1-5 | ... |
+| Item | Categoria | Tipo sugerido | Impacto | Risco | Esforço | Prioridade | Faixa |
+|---|---|---|---:|---:|---:|---:|---|
+| DT-01 | ... | User Story/Bug | 1-5 | 1-5 | 1-5 | ... | Restrição \| Candidato \| A confirmar |
 
 ## DT-01 — <título acionável>
 ### Título
@@ -118,6 +133,7 @@ Como <ator afetado>, quero <resultado técnico>, para <impacto evitado ou valor 
 - Risco: <1-5> — <justificativa>
 - Esforço: <1-5> — <justificativa>
 - Prioridade: `<cálculo>`
+- Faixa: <Restrição | Candidato | A confirmar>
 ### Remediação faseada
 1. <fase mínima>
 2. <fase posterior, se aplicável>
@@ -147,3 +163,9 @@ confirmado` em vez de preencher por plausibilidade.
   a spec e indique a geração de backlog como próxima etapa manual.
 - A recomendação de tipo não é decisão irrevogável: o backlog pode revisá-la por item quando a spec
   trouxer evidência adicional.
+- Nunca derive `## Fonte da Demanda` do nome da pasta que contém esta spec; copie-a só da origem que
+  a declara, e registre `Não se aplica` quando a origem não a declarar.
+- Quando esta spec declarar `## Fonte da Demanda`, indique ainda assim `publicar-backlog-azure-boards`
+  (a publicadora solta) como próxima etapa manual do backlog gerado a partir dela — nunca
+  `publicar-backlog-demanda-azure-boards`. Esta última herdaria da Demanda o `Iteration Path`, e o
+  débito nasceria na sprint da Demanda: exatamente a sprint em que ele não será pago.
