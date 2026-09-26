@@ -1,7 +1,5 @@
 """Modelos imutáveis do backlog e de sua publicação planejada."""
 
-import hashlib
-import json
 from dataclasses import dataclass, field
 from enum import StrEnum
 
@@ -178,33 +176,3 @@ class PlanoPublicacao:
     hash_plano: str
     configuracao: ConfiguracaoPublicacao
     preexistentes: tuple[ItemPreexistente, ...] = ()
-
-
-def assinatura_plano(plano: PlanoPublicacao) -> str:
-    """Calcula a identidade executável, incluindo destino e payload integral."""
-    configuracao = plano.configuracao
-    conteudo = {
-        "hash_plano": plano.hash_plano,
-        "configuracao": {
-            "organizacao": configuracao.organizacao,
-            "projeto": configuracao.projeto,
-            "area_path": configuracao.area_path,
-            "iteration_path": configuracao.iteration_path,
-            "demanda_id": configuracao.demanda_id,
-            "mapeamento_tipos": configuracao.mapeamento_tipos.como_dict(),
-        },
-        "operacoes": [
-            {
-                "chave": operacao.chave,
-                "tipo": operacao.tipo.value,
-                "tipo_remoto": operacao.tipo_remoto,
-                "titulo": operacao.titulo,
-                "descricao": operacao.descricao,
-                "criterios_aceitacao": operacao.criterios_aceitacao,
-                "chave_pai": operacao.chave_pai,
-            }
-            for operacao in plano.operacoes
-        ],
-    }
-    serializado = json.dumps(conteudo, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(serializado.encode()).hexdigest()
