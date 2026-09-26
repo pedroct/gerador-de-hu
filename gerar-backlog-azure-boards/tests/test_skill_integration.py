@@ -206,7 +206,11 @@ class SkillIntegrationTests(unittest.TestCase):
         )
 
     def test_contract_template_has_a_slot_for_depende_de_and_bloqueia(self):
-        self.assertIn("Depende de: 1.1.2", self.backlog_contract)
+        self.assertIn("##### Depende de", self.backlog_contract)
+        self.assertIn(
+            "uma ou mais chaves `E.F.S` de item de folha já existente no backlog",
+            self.backlog_contract,
+        )
         self.assertIn("Bloqueia: 1.1.1", self.backlog_contract)
 
     def test_backlog_pairs_design_item_and_fills_dependency_fields(self):
@@ -228,11 +232,16 @@ class SkillIntegrationTests(unittest.TestCase):
             self.backlog,
         )
 
-    def test_contract_documents_depende_de_and_bloqueia_as_informative(self):
+    def test_contract_documents_bloqueia_as_informative_and_linkless(self):
         self.assertIn("## Depende de e Bloqueia", self.backlog_contract)
         self.assertIn("Não altera a prontidão calculada pela 3C", self.backlog_contract)
         self.assertIn(
-            "não é um novo nível hierárquico e não substitui `Parent`",
+            "`Bloqueia` permanece **texto informativo**, sem seção própria nem chave estruturada",
+            self.backlog_contract,
+        )
+        self.assertIn("Não gera link algum; é só rastro documental.", self.backlog_contract)
+        self.assertIn(
+            "Só `Depende de` gera relação real no Azure Boards",
             self.backlog_contract,
         )
 
