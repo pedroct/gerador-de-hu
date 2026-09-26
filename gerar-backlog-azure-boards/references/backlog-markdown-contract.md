@@ -54,20 +54,61 @@ User Story e Bug compartilham a mesma sequência `S` sob a mesma Feature: não s
 
 ## Depende de e Bloqueia
 
-Campo opcional, presente apenas quando o item nasceu do fluxo de `especificar-telas-ux-ui` (uma seção
-`## Necessidade de especificação de tela` na spec de origem, com o documento companheiro `Spec: Telas
-UX-UI`). Um item funcional (User Story ou Bug) que depende de tela declara `Depende de` com uma ou mais
-chaves `E.F.S`, uma por plataforma que precisa de especificação; o item de design correspondente (sempre
-`User Story`) declara `Bloqueia` com a chave `E.F.S` do item funcional que ele libera.
+`Depende de` é uma **subseção estruturada**, no mesmo nível das demais subseções do item (`Parent`,
+`Título curto`, `Description`, `Acceptance Criteria`) — não é mais texto dentro da `Description`.
+Campo opcional e válido **somente em item de folha** (User Story ou Bug): declará-lo em Epic ou
+Feature é erro. O conteúdo é uma ou mais chaves documentais `E.F.S` separadas por vírgula, cada uma
+entre crases, por exemplo `` `1.1.2`, `1.1.3` ``; repetição deduplica preservando a ordem.
 
-- É texto informativo dentro de `Description`, na mesma seção da Conversation — não é um novo nível hierárquico e não substitui `Parent`.
+- Cada chave declarada precisa existir no backlog e ser ela mesma um item de folha; apontar para um
+  Epic, uma Feature ou uma chave inexistente é erro — a regra vale nos dois sentidos, tanto para quem
+  declara `Depende de` quanto para o alvo apontado.
+- Um ciclo de dependências é recusado, incluindo o caso degenerado de um item que declara depender de
+  si mesmo.
+- Só `Depende de` gera relação real no Azure Boards: o publicador cria
+  `System.LinkTypes.Dependency-Reverse` no item dependente, apontando para o work item já criado do
+  predecessor. A ordem de publicação garante que todo predecessor exista antes do item que depende
+  dele.
+- `Bloqueia` permanece **texto informativo**, sem seção própria nem chave estruturada — continua
+  citado em prosa (por exemplo, na Conversation) quando o item de design de `especificar-telas-ux-ui`
+  precisa registrar qual item funcional ele libera. Não gera link algum; é só rastro documental.
 - Não altera a prontidão calculada pela 3C: um item pode estar `Pronto` segundo Card, Conversation e
-  Confirmation mesmo com `Depende de` apontando para um item de design ainda não `Pronto`. A 3C continua
-  sendo a única dona da prontidão geral.
-- Não cria nem representa o link formal Predecessor/Sucessor do Azure Boards; essa relação, quando
-  existir na importação, é responsabilidade de uma etapa de publicação futura.
-- Sempre um item de design por plataforma necessária: um item funcional que depende de tela em web e em
-  mobile declara `Depende de` com as duas chaves.
+  Confirmation mesmo com `Depende de` apontando para um item de design ainda não `Pronto`. A 3C
+  continua sendo a única dona da prontidão geral.
+- Um backlog anterior a esta mudança, com `Depende de` em prosa dentro da `Description`, continua
+  válido: esse texto é preservado como está, só não gera link — para ganhar o link formal, o campo
+  precisa ser reescrito como a subseção estruturada.
+
+## Tags
+
+Subseção opcional, no mesmo nível das demais subseções do item, e válida em **qualquer tipo**
+(Epic, Feature, User Story ou Bug). O conteúdo é uma lista de tags separadas por vírgula, por exemplo
+`debito-tecnico, dt-restricao`; espaços ao redor de cada tag são ignorados.
+
+- A seção presente e vazia é erro — se o item não tem tags, omita a subseção inteira.
+- Uma tag vazia entre vírgulas (duas vírgulas seguidas, ou vírgula seguida só de espaço) é erro.
+- `,` dentro de uma tag é impossível de representar, porque a vírgula é o separador da lista; `;`
+  dentro de uma tag é erro explícito, porque o Azure Boards usa `;` como separador de `System.Tags`.
+- Uma tag com mais de 400 caracteres é erro — é o limite do campo no Azure Boards.
+- Repetição da mesma tag deduplica preservando a ordem da primeira ocorrência.
+- Na publicação, as tags do item são unidas com `"; "` (ponto e vírgula e espaço) e gravadas em
+  `System.Tags`.
+
+## Azure Boards ID
+
+Subseção opcional, válida **somente em Epic e Feature** — declará-la em User Story ou Bug é erro. O
+conteúdo é um único ID inteiro positivo, em algarismos ASCII, entre crases, por exemplo `` `4721` ``.
+Qualquer valor que não seja um inteiro positivo ASCII é recusado, incluindo zero, negativos, texto,
+separadores decimais, espaços internos e algarismos não-ASCII ou sobrescritos que pareçam dígitos.
+
+- Uma Feature que declara `Azure Boards ID` exige que seu Epic pai também declare `Azure Boards ID`;
+  sem essa exigência, a Feature reaproveitada apontaria para um Epic que a publicação ainda criaria do
+  zero, com uma chave nova e imprevisível.
+- Este é o **único lugar do backlog onde um ID real do Azure Boards aparece**. O valor é sempre
+  copiado de um work item já publicado — nunca inferido, nunca derivado da chave documental (`E.F.0`)
+  nem do nome de pasta da Demanda.
+- Um item com `Azure Boards ID` declarado não é criado pela publicação: ele é reaproveitado como já
+  existente e serve de pai para os itens que a publicação de fato cria por baixo dele.
 
 ## Template completo
 
@@ -90,6 +131,12 @@ chaves `E.F.S`, uma por plataforma que precisa de especificação; o item de des
 ### Título curto
 [até 60 caracteres]
 
+### Tags
+[Se aplicável: lista separada por vírgula, por exemplo `debito-tecnico, dt-restricao`]
+
+### Azure Boards ID
+[Se aplicável: `[ID já publicado no Azure Boards]` — só quando este Epic reaproveita um work item existente; omita a seção quando o Epic ainda não existe no board]
+
 ### Description
 Objetivo, valor e escopo.
 
@@ -102,6 +149,12 @@ Origem na spec: [seção/âncora/localização disponível]
 
 #### Título curto
 [até 60 caracteres]
+
+#### Tags
+[Se aplicável: lista separada por vírgula]
+
+#### Azure Boards ID
+[Se aplicável: `[ID já publicado no Azure Boards]` — exige que o Epic pai acima também declare `Azure Boards ID`]
 
 #### Description
 Capacidade, resultado e limites de escopo.
@@ -116,6 +169,12 @@ Origem na spec: [seção/âncora/localização disponível]
 ##### Título curto
 [até 60 caracteres]
 
+##### Tags
+[Se aplicável: lista separada por vírgula]
+
+##### Depende de
+[Se aplicável: uma ou mais chaves `E.F.S` de item de folha já existente no backlog, separadas por vírgula e entre crases, por exemplo `` `1.1.2` `` — só quando este item nasceu do fluxo de `especificar-telas-ux-ui` e depende de uma tela ainda não especificada; uma chave por plataforma pendente]
+
 ##### Description
 
 ###### Card
@@ -124,7 +183,7 @@ Origem na spec: [seção/âncora/localização disponível]
 ###### Conversation
 [conteúdo da Conversation retornado pela 3C]
 
-[Se aplicável: `Depende de: 1.1.2` (chave do item de design; uma por plataforma pendente) — ou `Bloqueia: 1.1.1` quando este item for a User Story de design gerada por especificar-telas-ux-ui; ambos informativos, não substituem Parent nem alteram a prontidão da 3C]
+[Se aplicável: `Bloqueia: 1.1.1` quando este item for a User Story de design gerada por especificar-telas-ux-ui, citando em prosa o item funcional que ele libera; informativo, não substitui Parent nem gera link]
 
 Origem na spec: [seção/âncora/localização disponível]
 
@@ -142,6 +201,12 @@ Origem na spec: [seção/âncora/localização disponível]
 ##### Título curto
 [até 60 caracteres]
 
+##### Tags
+[Se aplicável: lista separada por vírgula]
+
+##### Depende de
+[Se aplicável: uma ou mais chaves `E.F.S` de item de folha já existente no backlog, no mesmo formato do exemplo acima]
+
 ##### Description
 
 ###### Card
@@ -149,8 +214,6 @@ Origem na spec: [seção/âncora/localização disponível]
 
 ###### Conversation
 [conteúdo da Conversation retornado pela 3C]
-
-[Se aplicável: `Depende de: 1.1.2` (chave do item de design; uma por plataforma pendente) — informativo, não substitui Parent nem altera a prontidão da 3C]
 
 Origem na spec: [seção/âncora/localização disponível]
 
@@ -161,7 +224,7 @@ Origem na spec: [seção/âncora/localização disponível]
 ##### Acceptance Criteria
 ```
 
-Repita os blocos nos mesmos níveis de cabeçalho: Epic em `##`, Feature em `###` e item de folha (User Story ou Bug) em `####`; as seções de cada item usam um nível adicional.
+Repita os blocos nos mesmos níveis de cabeçalho: Epic em `##`, Feature em `###` e item de folha (User Story ou Bug) em `####`; as seções de cada item usam um nível adicional. `Tags` e `Azure Boards ID` são opcionais em Epic e Feature; `Tags` e `Depende de` são opcionais em item de folha, e `Azure Boards ID` não se aplica a item de folha.
 
 ## Metadados mínimos
 
@@ -234,6 +297,12 @@ O artefato gerado é Markdown para revisão humana e não autoriza criar ou modi
 - O rótulo `[User Story]` ou `[Bug]` no título indica o tipo de work item do processo Agile a criar na importação.
 - `Description` corresponde a `System.Description`.
 - `Acceptance Criteria` corresponde a `Microsoft.VSTS.Common.AcceptanceCriteria`.
+- `Tags` corresponde a `System.Tags`; as tags do item são unidas com `"; "` na publicação.
+- `Depende de` corresponde à relação `System.LinkTypes.Dependency-Reverse`, criada no item dependente
+  apontando para o work item já publicado do predecessor; `Bloqueia` não corresponde a nenhum campo
+  ou relação do Azure Boards, permanece só no documento.
+- `Azure Boards ID` não gera campo nem relação por si só; identifica um Epic ou Feature já publicado
+  para que a publicação o reaproveite como pai em vez de criá-lo de novo.
 - Esses campos são HTML no Azure Boards; a etapa de importação deve converter o Markdown preservando títulos, listas e blocos Gherkin.
 - `Parent`, `Implementation Evidence`, metadados e `Itens não cobertos` pertencem ao documento de preparação e exigem mapeamento explícito caso outra automação venha a consumi-los.
 

@@ -95,6 +95,11 @@ A precedência é linha de comando, arquivo TOML informado por `--config`, `.env
 **`Area Path` e `Iteration Path` não aparecem nesta tabela de propósito**: eles são herdados da
 Demanda. Publicar sob uma Demanda significa publicar onde ela está.
 
+O backlog precisa declarar `Demanda de Negócio de origem` nos Metadados, com o mesmo `#<id>` do
+`--demanda` informado. A publicação é recusada, antes de qualquer chamada remota, quando esse valor
+diverge do `--demanda` da execução, quando o backlog declara `Não se aplica — a spec não nasceu de
+uma Demanda`, ou quando o metadado está ausente do documento.
+
 Use o mapeamento de tipos quando o processo remoto expuser outros nomes, por exemplo
 `AZURE_DEVOPS_TIPO_USER_STORY=Product Backlog Item` em processos Scrum. O nome remoto participa do
 plano, do payload e do hash; não altera o rótulo documental `[User Story]`. O mesmo vale para
