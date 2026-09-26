@@ -26,13 +26,17 @@ _ORDEM_TIPOS = {
 }
 
 
+class ErroDependenciaCiclica(ValueError):
+    """Indica ciclo de dependência que impediria qualquer ordem de criação."""
+
+
 def criar_plano(
     itens: Sequence[ItemBacklog],
     configuracao: ConfiguracaoPublicacao,
     data_geracao: str,
 ) -> PlanoPublicacao:
     """Cria o plano completo; a retomada só separa pendentes após validar o manifesto."""
-    itens_ordenados = sorted(itens, key=_chave_ordenacao)
+    itens_ordenados = _ordenar_para_criacao(itens)
     operacoes = tuple(_criar_operacao(item, configuracao, data_geracao) for item in itens_ordenados)
     return PlanoPublicacao(
         operacoes=operacoes,
@@ -44,6 +48,39 @@ def criar_plano(
 def _chave_ordenacao(item: ItemBacklog) -> tuple[int, tuple[int, int, int]]:
     primeiro, segundo, terceiro = (int(parte) for parte in item.chave.split("."))
     return (_ORDEM_TIPOS[item.tipo], (primeiro, segundo, terceiro))
+
+
+def _ordenar_para_criacao(itens: Sequence[ItemBacklog]) -> list[ItemBacklog]:
+    """Ordena por tipo e chave e depois puxa cada predecessor para antes do dependente.
+
+    A travessia parte da ordem estável de hoje e emite em pós-ordem, então um backlog
+    sem ``depende_de`` sai exatamente na sequência anterior — é o que preserva o hash
+    e, com ele, a retomada de todo manifesto já gravado.
+    """
+    base = sorted(itens, key=_chave_ordenacao)
+    por_chave = {item.chave: item for item in base}
+    resultado: list[ItemBacklog] = []
+    concluidos: set[str] = set()
+    em_visita: list[str] = []
+
+    def visitar(item: ItemBacklog) -> None:
+        if item.chave in concluidos:
+            return
+        if item.chave in em_visita:
+            ciclo = " → ".join(em_visita[em_visita.index(item.chave) :] + [item.chave])
+            raise ErroDependenciaCiclica(f"ciclo de dependência entre {ciclo}")
+        em_visita.append(item.chave)
+        for chave in item.depende_de:
+            predecessor = por_chave.get(chave)
+            if predecessor is not None:
+                visitar(predecessor)
+        em_visita.pop()
+        concluidos.add(item.chave)
+        resultado.append(item)
+
+    for item in base:
+        visitar(item)
+    return resultado
 
 
 def _criar_operacao(
@@ -58,6 +95,7 @@ def _criar_operacao(
         chave_pai=item.pai,
         tipo_remoto=configuracao.mapeamento_tipos.nome_remoto(item.tipo),
         tags=item.tags,
+        depende_de=item.depende_de,
     )
 
 
@@ -76,6 +114,8 @@ def _conteudo_do_item(item: ItemBacklog) -> dict[str, object]:
     # "simplifique" incluindo sempre.
     if item.tags:
         conteudo["tags"] = list(item.tags)
+    if item.depende_de:
+        conteudo["depende_de"] = list(item.depende_de)
     return conteudo
 
 

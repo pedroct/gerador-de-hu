@@ -136,6 +136,7 @@ class OperacaoCriacao:
     chave_pai: str | None
     tipo_remoto: str
     tags: tuple[str, ...] = ()
+    depende_de: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -131,3 +131,72 @@ def test_hash_muda_quando_ha_tags() -> None:
         criar_plano(com_tags, CONFIGURACAO, DATA_GERACAO).hash_plano
         != criar_plano(ITENS, CONFIGURACAO, DATA_GERACAO).hash_plano
     )
+
+
+def test_predecessor_e_criado_antes_do_dependente_mesmo_com_chave_maior() -> None:
+    funcional = ItemBacklog(
+        "1.1.1",
+        TipoItem.HISTORIA_USUARIO,
+        "Funcional",
+        "1.1.0",
+        "Descrição",
+        "",
+        depende_de=("1.1.2",),
+    )
+    design = ItemBacklog("1.1.2", TipoItem.HISTORIA_USUARIO, "Design", "1.1.0", "Descrição", "")
+    itens = [funcional, design, ITENS[1], ITENS[2]]
+
+    plano = criar_plano(itens, CONFIGURACAO, DATA_GERACAO)
+
+    chaves = [operacao.chave for operacao in plano.operacoes]
+    assert chaves.index("1.1.2") < chaves.index("1.1.1")
+
+
+def test_ordem_sem_dependencias_e_identica_a_de_hoje() -> None:
+    plano = criar_plano(ITENS, CONFIGURACAO, DATA_GERACAO)
+
+    assert [operacao.chave for operacao in plano.operacoes] == ["1.0.0", "1.1.0", "1.1.1"]
+
+
+def test_pai_continua_antes_do_filho_com_dependencia_entre_irmaos() -> None:
+    funcional = ItemBacklog(
+        "1.1.1",
+        TipoItem.HISTORIA_USUARIO,
+        "Funcional",
+        "1.1.0",
+        "Descrição",
+        "",
+        depende_de=("1.1.2",),
+    )
+    design = ItemBacklog("1.1.2", TipoItem.HISTORIA_USUARIO, "Design", "1.1.0", "Descrição", "")
+
+    plano = criar_plano([funcional, design, ITENS[1], ITENS[2]], CONFIGURACAO, DATA_GERACAO)
+
+    chaves = [operacao.chave for operacao in plano.operacoes]
+    assert chaves.index("1.1.0") < chaves.index("1.1.2")
+
+
+def test_operacao_propaga_dependencias() -> None:
+    funcional = ItemBacklog(
+        "1.1.1",
+        TipoItem.HISTORIA_USUARIO,
+        "Funcional",
+        "1.1.0",
+        "Descrição",
+        "",
+        depende_de=("1.1.2",),
+    )
+    design = ItemBacklog("1.1.2", TipoItem.HISTORIA_USUARIO, "Design", "1.1.0", "Descrição", "")
+
+    plano = criar_plano([funcional, design, ITENS[1], ITENS[2]], CONFIGURACAO, DATA_GERACAO)
+    operacao = next(o for o in plano.operacoes if o.chave == "1.1.1")
+
+    assert operacao.depende_de == ("1.1.2",)
+
+
+def test_hash_nao_muda_para_backlog_sem_dependencias() -> None:
+    # mesmo literal da Tarefa 2: a ordenação topológica estável não pode alterar
+    # nem a ordem nem o conteúdo serializado de um backlog sem arestas
+    esperado = criar_plano(ITENS, CONFIGURACAO, DATA_GERACAO).hash_plano
+
+    assert criar_plano(list(reversed(ITENS)), CONFIGURACAO, DATA_GERACAO).hash_plano == esperado
