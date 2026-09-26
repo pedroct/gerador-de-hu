@@ -1433,7 +1433,7 @@ def test_hash_muda_quando_ha_id_declarado() -> None:
         criar_plano([epic, ITENS[1], ITENS[0]], CONFIGURACAO, DATA_GERACAO).hash_plano
         != criar_plano(ITENS, CONFIGURACAO, DATA_GERACAO).hash_plano
     )
-
+```
 
 Em `tests/test_manifesto.py`:
 
