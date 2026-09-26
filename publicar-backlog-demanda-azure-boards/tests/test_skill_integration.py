@@ -167,6 +167,7 @@ def test_validar_apenas_valida_operacoes_remotamente_sem_criar_itens() -> None:
         "POST validateOnly",
         "POST validateOnly",
         "POST validateOnly",
+        "POST validateOnly",
     ]
     assert cliente.chaves_criadas == []
 

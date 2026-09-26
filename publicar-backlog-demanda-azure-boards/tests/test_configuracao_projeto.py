@@ -34,7 +34,7 @@ def test_entry_point_instalado_chama_cli_real(monkeypatch, capsys) -> None:
     codigo = main()
 
     assert codigo == 0
-    assert "Backlog válido: 3 itens." in capsys.readouterr().out
+    assert "Backlog válido: 4 itens." in capsys.readouterr().out
 
 
 def test_token_interativo_usa_getpass_do_modulo(monkeypatch) -> None:

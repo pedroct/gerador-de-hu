@@ -115,7 +115,7 @@ def test_publicacao_pela_cli_aceita_confirmacao_apos_nova_tentativa(
     )
 
     assert codigo == 0
-    assert cliente.chaves_criadas == ["1.0.0", "1.1.0", "1.1.1"]
+    assert cliente.chaves_criadas == ["1.0.0", "1.1.0", "1.1.2", "1.1.1"]
     assert "maiúsculas" in saida.getvalue()
 
 
@@ -138,8 +138,10 @@ def test_publicacao_pela_cli_cria_itens_em_ordem_e_grava_manifesto_no_caminho_in
     )
 
     assert codigo == 0
-    assert cliente.chaves_criadas == ["1.0.0", "1.1.0", "1.1.1"]
-    assert list(ler_manifesto(caminho_manifesto).itens) == cliente.chaves_criadas
+    assert cliente.chaves_criadas == ["1.0.0", "1.1.0", "1.1.2", "1.1.1"]
+    # O manifesto é gravado com `sort_keys=True`, então a ordem das chaves nele é
+    # lexicográfica, não a ordem topológica de criação; o que importa é o conjunto.
+    assert set(ler_manifesto(caminho_manifesto).itens) == set(cliente.chaves_criadas)
 
 
 def test_publicadora_solta_publica_backlog_com_demanda_de_origem_declarada(
@@ -177,4 +179,4 @@ def test_publicadora_solta_publica_backlog_com_demanda_de_origem_declarada(
     )
 
     assert codigo == 0
-    assert cliente.chaves_criadas == ["1.0.0", "1.1.0", "1.1.1"]
+    assert cliente.chaves_criadas == ["1.0.0", "1.1.0", "1.1.2", "1.1.1"]

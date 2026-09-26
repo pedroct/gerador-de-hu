@@ -17,6 +17,7 @@ def test_interpreta_epic_feature_e_historia():
         ("1.0.0", "Epic"),
         ("1.1.0", "Feature"),
         ("1.1.1", "User Story"),
+        ("1.1.2", "User Story"),
     ]
     assert itens[2].pai == "1.1.0"
 
@@ -93,14 +94,20 @@ def test_rejeita_data_de_geracao_com_calendario_invalido(tmp_path: Path):
         extrair_data_geracao(caminho)
 
 
+def _historia_da_fixture():
+    """A fixture tem duas folhas; a evidência e o Card/Conversation moram em `1.1.1`."""
+    itens = interpretar_backlog(Path("tests/fixtures/valid-backlog.md"))
+    return next(item for item in itens if item.chave == "1.1.1")
+
+
 def test_evidencia_de_implementacao_nao_faz_parte_da_descricao():
-    item = interpretar_backlog(Path("tests/fixtures/valid-backlog.md"))[-1]
+    item = _historia_da_fixture()
     assert "Implementation Evidence" not in item.descricao
 
 
 def test_card_e_conversation_sao_normalizados_para_heading_proeminente():
     """Nível 6 no documento fonte renderiza <h6>, menor que o texto em negrito ao redor."""
-    item = interpretar_backlog(Path("tests/fixtures/valid-backlog.md"))[-1]
+    item = _historia_da_fixture()
     assert "###### Card" not in item.descricao
     assert "###### Conversation" not in item.descricao
     assert "### Card" in item.descricao
