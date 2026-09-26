@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -9,6 +10,7 @@ from typing import Protocol
 
 from publicar_backlog_demanda_azure_boards.autorizacao import Autorizacao, ErroAutorizacao
 from publicar_backlog_demanda_azure_boards.cliente_azure_devops import ErroCriacaoAmbigua
+from publicar_backlog_demanda_azure_boards.interpretar_markdown import ErroContratoMarkdown
 from publicar_backlog_demanda_azure_boards.manifesto import (
     Manifesto,
     ReconciliacaoManualNecessaria,
@@ -23,6 +25,54 @@ from publicar_backlog_demanda_azure_boards.modelos import (
     PlanoPublicacao,
     RegistroManifesto,
 )
+
+_DEMANDA_ORIGEM_RE = re.compile(r"^- Demanda de Negócio de origem: (?P<valor>.+)$", re.MULTILINE)
+_DEMANDA_ID_RE = re.compile(r"^`#(\d+)`$")
+
+
+def extrair_demanda_origem(caminho: Path) -> int | None:
+    """Lê o ID da Demanda declarado nos Metadados; ``None`` quando o backlog não nasceu de uma.
+
+    Vive aqui, e não em ``interpretar_markdown.py``, porque este módulo é espelhado byte a
+    byte no pacote ``publicar-backlog-azure-boards`` (ver ``test_sincronia_com_origem.py``),
+    e a checagem cruzada do `demanda_id` é exclusiva da publicadora de Demanda: a
+    publicadora solta precisa continuar aceitando um backlog com Demanda declarada (o
+    backlog de débitos técnicos declara a origem só para rastreabilidade e publica solto de
+    propósito, pelo `Iteration Path`).
+    """
+    texto = caminho.read_text(encoding="utf-8")
+    correspondencia = _DEMANDA_ORIGEM_RE.search(texto)
+    if correspondencia is None:
+        raise ErroContratoMarkdown("Metadados e cobertura não possui Demanda de Negócio de origem")
+    valor = correspondencia.group("valor").strip()
+    if valor.startswith("Não se aplica"):
+        return None
+    id_declarado = _DEMANDA_ID_RE.match(valor)
+    if id_declarado is None:
+        raise ErroContratoMarkdown(
+            f"Demanda de Negócio de origem inválida: {valor!r}; use `#<id>` ou 'Não se aplica'"
+        )
+    return int(id_declarado.group(1))
+
+
+def conferir_demanda_de_origem(caminho: Path, demanda_id: int) -> None:
+    """Recusa publicar sob uma Demanda diferente da que o backlog declara.
+
+    Sem flag de sobreposição de propósito: pendurar épicos na Demanda errada é caro de
+    desfazer, e uma flag para forçar existiria para ser usada justamente sob a pressão em
+    que o engano acontece. Republicar sob outra Demanda passa por corrigir o documento.
+    """
+    declarada = extrair_demanda_origem(caminho)
+    if declarada is None:
+        raise ValueError(
+            "O backlog declara 'Não se aplica' em Demanda de Negócio de origem: ele não "
+            "nasceu de uma Demanda, e esta não é a publicadora dele."
+        )
+    if declarada != demanda_id:
+        raise ValueError(
+            f"O backlog declara a Demanda #{declarada}, e a configuração informa "
+            f"#{demanda_id}. Corrija o documento ou a configuração antes de publicar."
+        )
 
 
 class IdentidadeCriada(Protocol):

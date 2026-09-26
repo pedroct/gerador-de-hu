@@ -3,6 +3,7 @@
 ## Metadados e cobertura
 - Data de geração: `2026-09-10`
 - Spec de origem: `docs/specs/spec-exemplo.md`
+- Demanda de Negócio de origem: `#13959`
 
 ## 1.0.0 [Epic] Corrigir diligências
 

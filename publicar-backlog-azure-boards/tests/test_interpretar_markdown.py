@@ -175,3 +175,21 @@ def test_rejeita_contrato_invalido(tmp_path: Path, texto: str, mensagem: str):
 
     with pytest.raises(ErroContratoMarkdown, match=mensagem):
         interpretar_backlog(caminho)
+
+
+def test_publicadora_solta_aceita_backlog_com_demanda_declarada(tmp_path: Path):
+    """O backlog de débitos declara Demanda e publica solto de propósito.
+
+    Se alguém "corrigir" a assimetria acrescentando a recusa aqui, o fluxo de débitos
+    para de funcionar. Este teste existe para impedir essa correção.
+    """
+    caminho = tmp_path / "backlog.md"
+    caminho.write_text(
+        "# Backlog para Azure Boards\n\n## Metadados e cobertura\n"
+        "- Data de geração: `2026-09-25`\n"
+        "- Demanda de Negócio de origem: `#14125`\n\n"
+        "## 1.0.0 [Epic] Épico\n\n### Description\nTexto\n",
+        encoding="utf-8",
+    )
+
+    assert interpretar_backlog(caminho)[0].chave == "1.0.0"

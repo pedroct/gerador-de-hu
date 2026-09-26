@@ -24,7 +24,10 @@ from publicar_backlog_demanda_azure_boards.configuracao import (
     ConfiguracaoAzureDevOps,
     carregar_configuracao,
 )
-from publicar_backlog_demanda_azure_boards.executar_publicacao import executar_plano
+from publicar_backlog_demanda_azure_boards.executar_publicacao import (
+    conferir_demanda_de_origem,
+    executar_plano,
+)
 from publicar_backlog_demanda_azure_boards.interpretar_markdown import (
     extrair_data_geracao,
     interpretar_backlog,
@@ -200,6 +203,9 @@ def principal(
                 configuracao.obter_token(),
             ),
         )
+        # Confere a Demanda declarada no backlog antes de qualquer chamada remota e antes
+        # de pedir autorização: pendurar épicos na Demanda errada é caro de desfazer.
+        conferir_demanda_de_origem(argumentos_parseados.backlog, destino.demanda_id)
         _verificar_preliminar(
             cliente_real,
             destino,
