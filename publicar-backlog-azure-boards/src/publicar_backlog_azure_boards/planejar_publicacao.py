@@ -13,6 +13,7 @@ from publicar_backlog_azure_boards.converter_para_html import (
 from publicar_backlog_azure_boards.modelos import (
     ConfiguracaoPublicacao,
     ItemBacklog,
+    ItemPreexistente,
     OperacaoCriacao,
     PlanoPublicacao,
     TipoItem,
@@ -37,11 +38,18 @@ def criar_plano(
 ) -> PlanoPublicacao:
     """Cria o plano completo; a retomada só separa pendentes após validar o manifesto."""
     itens_ordenados = _ordenar_para_criacao(itens)
-    operacoes = tuple(_criar_operacao(item, configuracao, data_geracao) for item in itens_ordenados)
+    preexistentes = tuple(
+        ItemPreexistente(item.chave, item.tipo, item.azure_boards_id)
+        for item in itens_ordenados
+        if item.azure_boards_id is not None
+    )
+    a_criar = [item for item in itens_ordenados if item.azure_boards_id is None]
+    operacoes = tuple(_criar_operacao(item, configuracao, data_geracao) for item in a_criar)
     return PlanoPublicacao(
         operacoes=operacoes,
         hash_plano=_calcular_hash(itens_ordenados, configuracao, data_geracao),
         configuracao=configuracao,
+        preexistentes=preexistentes,
     )
 
 
@@ -121,6 +129,8 @@ def _conteudo_do_item(item: ItemBacklog) -> dict[str, object]:
         conteudo["tags"] = list(item.tags)
     if item.depende_de:
         conteudo["depende_de"] = list(item.depende_de)
+    if item.azure_boards_id is not None:
+        conteudo["azure_boards_id"] = item.azure_boards_id
     return conteudo
 
 

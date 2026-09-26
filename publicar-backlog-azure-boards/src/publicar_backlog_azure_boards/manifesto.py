@@ -201,6 +201,7 @@ def _serializar(manifesto: Manifesto) -> dict[str, Any]:
                 "tipo": registro.tipo.value,
                 "titulo": manifesto.titulos.get(chave),
                 "url": registro.url,
+                "preexistente": registro.preexistente,
             }
             for chave, registro in manifesto.itens.items()
         },
@@ -276,7 +277,8 @@ def _converter(dados: object) -> Manifesto:
             tipo_item = TipoItem(tipo)
         except ValueError as erro:
             raise ValueError("Um item do manifesto tem tipo inválido.") from erro
-        registros[chave] = RegistroManifesto(item_id, tipo_item, url)
+        preexistente = bool(dados_item.get("preexistente", False))
+        registros[chave] = RegistroManifesto(item_id, tipo_item, url, preexistente)
         titulos[chave] = titulo
     return Manifesto(
         hash_plano=hash_plano,

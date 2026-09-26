@@ -335,3 +335,33 @@ def test_gravacao_substitui_atomicamente_sem_deixar_temporario(tmp_path) -> None
     gravar_manifesto(caminho, manifesto)
 
     assert list(tmp_path.glob("mapa.json.*")) == []
+
+
+def test_preserva_a_marca_de_preexistente_ao_gravar_e_ler(tmp_path) -> None:
+    caminho = tmp_path / "mapa.json"
+    original = Manifesto(
+        hash_plano="hash",
+        configuracao=CONFIGURACAO,
+        itens={"1.0.0": RegistroManifesto(4721, TipoItem.EPIC, "https://exemplo/4721", True)},
+        titulos={"1.0.0": "2026-09-25 1.0.0 Épico"},
+    )
+
+    gravar_manifesto(caminho, original)
+
+    assert ler_manifesto(caminho).itens["1.0.0"].preexistente is True
+
+
+def test_manifesto_antigo_sem_a_marca_continua_valido(tmp_path) -> None:
+    caminho = tmp_path / "mapa.json"
+    original = Manifesto(
+        hash_plano="hash",
+        configuracao=CONFIGURACAO,
+        itens={"1.0.0": RegistroManifesto(9, TipoItem.EPIC, "https://exemplo/9")},
+        titulos={"1.0.0": "2026-09-25 1.0.0 Épico"},
+    )
+    gravar_manifesto(caminho, original)
+    dados = json.loads(caminho.read_text(encoding="utf-8"))
+    del dados["itens"]["1.0.0"]["preexistente"]
+    caminho.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
+
+    assert ler_manifesto(caminho).itens["1.0.0"].preexistente is False

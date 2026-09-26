@@ -3,6 +3,7 @@ from dataclasses import replace
 from publicar_backlog_demanda_azure_boards.modelos import (
     ConfiguracaoPublicacao,
     ItemBacklog,
+    ItemPreexistente,
     MapeamentoTipos,
     TipoItem,
 )
@@ -268,3 +269,27 @@ def test_dependencia_entre_ramos_preserva_pai_antes_do_filho() -> None:
     assert chaves.index("3.1.1") < chaves.index("1.1.1")
     assert chaves.index("3.0.0") < chaves.index("3.1.0") < chaves.index("3.1.1")
     assert chaves.index("1.0.0") < chaves.index("1.1.0") < chaves.index("1.1.1")
+
+
+def test_item_com_id_declarado_nao_vira_operacao_de_criacao() -> None:
+    epic = replace(ITENS[2], azure_boards_id=4721)
+
+    plano = criar_plano([epic, ITENS[1], ITENS[0]], CONFIGURACAO, DATA_GERACAO)
+
+    assert [operacao.chave for operacao in plano.operacoes] == ["1.1.0", "1.1.1"]
+    assert plano.preexistentes == (ItemPreexistente("1.0.0", TipoItem.EPIC, 4721),)
+
+
+def test_plano_sem_id_declarado_nao_tem_preexistentes() -> None:
+    plano = criar_plano(ITENS, CONFIGURACAO, DATA_GERACAO)
+
+    assert plano.preexistentes == ()
+
+
+def test_hash_muda_quando_ha_id_declarado() -> None:
+    epic = replace(ITENS[2], azure_boards_id=4721)
+
+    assert (
+        criar_plano([epic, ITENS[1], ITENS[0]], CONFIGURACAO, DATA_GERACAO).hash_plano
+        != criar_plano(ITENS, CONFIGURACAO, DATA_GERACAO).hash_plano
+    )

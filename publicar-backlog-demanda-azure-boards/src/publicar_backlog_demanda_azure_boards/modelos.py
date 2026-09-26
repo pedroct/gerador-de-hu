@@ -81,6 +81,15 @@ class ItemBacklog:
 
 
 @dataclass(frozen=True)
+class ItemPreexistente:
+    """Item que o backlog declara já publicado, e que esta ferramenta não cria."""
+
+    chave: str
+    tipo: TipoItem
+    id: int
+
+
+@dataclass(frozen=True)
 class Demanda:
     """Demanda de Negócio lida do Azure Boards, usada para derivar e exibir o destino.
 
@@ -115,6 +124,10 @@ class RegistroManifesto:
     id: int
     tipo: TipoItem
     url: str
+    # Um registro pré-existente veio declarado no backlog, não de uma criação nossa.
+    # Ele serve de pai para os filhos e nada mais: não conta como criação, não entra em
+    # reconciliação e não é recriado numa retomada.
+    preexistente: bool = False
 
 
 @dataclass(frozen=True)
@@ -164,6 +177,7 @@ class PlanoPublicacao:
     operacoes: tuple[OperacaoCriacao, ...]
     hash_plano: str
     configuracao: ConfiguracaoPublicacao
+    preexistentes: tuple[ItemPreexistente, ...] = ()
 
 
 def assinatura_plano(plano: PlanoPublicacao) -> str:
