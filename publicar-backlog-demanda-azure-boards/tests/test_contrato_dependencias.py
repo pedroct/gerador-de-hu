@@ -92,3 +92,79 @@ def test_recusa_dependencia_para_item_que_nao_e_folha() -> None:
     erros = validate_backlog(BACKLOG.format(depende_de="`1.1.0`"))
 
     assert any("1.1.1 depende de 1.1.0, que não é item de folha" in erro for erro in erros)
+
+
+BACKLOG_COM_DUAS_FOLHAS = """# Backlog para Azure Boards
+
+## Metadados e cobertura
+- Data de geração: `2026-09-25`
+
+## 1.0.0 [Epic] Épico
+{depende_de_epic}
+### Description
+Origem na spec: seção 1
+
+### 1.1.0 [Feature] Feature
+{depende_de_feature}
+#### Parent
+`1.0.0`
+
+#### Description
+Origem na spec: seção 1
+
+#### 1.1.1 [User Story] História
+{depende_de_leaf}
+##### Parent
+`1.1.0`
+
+##### Description
+Origem na spec: seção 1
+
+##### Acceptance Criteria
+
+#### 1.1.2 [User Story] Outra história
+
+##### Parent
+`1.1.0`
+
+##### Description
+Origem na spec: seção 1
+
+##### Acceptance Criteria
+"""
+
+
+def test_recusa_dependencia_declarada_em_feature() -> None:
+    erros = validate_backlog(
+        BACKLOG_COM_DUAS_FOLHAS.format(
+            depende_de_epic="",
+            depende_de_feature="#### Depende de\n`1.1.2`\n",
+            depende_de_leaf="",
+        )
+    )
+
+    assert any("1.1.0 declara Depende de, permitido só em item de folha" in erro for erro in erros)
+
+
+def test_recusa_dependencia_declarada_em_epic() -> None:
+    erros = validate_backlog(
+        BACKLOG_COM_DUAS_FOLHAS.format(
+            depende_de_epic="### Depende de\n`1.1.2`\n",
+            depende_de_feature="",
+            depende_de_leaf="",
+        )
+    )
+
+    assert any("1.0.0 declara Depende de, permitido só em item de folha" in erro for erro in erros)
+
+
+def test_folha_com_dependencia_continua_aceita() -> None:
+    erros = validate_backlog(
+        BACKLOG_COM_DUAS_FOLHAS.format(
+            depende_de_epic="",
+            depende_de_feature="",
+            depende_de_leaf="##### Depende de\n`1.1.2`\n",
+        )
+    )
+
+    assert erros == []

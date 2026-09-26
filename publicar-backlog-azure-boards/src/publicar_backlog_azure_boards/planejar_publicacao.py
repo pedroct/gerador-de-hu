@@ -56,6 +56,11 @@ def _ordenar_para_criacao(itens: Sequence[ItemBacklog]) -> list[ItemBacklog]:
     A travessia parte da ordem estável de hoje e emite em pós-ordem, então um backlog
     sem ``depende_de`` sai exatamente na sequência anterior — é o que preserva o hash
     e, com ele, a retomada de todo manifesto já gravado.
+
+    Não trate ``item.pai`` como aresta implícita aqui: o contrato só permite ``Depende
+    de`` partindo de item de folha, e toda folha já vem por último na ordem base, então
+    todo contêiner ancestral já foi emitido antes de qualquer aresta de dependência ser
+    seguida — acrescentar essa aresta resolveria um caso que a validação já proíbe.
     """
     base = sorted(itens, key=_chave_ordenacao)
     por_chave = {item.chave: item for item in base}

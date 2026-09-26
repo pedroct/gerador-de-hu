@@ -243,3 +243,28 @@ def test_hash_nao_muda_para_backlog_sem_dependencias() -> None:
     esperado = criar_plano(ITENS, CONFIGURACAO, DATA_GERACAO).hash_plano
 
     assert criar_plano(list(reversed(ITENS)), CONFIGURACAO, DATA_GERACAO).hash_plano == esperado
+
+
+def test_dependencia_entre_ramos_preserva_pai_antes_do_filho() -> None:
+    itens = [
+        ItemBacklog("1.0.0", TipoItem.EPIC, "E1", None, "Descrição", ""),
+        ItemBacklog("3.0.0", TipoItem.EPIC, "E3", None, "Descrição", ""),
+        ItemBacklog("1.1.0", TipoItem.FEATURE, "F1", "1.0.0", "Descrição", ""),
+        ItemBacklog("3.1.0", TipoItem.FEATURE, "F3", "3.0.0", "Descrição", ""),
+        ItemBacklog(
+            "1.1.1",
+            TipoItem.HISTORIA_USUARIO,
+            "L1",
+            "1.1.0",
+            "Descrição",
+            "",
+            depende_de=("3.1.1",),
+        ),
+        ItemBacklog("3.1.1", TipoItem.HISTORIA_USUARIO, "L3", "3.1.0", "Descrição", ""),
+    ]
+
+    chaves = [o.chave for o in criar_plano(itens, CONFIGURACAO, DATA_GERACAO).operacoes]
+
+    assert chaves.index("3.1.1") < chaves.index("1.1.1")
+    assert chaves.index("3.0.0") < chaves.index("3.1.0") < chaves.index("3.1.1")
+    assert chaves.index("1.0.0") < chaves.index("1.1.0") < chaves.index("1.1.1")

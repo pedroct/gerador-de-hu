@@ -115,3 +115,132 @@ aplicada nos dois arquivos de teste novos via `uv run ruff format`, que quebrou 
 Nenhum. Todos os comandos de verificação (`pytest`, `ruff check`, `ruff format --check`, `mypy src`)
 passam nos dois pacotes, e a invariante de hash crítica (`HASH_ANTES_DOS_CAMPOS_NOVOS`) permanece
 intacta.
+
+---
+
+## Correção pós-revisão: achado Crítico — dependência entre ramos diferentes
+
+### O achado
+
+O revisor reproduziu um caso em que um item **não-folha** (Epic ou Feature) declarava `depende_de`
+apontando para uma folha de outro ramo da hierarquia. Como `_ordenar_para_criacao` só segue a aresta
+`depende_de` e não trata `item.pai` como aresta implícita, a folha-alvo era puxada para o início do
+resultado sem seus próprios ancestrais — invertendo pai e filho.
+
+### A decisão do coordenador (não minha, registrada aqui por rastreabilidade)
+
+A correção não vai no algoritmo de ordenação. Dois pontos sustentam isso:
+
+1. O caso que a spec de fato permite (folha depende de folha, em ramos diferentes) já sai correto
+   hoje — por construção, toda folha vem por último na ordem base, então todo contêiner ancestral já
+   foi emitido antes de qualquer aresta de dependência ser seguida.
+2. A spec diz textualmente que `Depende de` "vale entre quaisquer dois itens de folha". A validação
+   da Tarefa 3 já exigia que o **alvo** fosse folha, mas não validava a **origem**. Essa lacuna — não
+   o algoritmo de ordenação — é a causa raiz: o caso reproduzido pelo revisor é um caso que o
+   contrato já deveria proibir.
+
+Por isso a correção ficou inteiramente em `contrato_backlog._validate_item` (validação estrutural),
+não em `planejar_publicacao._ordenar_para_criacao`.
+
+### O que mudou
+
+Em **ambos** os pacotes:
+
+- `contrato_backlog.py`, dentro do bloco `if DEPENDE_DE in item.sections:` de `_validate_item`:
+  acrescentada a checagem `if item.key not in folhas: errors.append(f"{item.key} declara Depende de,
+  permitido só em item de folha")`, usando o `folhas` já recebido como parâmetro (sem recalcular).
+- `test_contrato_dependencias.py`: acrescentada a fixture `BACKLOG_COM_DUAS_FOLHAS` (Epic → Feature →
+  duas Histórias-folha, com placeholders `{depende_de_epic}`, `{depende_de_feature}` e
+  `{depende_de_leaf}` para inserir a seção `Depende de` em cada nível) e três testes:
+  - `test_recusa_dependencia_declarada_em_feature`
+  - `test_recusa_dependencia_declarada_em_epic`
+  - `test_folha_com_dependencia_continua_aceita` (não-regressão: folha dependendo de folha continua
+    aceito, `erros == []`)
+- `planejar_publicacao.py`: nenhuma mudança de lógica. Acrescentada uma frase ao docstring de
+  `_ordenar_para_criacao` explicando por que a aresta de pai não é necessária (para que ninguém
+  "conserte" isso de novo).
+- `test_planejar_publicacao.py`: acrescentado `test_dependencia_entre_ramos_preserva_pai_antes_do_filho`,
+  que documenta o caso do achado (folha em ramo 1 depende de folha em ramo 3) e confirma que os pais
+  de ambos os ramos saem antes de seus filhos.
+
+### Evidência de TDD
+
+**RED** — confirmado removendo temporariamente a checagem nova (via `sed`, restaurada em seguida a
+partir de um backup local, sem tocar no histórico do git) e rodando os testes novos de validação:
+
+```
+$ cd publicar-backlog-azure-boards && uv run pytest tests/test_contrato_dependencias.py -k "declarada_em" -v
+FAILED tests/test_contrato_dependencias.py::test_recusa_dependencia_declarada_em_feature
+FAILED tests/test_contrato_dependencias.py::test_recusa_dependencia_declarada_em_epic
+2 failed, 11 deselected in 0.02s
+```
+
+Restaurada a checagem, os mesmos dois testes passam:
+
+```
+$ cd publicar-backlog-azure-boards && uv run pytest tests/test_contrato_dependencias.py -q
+13 passed in 0.01s
+```
+
+`test_dependencia_entre_ramos_preserva_pai_antes_do_filho` (o teste de ordenação do brief da revisão)
+já passa **sem** nenhuma mudança em `planejar_publicacao.py` — confirmando experimentalmente o ponto
+1 da decisão do coordenador (o algoritmo de ordenação já está correto para o caso que a spec permite;
+só faltava a validação recusar o caso que a spec proíbe):
+
+```
+$ cd publicar-backlog-azure-boards && uv run pytest tests/test_planejar_publicacao.py -k dependencia_entre_ramos -v
+tests/test_planejar_publicacao.py::test_dependencia_entre_ramos_preserva_pai_antes_do_filho PASSED
+1 passed, 16 deselected in 0.06s
+```
+
+### GREEN — suíte completa
+
+```
+$ cd publicar-backlog-azure-boards && uv run pytest -q && uv run ruff check . && \
+    uv run ruff format --check . && uv run mypy src
+169 passed in 0.31s
+All checks passed!
+29 files left unchanged
+Success: no issues found in 13 source files
+
+$ cd publicar-backlog-demanda-azure-boards && uv run pytest -q && uv run ruff check . && \
+    uv run ruff format --check . && uv run mypy src
+261 passed in 1.06s
+All checks passed!
+37 files left unchanged
+Success: no issues found in 15 source files
+```
+
+Invariante crítica reconfirmada nos dois pacotes:
+
+```
+$ uv run pytest tests/test_planejar_publicacao.py::test_hash_nao_muda_para_backlog_sem_tags -v
+tests/test_planejar_publicacao.py::test_hash_nao_muda_para_backlog_sem_tags PASSED
+```
+
+Sincronia (`contrato_backlog.py` está na lista de módulos espelhados):
+
+```
+$ cd publicar-backlog-demanda-azure-boards && uv run pytest tests/test_sincronia_com_origem.py -v
+5 passed in 0.01s
+```
+
+### Achados da autorrevisão da correção
+
+- `diff` do `contrato_backlog.py` entre os dois pacotes: idêntico byte a byte (o arquivo não contém
+  o nome do pacote em nenhum lugar, então `cp` direto já satisfaz `test_sincronia_com_origem.py`).
+- Nenhuma linha nova passa de 100 colunas em nenhum dos 8 arquivos tocados (verificado com
+  `awk 'length($0) > 100'`).
+- A checagem nova usa o parâmetro `folhas` já recebido por `_validate_item`, sem recalcular a
+  partir de `item.kind` — conforme pedido.
+- A checagem é aditiva (não usa `elif`/`return` antecipado): quando um item não-folha declara
+  `Depende de` malformado (ex.: chave inválida), ambos os erros aparecem juntos, consistente com o
+  padrão já usado para `Tags` na mesma função.
+- O achado **menor** do revisor (profundidade de recursão de `visitar` proporcional ao maior
+  encadeamento de `depende_de`) foi deixado como está, por instrução explícita do coordenador — não
+  mexi nele.
+
+### Problemas ou preocupações
+
+Nenhum. Todas as verificações pedidas passaram, incluindo a invariante de hash e a sincronia entre
+pacotes.

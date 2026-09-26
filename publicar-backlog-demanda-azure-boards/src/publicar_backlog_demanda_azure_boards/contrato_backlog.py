@@ -285,6 +285,8 @@ def _validate_item(item: BacklogItem, keys: set[str], folhas: set[str]) -> list[
         if not tags and not erros_tags:
             errors.append(f"{item.key} possui a seção Tags presente e vazia")
     if DEPENDE_DE in item.sections:
+        if item.key not in folhas:
+            errors.append(f"{item.key} declara Depende de, permitido só em item de folha")
         chaves, erros_chaves = normalizar_chaves(item.section(DEPENDE_DE))
         errors.extend(f"{item.key}: {erro}" for erro in erros_chaves)
         for chave in chaves:
