@@ -203,8 +203,10 @@ def principal(
                 configuracao.obter_token(),
             ),
         )
-        # Confere a Demanda declarada no backlog antes de qualquer chamada remota e antes
-        # de pedir autorização: pendurar épicos na Demanda errada é caro de desfazer.
+        # Confere a Demanda declarada no backlog antes de qualquer escrita e antes de pedir
+        # autorização: pendurar épicos na Demanda errada é caro de desfazer. Não é "antes de
+        # qualquer chamada remota" — `ler_demanda` já fez um GET acima; o que esta posição
+        # garante é que nada foi criado nem autorizado.
         conferir_demanda_de_origem(argumentos_parseados.backlog, destino.demanda_id)
         _verificar_preliminar(
             cliente_real,

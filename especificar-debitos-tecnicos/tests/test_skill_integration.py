@@ -55,6 +55,27 @@ class SkillIntegrationTests(unittest.TestCase):
         self.assertIn("diretório de destino", self.skill)
         self.assertIn("Sem diretório de destino", self.skill)
 
+    def test_resumo_priorizado_declara_a_coluna_faixa(self):
+        """A coluna `Faixa` é contrato estrutural, não prosa: `gerar-backlog-azure-boards`
+        a lê para emitir a tag `dt-<faixa>`. Se alguém a remover daqui, a tag morre em
+        silêncio e ninguém percebe até a query do board voltar vazia."""
+        self.assertIn("| Prioridade | Faixa |", self.skill)
+
+    def test_declara_a_secao_fonte_da_demanda(self):
+        """É de `## Fonte da Demanda` que sai a tag `dn-<id>`; sem a seção no template, o
+        backlog perde a rastreabilidade da Demanda."""
+        self.assertIn("## Fonte da Demanda", self.skill)
+
+    def test_registra_que_a_faixa_e_fotografia_da_geracao(self):
+        """A tag `dt-<faixa>` envelhece: uma reavaliação posterior não atualiza o work item
+        já criado. A ressalva tem de estar escrita onde a Faixa é preenchida."""
+        self.assertIn("fotografia da geração, não obrigação recalculável", self.skill)
+
+    def test_indica_a_publicadora_solta_para_o_backlog_de_debitos(self):
+        """A publicadora de Demanda herdaria dela o Iteration Path, e o débito nasceria na
+        sprint da Demanda — exatamente a sprint em que ele não será pago."""
+        self.assertIn("(a publicadora solta) como próxima etapa manual", self.skill)
+
 
 if __name__ == "__main__":
     unittest.main()

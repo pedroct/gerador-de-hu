@@ -60,6 +60,7 @@ Campo opcional e válido **somente em item de folha** (User Story ou Bug): decla
 Feature é erro. O conteúdo é uma ou mais chaves documentais `E.F.S` separadas por vírgula, cada uma
 entre crases, por exemplo `` `1.1.2`, `1.1.3` ``; repetição deduplica preservando a ordem.
 
+- A seção presente e vazia é erro — se o item não depende de nada, omita a subseção inteira.
 - Cada chave declarada precisa existir no backlog e ser ela mesma um item de folha; apontar para um
   Epic, uma Feature ou uma chave inexistente é erro — a regra vale nos dois sentidos, tanto para quem
   declara `Depende de` quanto para o alvo apontado.
@@ -101,6 +102,7 @@ conteúdo é um único ID inteiro positivo, em algarismos ASCII, entre crases, p
 Qualquer valor que não seja um inteiro positivo ASCII é recusado, incluindo zero, negativos, texto,
 separadores decimais, espaços internos e algarismos não-ASCII ou sobrescritos que pareçam dígitos.
 
+- A seção presente e vazia é erro — se o item não é reaproveitado, omita a subseção inteira.
 - Uma Feature que declara `Azure Boards ID` exige que seu Epic pai também declare `Azure Boards ID`;
   sem essa exigência, a Feature reaproveitada apontaria para um Epic que a publicação ainda criaria do
   zero, com uma chave nova e imprevisível.
@@ -109,6 +111,11 @@ separadores decimais, espaços internos e algarismos não-ASCII ou sobrescritos 
   nem do nome de pasta da Demanda.
 - Um item com `Azure Boards ID` declarado não é criado pela publicação: ele é reaproveitado como já
   existente e serve de pai para os itens que a publicação de fato cria por baixo dele.
+- Porque o item não é criado, **as `Tags` declaradas nele não são publicadas**: nenhuma chamada envia
+  `System.Tags` para um item reaproveitado, e o work item existente permanece com as tags que já
+  tinha. As tags declaradas ainda entram no hash do plano, então mudá-las invalida a retomada de uma
+  publicação parcial sem mudar nada no board. Para etiquetar um item já publicado, edite-o no Azure
+  Boards.
 
 ## Template completo
 

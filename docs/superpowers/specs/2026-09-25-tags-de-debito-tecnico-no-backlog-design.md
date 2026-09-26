@@ -384,6 +384,7 @@ são gêmeos.
 | Arquivo | Mudança |
 |---|---|
 | `gerar-backlog-azure-boards/references/backlog-markdown-contract.md` | seção `Tags`: formato, regras, posição no template, mapeamento para `System.Tags`. `Depende de` promovido de texto na `Description` a subseção estruturada, com o mapeamento para o link e a nota de que `Bloqueia` permanece documental |
+| `gerar-backlog-azure-boards/scripts/validate_backlog.py` | as três seções em `SECTION_NAMES` e as validações correspondentes. É a **terceira cópia** da lógica de contrato e a única que o passo 10 do `SKILL.md` manda rodar: sem ela, o mesmo arquivo manda emitir os campos e, dez linhas abaixo, rodar o gate que os recusa |
 | `gerar-backlog-azure-boards/SKILL.md` | reconhece `Spec: Débitos técnicos` como spec de entrada; emite todo o vocabulário nos itens de folha, incluindo `dn-<id>` em qualquer origem; serializa `Depende de` como subseção estruturada em vez de texto na `Description`; Epic/Feature por capacidade e sem tags |
 | `especificar-debitos-tecnicos/SKILL.md` | `Faixa` como campo oficial; `## Fonte da Demanda`; nota da tag que envelhece |
 | `especificar-telas-ux-ui/SKILL.md` | plataforma como campo estruturado por `TL-xx`, não só no cabeçalho e no título em prosa |

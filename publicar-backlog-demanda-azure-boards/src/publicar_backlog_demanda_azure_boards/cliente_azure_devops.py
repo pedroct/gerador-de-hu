@@ -223,6 +223,10 @@ class ClienteAzureDevOps:
         O ``id_pai`` é enviado para que a validação exercite também a relação
         hierárquica: é nela que mora o risco novo desta skill, o processo remoto
         recusar o Épico como filho da Demanda de Negócio.
+
+        O ``validateOnly`` não exercita ``System.LinkTypes.Dependency-Reverse``: na primeira
+        rodada o predecessor ainda não tem ID, então a relação nem entra no payload validado.
+        Um erro de link só aparece na criação real.
         """
         self._enviar_criacao(operacao, validar=True, id_pai=id_pai)
 

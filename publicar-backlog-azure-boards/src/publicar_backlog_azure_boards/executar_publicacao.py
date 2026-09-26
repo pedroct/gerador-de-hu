@@ -101,6 +101,11 @@ def executar_plano(
     for operacao in plano.operacoes:
         if operacao.chave not in autorizadas:
             continue
+        # As duas checagens abaixo são puras e qualquer uma delas interrompe antes de
+        # qualquer escrita, então a ordem não muda o que acontece — decide só qual mensagem
+        # o usuário vê primeiro quando faltam o pai e o predecessor. O teste que afirma a
+        # mensagem de predecessor depende desta ordem: reordenar quebra o teste sem quebrar
+        # o comportamento, e é o tipo de mudança que parece inofensiva.
         for chave_predecessor in operacao.depende_de:
             if chave_predecessor not in registros:
                 raise ValueError(

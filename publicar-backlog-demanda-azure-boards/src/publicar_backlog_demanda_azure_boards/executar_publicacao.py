@@ -31,7 +31,12 @@ _DEMANDA_ID_RE = re.compile(r"^`#(\d+)`$")
 
 
 def extrair_demanda_origem(caminho: Path) -> int | None:
-    """Lê o ID da Demanda declarado nos Metadados; ``None`` quando o backlog não nasceu de uma.
+    """Lê o ID da Demanda declarado no backlog; ``None`` quando o backlog não nasceu de uma.
+
+    O regex varre o documento inteiro e casa a primeira linha
+    ``- Demanda de Negócio de origem: ...`` que encontrar, onde quer que ela esteja — não
+    delimita a seção de Metadados. Funciona porque os Metadados vêm primeiro no contrato,
+    e é isso que o código faz; a seção não é verificada.
 
     Vive aqui, e não em ``interpretar_markdown.py``, porque este módulo é espelhado byte a
     byte no pacote ``publicar-backlog-azure-boards`` (ver ``test_sincronia_com_origem.py``),
@@ -151,6 +156,11 @@ def executar_plano(
     for operacao in plano.operacoes:
         if operacao.chave not in autorizadas:
             continue
+        # As duas checagens abaixo são puras e qualquer uma delas interrompe antes de
+        # qualquer escrita, então a ordem não muda o que acontece — decide só qual mensagem
+        # o usuário vê primeiro quando faltam o pai e o predecessor. O teste que afirma a
+        # mensagem de predecessor depende desta ordem: reordenar quebra o teste sem quebrar
+        # o comportamento, e é o tipo de mudança que parece inofensiva.
         for chave_predecessor in operacao.depende_de:
             if chave_predecessor not in registros:
                 raise ValueError(

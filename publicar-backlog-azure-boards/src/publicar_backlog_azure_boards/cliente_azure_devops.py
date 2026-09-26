@@ -218,7 +218,12 @@ class ClienteAzureDevOps:
         )
 
     def validar_operacao(self, operacao: OperacaoCriacao) -> None:
-        """Valida o JSON Patch no endpoint de criação, sem persistir o item."""
+        """Valida o JSON Patch no endpoint de criação, sem persistir o item.
+
+        O ``validateOnly`` não exercita ``System.LinkTypes.Dependency-Reverse``: na primeira
+        rodada o predecessor ainda não tem ID, então a relação nem entra no payload validado.
+        Um erro de link só aparece na criação real.
+        """
         self._enviar_criacao(operacao, validar=True, id_pai=None)
 
     def url_do_item(self, id_item: int) -> str:
