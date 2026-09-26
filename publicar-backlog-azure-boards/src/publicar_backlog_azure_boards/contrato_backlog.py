@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 ITEM_RE = re.compile(
@@ -12,6 +13,8 @@ ITEM_RE = re.compile(
 WORK_ITEM_HINT_RE = re.compile(r"^#+ .*(?:\[Epic\]|\[Feature\]|\[User Story\]|\[Bug\])")
 TAGS = "Tags"
 LIMITE_TAG = 400
+DEPENDE_DE = "Depende de"
+CHAVE_RE = re.compile(r"^[1-9]\d*\.\d+\.\d+$")
 
 SECTION_NAMES = {
     "Parent",
@@ -20,6 +23,7 @@ SECTION_NAMES = {
     "Acceptance Criteria",
     "Refinement Status",
     TAGS,
+    DEPENDE_DE,
 }
 IMPLEMENTATION_EVIDENCE = "Implementation Evidence"
 ACCEPTANCE_CRITERIA = "Acceptance Criteria"
@@ -73,6 +77,62 @@ def normalizar_tags(bruto: str) -> tuple[tuple[str, ...], list[str]]:
     if erros:
         return (), erros
     return tuple(tags), []
+
+
+def normalizar_chaves(bruto: str) -> tuple[tuple[str, ...], list[str]]:
+    """Normaliza uma lista de chaves documentais separadas por vírgula."""
+    texto = bruto.strip()
+    if not texto:
+        return (), []
+
+    erros: list[str] = []
+    chaves: list[str] = []
+    for parte in texto.split(","):
+        chave = parte.strip().strip("`").strip()
+        if not chave:
+            erros.append("a seção Depende de possui uma chave vazia entre vírgulas")
+            continue
+        if not CHAVE_RE.match(chave):
+            erros.append(f"'{chave}' não é uma chave documental no formato E.F.S")
+            continue
+        if chave not in chaves:
+            chaves.append(chave)
+
+    if erros:
+        return (), erros
+    return tuple(chaves), []
+
+
+def detectar_ciclo(pares: Sequence[tuple[str, Sequence[str]]]) -> list[str] | None:
+    """Devolve o ciclo de dependências encontrado, em ordem, ou ``None``.
+
+    Um item que depende de si mesmo é um ciclo de um nó e precisa ser pego aqui:
+    uma detecção que só compare pares distintos deixa esse caso passar.
+    """
+    arestas = {chave: list(destinos) for chave, destinos in pares}
+    estado: dict[str, int] = {}
+    pilha: list[str] = []
+
+    def visitar(chave: str) -> list[str] | None:
+        if estado.get(chave) == 2:
+            return None
+        if estado.get(chave) == 1:
+            return pilha[pilha.index(chave) :]
+        estado[chave] = 1
+        pilha.append(chave)
+        for destino in arestas.get(chave, []):
+            ciclo = visitar(destino)
+            if ciclo is not None:
+                return ciclo
+        pilha.pop()
+        estado[chave] = 2
+        return None
+
+    for chave in arestas:
+        ciclo = visitar(chave)
+        if ciclo is not None:
+            return ciclo
+    return None
 
 
 def _new_item(match: re.Match[str]) -> BacklogItem:
@@ -210,7 +270,7 @@ def _validate_leaf_item(item: BacklogItem) -> list[str]:
     return errors
 
 
-def _validate_item(item: BacklogItem, keys: set[str]) -> list[str]:
+def _validate_item(item: BacklogItem, keys: set[str], folhas: set[str]) -> list[str]:
     errors = _validate_hierarchy(item, keys)
     if item.kind in LEAF_KINDS:
         errors.extend(_validate_leaf_item(item))
@@ -224,6 +284,14 @@ def _validate_item(item: BacklogItem, keys: set[str]) -> list[str]:
         errors.extend(f"{item.key}: {erro}" for erro in erros_tags)
         if not tags and not erros_tags:
             errors.append(f"{item.key} possui a seção Tags presente e vazia")
+    if DEPENDE_DE in item.sections:
+        chaves, erros_chaves = normalizar_chaves(item.section(DEPENDE_DE))
+        errors.extend(f"{item.key}: {erro}" for erro in erros_chaves)
+        for chave in chaves:
+            if chave not in keys:
+                errors.append(f"{item.key} depende de {chave}, que não existe no backlog")
+            elif chave not in folhas:
+                errors.append(f"{item.key} depende de {chave}, que não é item de folha")
     return errors
 
 
@@ -263,13 +331,19 @@ def validate_backlog(text: str, update_mode: bool = False) -> list[str]:
         errors.append(f"título de item de trabalho inválido: {heading}")
     seen: set[str] = set()
     keys = {item.key for item in items}
+    folhas = {item.key for item in items if item.kind in LEAF_KINDS}
     groups: dict[tuple[str, str], list[int]] = {}
     for item in items:
         if item.key in seen:
             errors.append(f"chave duplicada: {item.key}")
         seen.add(item.key)
-        errors.extend(_validate_item(item, keys))
+        errors.extend(_validate_item(item, keys, folhas))
         group, number = _group_key(item)
         groups.setdefault(group, []).append(number)
     errors.extend(_validate_groups(groups, update_mode))
+    ciclo = detectar_ciclo(
+        [(item.key, normalizar_chaves(item.section(DEPENDE_DE))[0]) for item in items]
+    )
+    if ciclo is not None:
+        errors.append(f"ciclo de dependência entre {' → '.join(ciclo)}")
     return errors

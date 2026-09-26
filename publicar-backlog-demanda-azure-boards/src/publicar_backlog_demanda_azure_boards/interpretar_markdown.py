@@ -7,7 +7,10 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-from publicar_backlog_demanda_azure_boards.contrato_backlog import normalizar_tags
+from publicar_backlog_demanda_azure_boards.contrato_backlog import (
+    normalizar_chaves,
+    normalizar_tags,
+)
 from publicar_backlog_demanda_azure_boards.modelos import ItemBacklog, TipoItem
 
 _HEADING_RE = re.compile(r"^(?P<marcas>#{1,6}) (?P<conteudo>.+)$")
@@ -23,6 +26,7 @@ _SECOES = {
     "Acceptance Criteria",
     "Refinement Status",
     "Tags",
+    "Depende de",
 }
 _FOLHAS = {TipoItem.HISTORIA_USUARIO, TipoItem.BUG}
 
@@ -245,6 +249,17 @@ def _tags_do_item(item: _ItemEmConstrucao) -> tuple[str, ...]:
     return tags
 
 
+def _dependencias_do_item(item: _ItemEmConstrucao) -> tuple[str, ...]:
+    if "Depende de" not in item.secoes:
+        return ()
+    chaves, erros = normalizar_chaves(item.texto_secao("Depende de"))
+    if erros:
+        raise ErroContratoMarkdown(f"{item.chave}: {erros[0]}")
+    if not chaves:
+        raise ErroContratoMarkdown(f"{item.chave} possui a seção Depende de presente e vazia")
+    return chaves
+
+
 def _converter_item(item: _ItemEmConstrucao) -> ItemBacklog:
     return ItemBacklog(
         chave=item.chave,
@@ -255,4 +270,5 @@ def _converter_item(item: _ItemEmConstrucao) -> ItemBacklog:
         criterios_aceitacao=item.texto_secao("Acceptance Criteria"),
         titulo_curto=item.texto_secao("Título curto"),
         tags=_tags_do_item(item),
+        depende_de=_dependencias_do_item(item),
     )

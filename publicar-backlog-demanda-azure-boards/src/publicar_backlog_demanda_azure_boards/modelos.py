@@ -76,6 +76,7 @@ class ItemBacklog:
     criterios_aceitacao: str
     titulo_curto: str = ""
     tags: tuple[str, ...] = ()
+    depende_de: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
